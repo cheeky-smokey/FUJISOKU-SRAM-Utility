@@ -1,0 +1,1406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FUJISOKU SRAM Utility</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #eceef5;
+  --panel: #ffffff;
+  --panel-2: #f5f6fa;
+  --ink: #1b1e48;
+  --muted: #5a5f86;
+  --line: #d5d8e6;
+  --indigo: #2c3393;
+  --indigo-soft: #e3e5f7;
+  --yarn: #e09e26;
+  --ok: #23845a;
+  --ok-soft: #e1f3ea;
+  --warn: #b7770a;
+  --warn-soft: #fbf0d9;
+  --bad: #c3392b;
+  --bad-soft: #fbe5e2;
+  --hole-empty: #c9cde0;
+  --font: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1129;
+    --panel: #181b3b;
+    --panel-2: #1e2246;
+    --ink: #e6e8f7;
+    --muted: #9ca1cb;
+    --line: #2c305f;
+    --indigo: #8a92f5;
+    --indigo-soft: #262b5c;
+    --yarn: #f0b546;
+    --ok: #4cc58c;
+    --ok-soft: #173a2f;
+    --warn: #e9ab3c;
+    --warn-soft: #3b3018;
+    --bad: #f26d5c;
+    --bad-soft: #42201f;
+    --hole-empty: #3a3f72;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.65 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--yarn); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* 上部の帯: 編み機のパンチカードの送り穴 */
+.topbar {
+  background: #1d2266;
+  color: #f2f3fb;
+  padding: 14px 24px 22px;
+  position: relative;
+}
+.topbar::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 6px; height: 8px;
+  background: radial-gradient(circle at 6px 4px, rgba(255,255,255,.22) 2.6px, transparent 3px) 0 0 / 16px 8px repeat-x;
+}
+.topbar-in { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 21px; font-weight: 700; letter-spacing: .04em; margin: 0; line-height: 1.2; }
+.brand p { margin: 0; font-size: 12.5px; color: #b9bde6; }
+.conn { display: flex; align-items: center; gap: 12px; }
+.conn-state { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #d4d7f3; }
+.conn-state::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #6d72a6; }
+.conn-state.on::before { background: #4fd497; box-shadow: 0 0 0 3px rgba(79,212,151,.25); }
+
+.btn {
+  border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+  font-weight: 700; letter-spacing: .02em;
+  background: var(--indigo); color: #fff;
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+}
+@media (prefers-color-scheme: dark) { .btn { color: #10122a; } }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.big { padding: 13px 24px; font-size: 16px; }
+.btn.danger { background: var(--bad); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn.small { padding: 6px 12px; font-size: 13.5px; }
+.topbar .btn { background: var(--yarn); color: #1b1e48; }
+.topbar .btn.ghost { background: transparent; color: #f2f3fb; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); }
+
+.banner {
+  max-width: 1280px; margin: 16px auto 0; padding: 12px 18px; border-radius: 10px;
+  background: var(--warn-soft); color: var(--ink); border-left: 5px solid var(--warn);
+}
+.banner strong { display: block; }
+
+.layout {
+  max-width: 1280px; margin: 0 auto; padding: 20px 24px 40px;
+  display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; align-items: start;
+}
+@media (max-width: 960px) { .layout { grid-template-columns: 1fr; padding: 16px; } }
+
+.card { background: var(--panel); border-radius: 14px; border: 1px solid var(--line); }
+.rail { display: grid; gap: 16px; position: sticky; top: 16px; }
+@media (max-width: 960px) { .rail { position: static; } }
+.device { padding: 18px; }
+.device h2, .viewer h2, .panel h2 { font-size: 17px; margin: 0 0 4px; font-weight: 700; }
+.lcd-wrap { margin: 12px 0 14px; padding: 8px; border-radius: 10px; background: #12152e; }
+#lcd { display: block; width: 100%; height: auto; border-radius: 4px; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 6px; }
+.pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--hole-empty); }
+.pill.ok::before { background: var(--ok); }
+.pill.bad::before { background: var(--bad); }
+.device .btn { margin-top: 14px; width: 100%; }
+.hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+
+/* 進捗 */
+.prog { padding: 16px 18px; border-color: var(--indigo); box-shadow: inset 4px 0 0 var(--indigo); }
+.prog-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.prog-head strong { font-size: 16px; }
+.prog-head span { color: var(--muted); font-size: 14px; }
+.bar { height: 14px; border-radius: 7px; background: var(--indigo-soft); margin: 10px 0 8px; overflow: hidden; }
+.bar > div { height: 100%; width: 0; background: var(--indigo); border-radius: 7px; transition: width .2s linear; }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+.prog-nums { display: flex; gap: 16px; align-items: center; font-family: var(--mono); font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
+.prog-nums b { color: var(--ink); font-size: 20px; font-weight: 500; }
+.prog-nums .btn { margin-left: auto; font-family: var(--font); }
+
+/* タブ */
+.work { display: grid; gap: 16px; min-width: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--line); overflow-x: auto; }
+.tab {
+  border: 0; background: none; padding: 10px 16px 12px; cursor: pointer; color: var(--muted);
+  font-weight: 700; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap;
+  border-bottom: 3px solid transparent; margin-bottom: -1.5px;
+}
+.tab svg { width: 18px; height: 18px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--yarn); }
+.tab:hover { color: var(--ink); }
+.panel { padding: 22px 24px; }
+.panel > p.lead { margin: 2px 0 18px; color: var(--muted); max-width: 62ch; }
+.opts { display: grid; gap: 10px; margin: 0 0 20px; }
+.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--indigo); flex: none; }
+.check small { display: block; color: var(--muted); font-size: 13px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+.drop {
+  border: 2px dashed var(--line); border-radius: 12px; padding: 18px; display: flex; gap: 16px; align-items: center;
+  cursor: pointer; background: var(--panel-2); margin-bottom: 18px;
+}
+.drop:hover, .drop.over { border-color: var(--indigo); }
+.drop svg { flex: none; color: var(--indigo); }
+.drop .name { font-weight: 700; word-break: break-all; }
+.drop .meta { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+.drop.bad { border-color: var(--bad); }
+
+.result { margin-top: 18px; padding: 14px 16px; border-radius: 10px; display: flex; gap: 12px; align-items: flex-start; }
+.result:empty { display: none; }
+.result .icon { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 15px; line-height: 1; }
+.result.ok { background: var(--ok-soft); } .result.ok .icon { background: var(--ok); }
+.result.ng { background: var(--warn-soft); } .result.ng .icon { background: var(--warn); }
+.result.err { background: var(--bad-soft); } .result.err .icon { background: var(--bad); }
+.result.info { background: var(--indigo-soft); } .result.info .icon { background: var(--indigo); }
+.result strong { display: block; }
+.result p { margin: 2px 0 0; font-size: 14px; }
+.result .row { margin-top: 8px; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .split { grid-template-columns: 1fr; } }
+.side h3 { font-size: 14px; margin: 0 0 8px; color: var(--muted); font-weight: 500; }
+.seg { display: inline-flex; border-radius: 8px; box-shadow: inset 0 0 0 1.5px var(--line); padding: 3px; margin-bottom: 10px; }
+.seg label { padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--indigo); color: #fff; }
+@media (prefers-color-scheme: dark) { .seg label:has(input:checked) { color: #10122a; } }
+.seg label:has(input:focus-visible) { outline: 3px solid var(--yarn); }
+.source-card { padding: 16px; border-radius: 12px; background: var(--panel-2); min-height: 82px; display: flex; align-items: center; gap: 12px; }
+
+.field { display: grid; gap: 4px; margin-bottom: 14px; }
+.field label { font-size: 14px; color: var(--muted); }
+.field .row input { flex: 1; min-width: 160px; }
+input[type="text"] {
+  border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 12px; background: var(--panel);
+}
+input[type="text"]:focus { border-color: var(--indigo); outline: none; }
+.suffix { color: var(--muted); font-family: var(--mono); }
+.files { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0 18px; }
+.files th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.files td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-family: var(--mono); }
+.files tr.pick { cursor: pointer; }
+.files tr.pick:hover td { background: var(--indigo-soft); }
+.files .empty td { font-family: var(--font); color: var(--muted); }
+.actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.action { text-align: left; border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--panel); cursor: pointer; }
+.action:hover { border-color: var(--indigo); }
+.action:disabled { opacity: .45; cursor: not-allowed; }
+.action strong { display: block; font-size: 15px; }
+.action span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.action.danger strong { color: var(--bad); }
+.subhead { font-size: 15px; margin: 26px 0 2px; font-weight: 700; }
+
+/* メモリマップ (パンチカード) と 16 進表示 */
+.viewer { padding: 20px 22px; }
+.viewer-head { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
+.viewer-head > div:first-child { margin-right: auto; min-width: 0; }
+.viewer-sub { color: var(--muted); font-size: 14px; margin: 0; word-break: break-all; }
+.stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 4px 0 14px; font-size: 13px; color: var(--muted); }
+.stats b { display: block; font-family: var(--mono); font-weight: 500; color: var(--ink); font-size: 15px; }
+.punch { position: relative; border-radius: 12px; background: var(--panel-2); padding: 14px 14px 10px; }
+#map { display: block; width: 100%; cursor: crosshair; }
+.legend { display: flex; gap: 18px; font-size: 13px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--ink); color: var(--panel); font-size: 12.5px;
+  padding: 7px 10px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); z-index: 2;
+  font-family: var(--mono);
+}
+.empty-view { padding: 40px 20px; text-align: center; color: var(--muted); }
+.empty-view .btn { margin-top: 12px; }
+.hex-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 16px 0 8px; }
+.hex-tools input { width: 110px; font-family: var(--mono); }
+.hex-tools .diffinfo { margin-left: auto; font-size: 14px; color: var(--muted); }
+.hex {
+  height: 330px; overflow: auto; position: relative; border-radius: 10px; border: 1px solid var(--line);
+  font: 13.5px/22px var(--mono); background: var(--panel);
+}
+.hex-head { position: sticky; top: 0; z-index: 1; background: var(--panel-2); color: var(--muted); border-bottom: 1px solid var(--line); }
+.hex-rows { position: absolute; left: 0; right: 0; }
+.hr { display: flex; gap: 18px; padding: 0 14px; height: 22px; white-space: pre; }
+.hr .ad { color: var(--muted); width: 6ch; flex: none; }
+.hr .hx span { padding: 0 1px; border-radius: 3px; }
+.hr .hx span.f { color: var(--hole-empty); }
+.hr .hx span.d { background: var(--bad); color: #fff; }
+.hr .hx span.s { box-shadow: inset 0 -2px 0 var(--yarn); }
+.hr .as { color: var(--muted); }
+
+/* ログ */
+.log { max-width: 1280px; margin: 0 auto 32px; padding: 0 24px; }
+.log details { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.log summary { padding: 12px 18px; cursor: pointer; font-weight: 700; }
+.log-body { padding: 0 18px 16px; }
+#log { height: 220px; overflow: auto; margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); font: 12.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-all; }
+#log .tx { color: var(--indigo); }
+#log .er { color: var(--bad); }
+.cmdline { display: flex; gap: 10px; }
+.cmdline input { flex: 1; font-family: var(--mono); }
+
+dialog { border: 0; border-radius: 16px; padding: 24px; max-width: 460px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(10,12,40,.35); }
+dialog::backdrop { background: rgba(14,16,42,.5); }
+dialog h3 { margin: 0 0 8px; font-size: 18px; }
+dialog p { margin: 0 0 20px; color: var(--muted); }
+dialog .row { justify-content: flex-end; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="3" y="7" width="32" height="24" rx="3" fill="#f2f3fb"/><path d="M27 7h8v6z" fill="#1d2266"/><g fill="#1d2266"><circle cx="9" cy="15" r="1.8"/><circle cx="15" cy="15" r="1.8"/><circle cx="21" cy="15" r="1.8"/><circle cx="9" cy="21" r="1.8"/><circle cx="21" cy="21" r="1.8"/><circle cx="27" cy="21" r="1.8"/><circle cx="15" cy="26" r="1.8"/><circle cx="27" cy="26" r="1.8"/></g></svg>
+      <div>
+        <h1>FUJISOKU SRAM Utility</h1>
+        <p>Silver Reed 編み機の FUJISOKU SRAM カードを PC に保存・書き込み・比較</p>
+      </div>
+    </div>
+    <div class="conn">
+      <span class="conn-state" id="connState">未接続</span>
+      <button class="btn" id="btnConnect">本体に接続</button>
+    </div>
+  </div>
+</header>
+
+<div class="banner" id="unsupported" hidden>
+  <strong>このブラウザでは本体に接続できません</strong>
+  USB で本体とやりとりするには、PC の Google Chrome または Microsoft Edge でこのページを開いてください。ファイル同士の比較と中身の表示は、このままでも使えます。
+</div>
+
+<main class="layout">
+  <aside class="rail">
+    <section class="card device" aria-labelledby="devTitle">
+      <h2 id="devTitle">本体</h2>
+      <div class="lcd-wrap"><canvas id="lcd" width="760" height="190" aria-label="本体の表示 (LCD と同じ内容)"></canvas></div>
+      <dl class="facts">
+        <dt>SD カード</dt><dd><span class="pill" id="sdState">—</span></dd>
+        <dt>LCD</dt><dd id="lcdState">—</dd>
+        <dt>62256</dt><dd id="ramState">—</dd>
+        <dt>スケッチ</dt><dd id="fwVer">—</dd>
+      </dl>
+      <button class="btn ghost small" id="btnSdCheck" disabled>SD カードを確認</button>
+      <p class="hint">SD カードは処理と処理の合間なら抜き差しできます。挿したあとは「SD カードを確認」を押すか、そのまま SD の操作を始めてください。</p>
+    </section>
+  </aside>
+
+  <div class="work">
+    <section class="card prog" id="prog" hidden aria-live="polite">
+      <div class="prog-head"><strong id="progTitle">処理中</strong><span id="progPhase"></span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progBar"><div id="progFill"></div></div>
+      <div class="prog-nums">
+        <b id="progPct">0%</b>
+        <span id="progBytes"></span>
+        <span id="progTime"></span>
+        <button class="btn ghost small" id="btnCancel">中断</button>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="操作">
+      <button class="tab" role="tab" id="t-save" aria-controls="p-save" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>PC に保存</button>
+      <button class="tab" role="tab" id="t-write" aria-controls="p-write" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg>カードに書き込み</button>
+      <button class="tab" role="tab" id="t-compare" aria-controls="p-compare" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"/></svg>比較</button>
+      <button class="tab" role="tab" id="t-sd" aria-controls="p-sd" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><path d="M10 7v3M13 7v3M16 7v3"/></svg>SD カード</button>
+      <button class="tab" role="tab" id="t-tools" aria-controls="p-tools" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>SPI SRAM・診断</button>
+    </nav>
+
+    <!-- PC に保存 -->
+    <section class="card panel" role="tabpanel" id="p-save" aria-labelledby="t-save">
+      <h2>カードの内容を PC に保存</h2>
+      <p class="lead">本体に挿した FUJISOKU SRAM カード (32KB) を読み込み、.bin ファイルとして PC に保存します。</p>
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="optTwice" checked><span>2 回読み込んで一致を確かめる<small>接触不良による読み違いに気づけます。時間は 2 倍かかります。</small></span></label>
+      </div>
+      <button class="btn big" id="btnSave" data-needs="device">読み込んで保存</button>
+      <div class="result" id="resSave"></div>
+    </section>
+
+    <!-- カードに書き込み -->
+    <section class="card panel" role="tabpanel" id="p-write" aria-labelledby="t-write" hidden>
+      <h2>ファイルをカードに書き込む</h2>
+      <p class="lead">保存しておいた .bin ファイル (32,768 バイト) をカードに書き込みます。カードの今の内容は上書きされます。</p>
+      <label class="drop" id="dropWrite">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+        <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span></span>
+        <input type="file" accept=".bin,application/octet-stream" hidden id="fileWrite">
+      </label>
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="optBackup" checked><span>書き込む前に、今のカードの内容を PC に保存する<small>backup_日時.bin としてダウンロードされます。変わった部分だけを書き込むので速くなります。</small></span></label>
+        <label class="check"><input type="checkbox" id="optVerify" checked><span>書き込んだあと読み戻して照合する</span></label>
+      </div>
+      <button class="btn big danger" id="btnWrite" data-needs="device" disabled>カードに書き込む</button>
+      <div class="result" id="resWrite"></div>
+    </section>
+
+    <!-- 比較 -->
+    <section class="card panel" role="tabpanel" id="p-compare" aria-labelledby="t-compare" hidden>
+      <h2>中身を比較する</h2>
+      <p class="lead">カードとファイル、またはファイル同士を 1 バイトずつ比べます。違いはメモリマップと 16 進表示に赤で表示されます。</p>
+      <div class="split">
+        <div class="side">
+          <h3>比べるもの A</h3>
+          <div class="seg" role="radiogroup" aria-label="比べるもの A">
+            <label><input type="radio" name="srcA" value="card" checked>カード</label>
+            <label><input type="radio" name="srcA" value="file">ファイル</label>
+          </div>
+          <div class="source-card" id="srcCard">本体に挿したカードを読み込みます</div>
+          <label class="drop" id="dropA" hidden>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            <span><span class="name">ファイル A を選ぶ</span><br><span class="meta">ドロップまたはクリック</span></span>
+            <input type="file" accept=".bin,application/octet-stream" hidden id="fileA">
+          </label>
+        </div>
+        <div class="side">
+          <h3>比べるもの B</h3>
+          <div class="seg"><label><input type="radio" checked disabled>ファイル</label></div>
+          <label class="drop" id="dropB">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            <span><span class="name">ファイル B を選ぶ</span><br><span class="meta">ドロップまたはクリック</span></span>
+            <input type="file" accept=".bin,application/octet-stream" hidden id="fileB">
+          </label>
+        </div>
+      </div>
+      <button class="btn big" id="btnCompare" disabled>比較する</button>
+      <div class="result" id="resCompare"></div>
+    </section>
+
+    <!-- SD カード -->
+    <section class="card panel" role="tabpanel" id="p-sd" aria-labelledby="t-sd" hidden>
+      <h2>本体の SD カード</h2>
+      <p class="lead">PC を使わずに、本体の SD カードとカードの間で保存・照合・書き込みをします。</p>
+      <div class="field">
+        <label for="sdName">ファイル名</label>
+        <div class="row"><input type="text" id="sdName" value="fujisoku" maxlength="16" spellcheck="false" autocomplete="off"><span class="suffix">.bin</span><button class="btn ghost small" id="btnSdList" data-needs="device">一覧を更新</button></div>
+      </div>
+      <table class="files" id="sdFiles"><thead><tr><th>SD カードの .bin ファイル</th><th>大きさ</th></tr></thead><tbody><tr class="empty"><td colspan="2">「一覧を更新」で SD カードのファイルを表示します</td></tr></tbody></table>
+      <div class="actions">
+        <button class="action" id="btnSdSave" data-needs="device"><strong>カード → SD に保存</strong><span>カードの内容をファイルに保存します。同じ名前のファイルは置き換えます</span></button>
+        <button class="action" id="btnSdVerify" data-needs="device"><strong>SD とカードを照合</strong><span>ファイルとカードが同じかを確かめます</span></button>
+        <button class="action danger" id="btnSdLoad" data-needs="device"><strong>SD → カードに書き込む</strong><span>ファイルをカードに書き込み、照合まで行います</span></button>
+      </div>
+      <div class="result" id="resSd"></div>
+    </section>
+
+    <!-- SPI SRAM・診断 -->
+    <section class="card panel" role="tabpanel" id="p-tools" aria-labelledby="t-tools" hidden>
+      <h2>SPI SRAM と診断</h2>
+      <p class="lead">本体の SPI SRAM を一時置き場として使う操作と、配線の確認です。</p>
+      <div class="actions">
+        <button class="action" data-cmd="copy f s" data-title="カード → SPI SRAM" data-needs="device"><strong>カード → SPI SRAM</strong><span>カードの内容を SPI SRAM に写します</span></button>
+        <button class="action danger" data-cmd="copy s f" data-title="SPI SRAM → カード" data-confirm="SPI SRAM の内容でカードを上書きします。" data-needs="device"><strong>SPI SRAM → カード</strong><span>SPI SRAM の内容をカードに書き込みます</span></button>
+        <button class="action" data-cmd="cmp" data-title="カードと SPI SRAM を比較" data-needs="device"><strong>カードと SPI SRAM を比較</strong><span>2 つが同じかを確かめます</span></button>
+        <button class="action" data-cmd="erase s" data-title="SPI SRAM を消去" data-needs="device"><strong>SPI SRAM を消去</strong><span>すべて FF にします</span></button>
+        <button class="action danger" data-cmd="erase f" data-title="カードを消去" data-confirm="カードの内容をすべて FF にします。編み柄も消えます。" data-needs="device"><strong>カードを消去</strong><span>カードをすべて FF にします</span></button>
+        <button class="action" data-cmd="test" data-title="SPI SRAM の自己診断" data-needs="device"><strong>SPI SRAM の自己診断</strong><span>/CS の配線 (D6 / MCP B5) ごとに読み書きを試します</span></button>
+      </div>
+      <div id="tools62256" hidden>
+        <h3 class="subhead">62256（動作確認用の SRAM）</h3>
+        <p class="lead">カードと同じバスにつないだ 62256 で、カードを使わずに配線や読み書きを確かめます。</p>
+        <div class="actions">
+          <button class="action" data-cmd="test p" data-title="62256 でバスを試験" data-needs="device"><strong>62256 でバスを試験</strong><span>データ線 D0〜D7 とアドレス線 A0〜A14 の固定・ショートを調べます (62256 の中身は消えます)</span></button>
+          <button class="action" data-cmd="copy f p" data-title="カード → 62256" data-needs="device"><strong>カード → 62256</strong><span>カードの内容を 62256 に写します</span></button>
+          <button class="action" data-cmd="cmp f p" data-title="カードと 62256 を比較" data-needs="device"><strong>カードと 62256 を比較</strong><span>2 つが同じかを確かめます</span></button>
+          <button class="action" data-cmd="erase p" data-title="62256 を消去" data-needs="device"><strong>62256 を消去</strong><span>すべて FF にします</span></button>
+        </div>
+      </div>
+      <div class="result" id="resTools"></div>
+    </section>
+
+    <!-- メモリマップ と 16 進表示 -->
+    <section class="card viewer" aria-labelledby="viewTitle">
+      <div class="viewer-head">
+        <div>
+          <h2 id="viewTitle">中身の表示</h2>
+          <p class="viewer-sub" id="viewSub">カードを読み込むか、ファイルを開くと、ここに中身が表示されます。</p>
+        </div>
+        <label class="btn ghost small">ファイルを開いて見る<input type="file" accept=".bin,application/octet-stream" hidden id="fileView"></label>
+        <button class="btn ghost small" id="btnDownloadView" disabled>この内容を保存</button>
+      </div>
+      <div id="viewBody" hidden>
+        <div class="stats" id="viewStats"></div>
+        <div class="punch">
+          <canvas id="map" height="300" aria-label="32KB のメモリマップ。1 つの穴が 64 バイト"></canvas>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+        <div class="legend">
+          <span><i style="box-shadow: inset 0 0 0 2px var(--hole-empty)"></i>空き (すべて FF)</span>
+          <span><i style="background: var(--indigo)"></i>データ (大きいほど多い)</span>
+          <span><i style="background: var(--bad)"></i>違いがある</span>
+          <span>1 つの穴 = 64 バイト、1 行 = 2KB</span>
+        </div>
+        <div class="hex-tools">
+          <label for="hexGo">アドレス</label>
+          <input type="text" id="hexGo" placeholder="0x0000" spellcheck="false">
+          <button class="btn ghost small" id="btnGo">移動</button>
+          <button class="btn ghost small" id="btnPrevDiff" disabled>前の違い</button>
+          <button class="btn ghost small" id="btnNextDiff" disabled>次の違い</button>
+          <span class="diffinfo" id="diffInfo"></span>
+        </div>
+        <div class="hex" id="hex" tabindex="0" aria-label="16 進表示">
+          <div class="hr hex-head"><span class="ad">ADDR</span><span class="hx">+0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F</span><span class="as">ASCII</span></div>
+          <div id="hexSpacer"></div>
+          <div class="hex-rows" id="hexRows"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="log">
+  <details id="logBox">
+    <summary>通信ログとコマンド</summary>
+    <div class="log-body">
+      <pre id="log" aria-live="off"></pre>
+      <form class="cmdline" id="cmdForm">
+        <input type="text" id="cmdInput" placeholder="コマンドを入力 (例: status、sd ls、?)" spellcheck="false" autocomplete="off">
+        <button class="btn small" data-needs="device">送信</button>
+      </form>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="logAll"><span>データ行 (D / P / LCD) も表示する</span></label>
+    </div>
+  </details>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle"></h3>
+  <p id="dlgBody"></p>
+  <div class="row"><button class="btn ghost" value="cancel" id="dlgNo">やめる</button><button class="btn danger" value="ok" id="dlgYes">実行する</button></div>
+</dialog>
+
+<script>
+'use strict';
+// =====================================================================
+// 定数と小物
+// =====================================================================
+const SIZE = 0x8000;      // カードの大きさ (32KB)
+const CHUNK = 64;         // wr 1 行のバイト数
+const RD_BLOCK = 2048;    // rd 1 回で読む量
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const hex2 = (n) => n.toString(16).toUpperCase().padStart(2, '0');
+const hex4 = (n) => '0x' + n.toString(16).toUpperCase().padStart(4, '0');
+const fmtN = (n) => n.toLocaleString('ja-JP');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function stamp() {
+  const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+function fmtTime(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(u8) {
+  let c = 0xffffffff;
+  for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+  return ((c ^ 0xffffffff) >>> 0).toString(16).toUpperCase().padStart(8, '0');
+}
+function diffList(a, b) {
+  const out = [];
+  for (let i = 0; i < SIZE; i++) if (a[i] !== b[i]) out.push(i);
+  return out;
+}
+function bytesToHex(u8) { let s = ''; for (const b of u8) s += hex2(b); return s; }
+
+// =====================================================================
+// エラー
+// =====================================================================
+class DevError extends Error {
+  constructor(code, detail, line) { super(detail || code); this.code = code; this.line = line; }
+}
+class CancelError extends Error { constructor() { super('中断しました'); this.code = 'CANCEL'; } }
+const ERR_TEXT = {
+  NOSD: ['SD カードが見つかりません', '本体に SD カードを挿してから、もう一度実行してください。'],
+  SDLOST: ['処理の途中で SD カードが抜かれました', 'SD カードを挿し直してから、もう一度実行してください。保存の途中だった場合も、前のファイルはそのまま残っています。'],
+  NOFILE: ['SD カードにファイルがありません', 'ファイル名を確かめるか、「一覧を更新」で SD カードの中身を見てください。'],
+  BADSIZE: ['ファイルの大きさが違います', '32,768 バイトの .bin ファイルを使ってください。'],
+  SDERR: ['SD カードの読み書きに失敗しました', 'SD カードが壊れていないか、FAT32 / exFAT でフォーマットされているかを確かめてください。'],
+  CANCEL: ['中断しました', ''],
+  BUSY: ['本体が別の処理をしています', '終わるのを待ってから、もう一度実行してください。'],
+  TIMEOUT: ['本体から応答がありません', 'USB ケーブルを確かめて、接続し直してください。'],
+  CLOSED: ['本体との接続が切れました', 'USB ケーブルを確かめて、「本体に接続」からつなぎ直してください。'],
+  NOHELLO: ['本体がこのアプリに応答しません', 'FUJISOKU SRAM Utility v2 のスケッチが書き込まれているか、別のアプリがシリアルポートを使っていないかを確かめてください。'],
+  READ2: ['2 回の読み込み結果が一致しません', 'カードの差し込みや接触を確かめて、もう一度読み込んでください。'],
+  FORMAT: ['本体からの応答を読み取れませんでした', 'もう一度実行してください。'],
+};
+function explain(e) {
+  if (ERR_TEXT[e.code]) return ERR_TEXT[e.code];
+  if (e.code) return ['本体がエラーを返しました', `${e.code}: ${e.message}`];
+  return ['エラーが起きました', String(e.message || e)];
+}
+function errFromLine(line) {
+  const m = /^ERR (\S+)\s*(.*)$/.exec(line || '');
+  return m ? new DevError(m[1], m[2], line) : new DevError('FORMAT', line, line);
+}
+
+// =====================================================================
+// LCD の表示 (本体の 20x4 LCD と同じ画面)
+// =====================================================================
+const FONT = Uint8Array.from('000000000000005F00000007000700147F147F14242A7F2A12231308646236495620500008070300001C2241000041221C002A1C7F1C2A08083E080800807030000808080808000060600020100804023E5149453E00427F400072494949462141494D331814127F1027454545393C4A49493141211109073649494936464949291E0000140000004034000000081422411414141414004122140802015909063E415D594E7C1211127C7F494949363E414141227F4141413E7F494949417F090909013E414151737F0808087F00417F41002040413F017F081422417F404040407F021C027F7F0408107F3E4141413E7F090909063E4151215E7F09192946264949493203017F01033F4040403F1F2040201F3F4038403F631408146303047804036159494D43007F4141410204081020004141417F04020102044040404040000307080020545478407F284444383844444428384444287F385454541800087E090218A4A49C787F0804047800447D40002040403D007F1028440000417F40007C047804787C080404783844444438FC1824241818242418FC7C08040408485454542404043F44243C4040207C1C2040201C3C4030403C44281028444C9090907C4464544C440008364100000077000000413608000201020402'.match(/../g), (h) => parseInt(h, 16));
+const CGRAM = (() => {
+  const g = [];
+  for (let k = 1; k <= 5; k++) { const fill = (0x1f << (5 - k)) & 0x1f; const r = [0, fill, fill, fill, fill, fill, 0x1f, 0]; g.push(r); }
+  g.push([0, 0, 0, 0, 0, 0, 0x1f, 0]);
+  g.push([0x00, 0x01, 0x03, 0x16, 0x1c, 0x08, 0x00, 0x00]);
+  g.push([0x00, 0x11, 0x0a, 0x04, 0x0a, 0x11, 0x00, 0x00]);
+  return g;
+})();
+function glyph(code) {
+  if (code < 0x10) return CGRAM[code & 7];
+  const rows = [0, 0, 0, 0, 0, 0, 0, 0];
+  if (code >= 0x20 && code < 0x7f) {
+    const base = (code - 0x20) * 5;
+    for (let col = 0; col < 5; col++) for (let r = 0; r < 7; r++) if (FONT[base + col] & (1 << r)) rows[r] |= 0x10 >> col;
+  }
+  return rows;
+}
+let lcdBytes = null;
+function textToLcd(lines) {
+  const b = new Uint8Array(80).fill(0x20);
+  lines.forEach((l, r) => { for (let c = 0; c < 20 && c < l.length; c++) b[r * 20 + c] = l.charCodeAt(c); });
+  return b;
+}
+function drawLcd() {
+  const cv = $('#lcd'), ctx = cv.getContext('2d');
+  const on = !!lcdBytes;
+  const bytes = lcdBytes || textToLcd(['FUJISOKU SRAM', '', '  Not connected', '']);
+  const P = 6, D = 5, CW = 6 * P, RH = 9.5 * P, M = 14;
+  cv.width = M * 2 + 20 * CW - P;
+  cv.height = Math.round(M * 2 + 4 * RH - 1.5 * P);
+  ctx.fillStyle = on ? '#1c4fd0' : '#1b2350';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 20; c++) {
+    const rows = glyph(bytes[r * 20 + c]);
+    const x0 = M + c * CW, y0 = M + r * RH;
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 5; x++) {
+      const lit = rows[y] & (0x10 >> x);
+      ctx.fillStyle = lit ? (on ? '#eef3ff' : '#6e78b8') : (on ? '#2a5ddc' : '#202a5c');
+      ctx.fillRect(x0 + x * P, y0 + y * P, D, D);
+    }
+  }
+}
+
+// =====================================================================
+// 本体との通信 (Web Serial)
+// =====================================================================
+const log = {
+  el: null, lines: 0,
+  add(cls, text) {
+    if (!this.el) this.el = $('#log');
+    if (!$('#logAll').checked && cls === 'rx' && /^(D |P |LCD )/.test(text)) return;
+    const div = document.createElement('div');
+    div.className = cls;
+    div.textContent = (cls === 'tx' ? '→ ' : cls === 'er' ? '! ' : '← ') + text;
+    this.el.appendChild(div);
+    if (++this.lines > 1500) { this.el.firstChild.remove(); this.lines--; }
+    this.el.scrollTop = this.el.scrollHeight;
+  },
+};
+
+class Device {
+  constructor() {
+    this.port = null; this.writer = null; this.reader = null;
+    this.buf = ''; this.pending = null; this.queue = Promise.resolve();
+    this.onEvent = () => {}; this.onClose = () => {};
+  }
+  get open() { return !!this.port; }
+  async connect(port) {
+    await port.open({ baudRate: 115200 });
+    this.port = port;
+    this.writer = port.writable.getWriter();
+    this.readLoop();
+  }
+  async readLoop() {
+    const dec = new TextDecoder();
+    try {
+      this.reader = this.port.readable.getReader();
+      for (;;) {
+        const { value, done } = await this.reader.read();
+        if (done) break;
+        this.feed(dec.decode(value, { stream: true }));
+      }
+    } catch (e) {
+      log.add('er', '受信エラー: ' + e.message);
+    }
+    this.closed();
+  }
+  feed(text) {
+    this.buf += text;
+    let i;
+    while ((i = this.buf.indexOf('\n')) >= 0) {
+      const line = this.buf.slice(0, i).replace(/\r$/, '');
+      this.buf = this.buf.slice(i + 1);
+      if (line) this.line(line);
+    }
+  }
+  line(l) {
+    log.add('rx', l);
+    if (l.startsWith('LCD ') || l.startsWith('E ')) this.onEvent(l);
+    const p = this.pending;
+    if (!p) return;
+    p.lines.push(l);
+    p.touch();
+    if (p.onLine) p.onLine(l);
+    if (p.term.test(l)) p.finish(l);
+  }
+  async write(text) {
+    if (!this.writer) throw new DevError('CLOSED');
+    await this.writer.write(new TextEncoder().encode(text));
+  }
+  // 1 コマンド送って終わりの行 (OK / NG / ERR など) まで待つ。timeout は「最後の行からの」時間
+  request(cmd, opts = {}) {
+    const run = () => new Promise((resolve, reject) => {
+      if (!this.port) return reject(new DevError('CLOSED'));
+      const term = opts.term || (cmd === 'hello' ? /^(HELLO|ERR) / : cmd === 'status' ? /^(STATUS|ERR) / : /^lcd( on)?$/.test(cmd) ? /^(LCD|ERR) / : /^(OK|NG|ERR) /);
+      const timeout = opts.timeout || 5000;
+      let timer;
+      const p = {
+        lines: [], term, onLine: opts.onLine,
+        touch: () => { clearTimeout(timer); timer = setTimeout(() => p.fail(new DevError('TIMEOUT')), timeout); },
+        finish: (last) => { clearTimeout(timer); this.pending = null; resolve({ last, lines: p.lines }); },
+        fail: (e) => { clearTimeout(timer); if (this.pending === p) this.pending = null; reject(e); },
+      };
+      this.pending = p;
+      p.touch();
+      log.add('tx', cmd);
+      this.write(cmd + '\n').catch((e) => p.fail(e));
+    });
+    const r = this.queue.then(run, run);
+    this.queue = r.catch(() => {});
+    return r;
+  }
+  cancel() { log.add('tx', '! (中断)'); return this.write('!').catch(() => {}); }
+  closed() {
+    if (!this.port) return;
+    const port = this.port;
+    this.port = null; this.writer = null; this.reader = null;
+    if (this.pending) this.pending.fail(new DevError('CLOSED'));
+    port.close().catch(() => {});
+    this.onClose();
+  }
+  async disconnect() {
+    try { if (this.reader) await this.reader.cancel(); } catch (e) {}
+    try { if (this.writer) this.writer.releaseLock(); } catch (e) {}
+    this.closed();
+  }
+}
+
+// =====================================================================
+// 画面の状態
+// =====================================================================
+const dev = new Device();
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, writeFile: null, fileA: null, fileB: null };
+let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
+
+function refreshButtons() {
+  for (const el of $$('[data-needs="device"]')) el.disabled = state.busy || !state.connected;
+  $('#btnSdCheck').disabled = state.busy || !state.connected;
+  $('#btnWrite').disabled = state.busy || !state.connected || !state.writeFile;
+  const srcA = document.querySelector('input[name="srcA"]:checked').value;
+  $('#btnCompare').disabled = state.busy || !state.fileB || (srcA === 'card' ? !state.connected : !state.fileA);
+  $('#btnConnect').disabled = state.busy || !('serial' in navigator);
+  $('#btnConnect').textContent = state.connected ? '切断' : '本体に接続';
+  $('#btnConnect').classList.toggle('ghost', state.connected);
+}
+function setConnected(on, ver) {
+  state.connected = on;
+  const el = $('#connState');
+  el.classList.toggle('on', on);
+  el.textContent = on ? '接続中' : '未接続';
+  $('#fwVer').textContent = on ? ver : '—';
+  if (!on) {
+    lcdBytes = null; setSd(null); drawLcd();
+    $('#lcdState').textContent = '—'; $('#ramState').textContent = '—'; $('#tools62256').hidden = true;
+  }
+  refreshButtons();
+}
+function setSd(v) {
+  state.sd = v;
+  const el = $('#sdState');
+  el.className = 'pill' + (v === true ? ' ok' : v === false ? ' bad' : '');
+  el.textContent = v === true ? '使えます' : v === false ? '入っていません' : '—';
+}
+function result(id, kind, title, text = '', extraHtml = '') {
+  const icon = { ok: '✓', ng: '!', err: '×', info: 'i' }[kind];
+  $(id).className = 'result ' + kind;
+  $(id).innerHTML = `<span class="icon" aria-hidden="true">${icon}</span><div><strong>${esc(title)}</strong>${text ? `<p>${esc(text)}</p>` : ''}${extraHtml}</div>`;
+}
+function clearResult(id) { $(id).className = 'result'; $(id).innerHTML = ''; }
+function showError(id, e) {
+  const [t, d] = explain(e);
+  result(id, e.code === 'CANCEL' ? 'info' : 'err', t, d);
+}
+
+// 進捗
+const prog = { t0: 0, title: '', total: 1 };
+function progStart(title, total) {
+  prog.t0 = performance.now(); prog.title = title; prog.total = total || 1;
+  $('#prog').hidden = false;
+  $('#progTitle').textContent = title;
+  $('#progPhase').textContent = '';
+  $('#btnCancel').disabled = false;
+  progSet(0);
+}
+function progPhase(text) { $('#progPhase').textContent = text; }
+function progSet(done, total) {
+  if (total) prog.total = total;
+  const pct = Math.min(100, Math.floor((done * 100) / prog.total));
+  $('#progFill').style.width = pct + '%';
+  $('#progBar').setAttribute('aria-valuenow', pct);
+  $('#progPct').textContent = pct + '%';
+  $('#progBytes').textContent = prog.total > 100 ? `${fmtN(Math.min(done, prog.total))} / ${fmtN(prog.total)} バイト` : '';
+  const el = performance.now() - prog.t0;
+  let t = '経過 ' + fmtTime(el);
+  if (done > 0 && done < prog.total && el > 1500) t += '  残り約 ' + fmtTime((el / done) * (prog.total - done));
+  $('#progTime').textContent = t;
+}
+function progEnd() { $('#prog').hidden = true; }
+
+// 1 つの作業をまとめて実行する (同時に 2 つは動かさない)
+async function task(title, resId, fn) {
+  if (state.busy) return;
+  state.busy = true; state.cancel = false;
+  refreshButtons();
+  clearResult(resId);
+  progStart(title, SIZE);
+  try {
+    await fn();
+  } catch (e) {
+    console.error(e);
+    showError(resId, e);
+  } finally {
+    state.busy = false;
+    progEnd();
+    refreshButtons();
+  }
+}
+function checkCancel() { if (state.cancel) throw new CancelError(); }
+$('#btnCancel').addEventListener('click', () => {
+  state.cancel = true;
+  $('#btnCancel').disabled = true;
+  progPhase('中断しています…');
+  dev.cancel();
+});
+window.addEventListener('beforeunload', (e) => { if (state.busy) { e.preventDefault(); e.returnValue = ''; } });
+
+// =====================================================================
+// 接続
+// =====================================================================
+dev.onEvent = (l) => {
+  if (l.startsWith('LCD ')) {
+    const h = l.slice(4).trim();
+    if (/^[0-9A-F]{160}$/i.test(h)) { lcdBytes = Uint8Array.from(h.match(/../g), (x) => parseInt(x, 16)); drawLcd(); }
+  } else if (l === 'E SD 1') setSd(true);
+  else if (l === 'E SD 0') setSd(false);
+};
+dev.onClose = () => {
+  setConnected(false);
+  if (!state.busy) result('#resSave', 'info', ERR_TEXT.CLOSED[0], ERR_TEXT.CLOSED[1]);
+};
+
+async function connect() {
+  let port;
+  try { port = await navigator.serial.requestPort(); } catch (e) { return; } // 選ばずに閉じた
+  try {
+    await dev.connect(port);
+  } catch (e) {
+    result('#resSave', 'err', 'シリアルポートを開けませんでした', 'ほかのアプリ (Arduino IDE のシリアルモニタなど) が使っていないか確かめてください。');
+    return;
+  }
+  state.busy = true; refreshButtons();
+  try {
+    await sleep(300);
+    await dev.write('\n');
+    let hello = null;
+    for (let i = 0; i < 4 && !hello; i++) {
+      try {
+        const r = await dev.request('hello', { timeout: 1500 });
+        if (r.last.startsWith('HELLO')) hello = r.last;
+      } catch (e) { if (e.code === 'CLOSED') throw e; }
+    }
+    if (!hello) throw new DevError('NOHELLO');
+    const ver = (/HELLO FSU (\S+)/.exec(hello) || [])[1] || '?';
+    state.lcd = (/lcd=(\S+)/.exec(hello) || [])[1] || 'none';
+    state.ram62256 = /sram62256=1/.test(hello);
+    setConnected(true, 'v' + ver);
+    $('#lcdState').textContent = state.lcd === 'none' ? 'なし (表示はここだけ)' : 'あり (20×4)';
+    $('#ramState').textContent = state.ram62256 ? '使う' : '使わない';
+    $('#tools62256').hidden = !state.ram62256;
+    const st = await dev.request('status');
+    const m = /sd=(\d)/.exec(st.last);
+    if (m) setSd(m[1] === '1');
+    await dev.request('lcd on');
+    clearResult('#resSave');
+  } catch (e) {
+    showError('#resSave', e);
+    await dev.disconnect();
+  } finally {
+    state.busy = false; refreshButtons();
+  }
+}
+$('#btnConnect').addEventListener('click', async () => {
+  if (state.connected) {
+    try { await dev.request('lcd off', { timeout: 1000 }); } catch (e) {}
+    await dev.disconnect();
+  } else connect();
+});
+
+// =====================================================================
+// カードの読み書き (PC 主導。LCD には ui begin/prog/end で進捗を出す)
+// =====================================================================
+const token = (s) => s.replace(/\s+/g, '_');
+async function lcdBegin(total, title) { await dev.request(`ui begin ${total} ${token(title)}`); }
+async function lcdProg(done, phase) { await dev.request(`ui prog ${done}${phase ? ' ' + token(phase) : ''}`); }
+async function lcdEnd(kind, text) { try { await dev.request(`ui end ${kind} ${token(text)}`); } catch (e) {} }
+
+// カードを 1 回読む。base/total は進捗表示用
+async function readPass(base, total, phase) {
+  const buf = new Uint8Array(SIZE);
+  for (let a = 0; a < SIZE; a += RD_BLOCK) {
+    checkCancel();
+    let got = 0;
+    const r = await dev.request(`rd f ${a} ${RD_BLOCK}`, {
+      timeout: 8000,
+      onLine: (l) => {
+        if (!l.startsWith('D ')) return;
+        const m = /^D ([0-9A-F]{4}) ([0-9A-F]+)$/i.exec(l);
+        if (!m) return;
+        const addr = parseInt(m[1], 16), hx = m[2];
+        for (let i = 0; i < hx.length / 2; i++) buf[addr + i] = parseInt(hx.substr(i * 2, 2), 16);
+        got += hx.length / 2;
+        progSet(base + a + got);
+      },
+    });
+    if (r.last.startsWith('ERR')) throw errFromLine(r.last);
+    if (got !== RD_BLOCK) throw new DevError('FORMAT', `rd ${hex4(a)}: ${got} バイトしか届きませんでした`);
+    await lcdProg(base + a + RD_BLOCK, phase);
+  }
+  return buf;
+}
+async function readCard(passes, title) {
+  const total = SIZE * passes;
+  prog.total = total;
+  await lcdBegin(total, title);
+  try {
+    const first = await (progPhase(passes > 1 ? 'カードを読み込み中 (1 回目)' : 'カードを読み込み中'), readPass(0, total, passes > 1 ? 'Reading card 1/2' : 'Reading card'));
+    if (passes > 1) {
+      progPhase('カードを読み込み中 (2 回目)');
+      const second = await readPass(SIZE, total, 'Reading card 2/2');
+      const d = diffList(first, second);
+      if (d.length) {
+        await lcdEnd('ng', `Read mismatch ${d.length}`);
+        const e = new DevError('READ2'); e.diffs = d; e.first = first; e.second = second; throw e;
+      }
+    }
+    return first;
+  } catch (e) {
+    if (e.code !== 'READ2') await lcdEnd(e.code === 'CANCEL' ? 'cancel' : 'err', e.code === 'CANCEL' ? 'Canceled' : 'Read failed');
+    throw e;
+  }
+}
+
+function download(u8, name) {
+  const url = URL.createObjectURL(new Blob([u8], { type: 'application/octet-stream' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ---- PC に保存 ----
+$('#btnSave').addEventListener('click', async () => {
+  const name = `fujisoku_${stamp()}.bin`;
+  let handle = null;
+  if (window.showSaveFilePicker) {
+    try {
+      handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'FUJISOKU カードのイメージ', accept: { 'application/octet-stream': ['.bin'] } }] });
+    } catch (e) { if (e.name === 'AbortError') return; handle = null; }
+  }
+  await task('カードを PC に保存', '#resSave', async () => {
+    const passes = $('#optTwice').checked ? 2 : 1;
+    let data;
+    try {
+      data = await readCard(passes, 'Card to PC');
+    } catch (e) {
+      if (e.code === 'READ2') setView({ title: '2 回の読み込みの違い', sub: '1 回目と 2 回目で読めた値が違う場所が赤で表示されます', a: e.first, b: e.second, aName: '1 回目', bName: '2 回目' });
+      throw e;
+    }
+    progPhase('ファイルに保存中');
+    let saved = name;
+    try {
+      if (handle) {
+        const w = await handle.createWritable(); await w.write(data); await w.close(); saved = handle.name;
+      } else download(data, name);
+    } catch (e) {
+      await lcdEnd('err', 'Save failed');
+      throw new DevError('SAVE', 'ファイルを保存できませんでした: ' + e.message);
+    }
+    await lcdEnd('ok', 'Saved to PC');
+    setView({ title: 'カードの内容', sub: `${saved} として保存 (${new Date().toLocaleString('ja-JP')})`, a: data, aName: saved });
+    result('#resSave', 'ok', `${saved} を保存しました`, `32,768 バイト、CRC32 ${crc32(data)}${passes > 1 ? '。2 回の読み込みは一致しました' : ''}`);
+  });
+});
+
+// ---- ファイル選択 (ドロップ / クリック) ----
+async function readFileBin(file) {
+  const u8 = new Uint8Array(await file.arrayBuffer());
+  return { name: file.name, data: u8, ok: u8.length === SIZE };
+}
+function showFileInDrop(drop, f) {
+  drop.classList.toggle('bad', !f.ok);
+  drop.querySelector('.name').textContent = f.name;
+  drop.querySelector('.meta').textContent = f.ok
+    ? `${fmtN(f.data.length)} バイト  CRC32 ${crc32(f.data)}`
+    : `${fmtN(f.data.length)} バイト — 32,768 バイトのファイルを選んでください`;
+}
+function setupDrop(dropId, inputId, onFile) {
+  const drop = $(dropId), input = $(inputId);
+  const take = async (file) => { if (!file) return; const f = await readFileBin(file); showFileInDrop(drop, f); onFile(f); refreshButtons(); };
+  input.addEventListener('change', () => take(input.files[0]));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); take(e.dataTransfer.files[0]); });
+}
+setupDrop('#dropWrite', '#fileWrite', (f) => {
+  state.writeFile = f.ok ? f : null;
+  clearResult('#resWrite');
+  if (f.ok) setView({ title: '書き込むファイル', sub: f.name, a: f.data, aName: f.name });
+});
+setupDrop('#dropA', '#fileA', (f) => { state.fileA = f.ok ? f : null; });
+setupDrop('#dropB', '#fileB', (f) => { state.fileB = f.ok ? f : null; });
+$$('input[name="srcA"]').forEach((r) => r.addEventListener('change', () => {
+  const file = document.querySelector('input[name="srcA"]:checked').value === 'file';
+  $('#dropA').hidden = !file; $('#srcCard').hidden = file;
+  refreshButtons();
+}));
+$('#fileView').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0]; if (!file) return;
+  const f = await readFileBin(file);
+  if (!f.ok) { $('#viewSub').textContent = `${f.name} は ${fmtN(f.data.length)} バイトです。32,768 バイトのファイルを開いてください。`; return; }
+  setView({ title: 'ファイルの中身', sub: f.name, a: f.data, aName: f.name });
+});
+
+// 確認ダイアログ
+function confirmDlg(title, body, yes = '実行する') {
+  return new Promise((resolve) => {
+    const d = $('#dlg');
+    $('#dlgTitle').textContent = title; $('#dlgBody').textContent = body; $('#dlgYes').textContent = yes;
+    const done = (v) => { d.close(); resolve(v); };
+    $('#dlgYes').onclick = () => done(true);
+    $('#dlgNo').onclick = () => done(false);
+    d.oncancel = () => resolve(false);
+    d.showModal();
+    $('#dlgNo').focus();
+  });
+}
+
+// ---- カードに書き込み ----
+$('#btnWrite').addEventListener('click', async () => {
+  const f = state.writeFile; if (!f) return;
+  const ok = await confirmDlg('カードの内容を上書きします', `${f.name} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
+  if (!ok) return;
+  await task('カードに書き込み', '#resWrite', async () => {
+    const backup = $('#optBackup').checked, verify = $('#optVerify').checked;
+    let before = null, backupName = '';
+    if (backup) {
+      before = await readCard(1, 'Backup');
+      backupName = `backup_${stamp()}.bin`;
+      download(before, backupName);
+      await lcdEnd('ok', 'Backup saved');
+    }
+    const addrs = [];
+    for (let a = 0; a < SIZE; a += CHUNK) {
+      if (before) { let same = true; for (let i = 0; i < CHUNK; i++) if (before[a + i] !== f.data[a + i]) { same = false; break; } if (same) continue; }
+      addrs.push(a);
+    }
+    const total = addrs.length * CHUNK + (verify ? SIZE : 0) || 1;
+    progStart('カードに書き込み', total);
+    progPhase(addrs.length === SIZE / CHUNK ? 'カードに書き込み中' : `変わった部分を書き込み中 (${fmtN(addrs.length * CHUNK)} バイト)`);
+    await lcdBegin(total, 'PC to Card');
+    let readBack = null;
+    try {
+      for (let i = 0; i < addrs.length; i++) {
+        checkCancel();
+        const a = addrs[i];
+        const r = await dev.request(`wr f ${a} ${bytesToHex(f.data.subarray(a, a + CHUNK))}`, { timeout: 5000 });
+        if (!r.last.startsWith('OK')) throw errFromLine(r.last);
+        progSet((i + 1) * CHUNK);
+        if (i % 16 === 15 || i === addrs.length - 1) await lcdProg((i + 1) * CHUNK, 'Writing card');
+      }
+      if (verify) {
+        progPhase('読み戻して照合中');
+        readBack = await readPass(addrs.length * CHUNK, total, 'Verifying');
+      }
+    } catch (e) {
+      await lcdEnd(e.code === 'CANCEL' ? 'cancel' : 'err', e.code === 'CANCEL' ? 'Canceled' : 'Write failed');
+      if (e.code === 'CANCEL') throw Object.assign(new CancelError(), { message: '中断しました' });
+      throw e;
+    }
+    const bk = backup ? `。書き込む前の内容は ${backupName} に保存しました` : '';
+    if (readBack) {
+      const d = diffList(f.data, readBack);
+      setView({ title: '書き込みの照合', sub: `${f.name} とカード`, a: readBack, b: f.data, aName: 'カード', bName: f.name });
+      if (d.length) {
+        await lcdEnd('ng', `Verify NG ${d.length}`);
+        result('#resWrite', 'ng', `書き込みましたが、${fmtN(d.length)} バイトが一致しません`, `最初の違いは ${hex4(d[0])} です。カードの接触や書き込み禁止スイッチを確かめてください${bk}。`);
+        return;
+      }
+      await lcdEnd('ok', 'Written & verified');
+      result('#resWrite', 'ok', `${f.name} を書き込み、照合しました`, `32,768 バイトすべて一致${bk}。`);
+    } else {
+      await lcdEnd('ok', 'Written');
+      result('#resWrite', 'ok', `${f.name} を書き込みました`, `照合はしていません${bk}。`);
+    }
+  });
+});
+
+// ---- 比較 ----
+$('#btnCompare').addEventListener('click', async () => {
+  const srcA = document.querySelector('input[name="srcA"]:checked').value;
+  const B = state.fileB; if (!B) return;
+  const run = async () => {
+    let a, aName;
+    if (srcA === 'card') {
+      a = await readCard(1, 'Compare');
+      aName = 'カード';
+    } else { a = state.fileA.data; aName = state.fileA.name; }
+    const d = diffList(a, B.data);
+    if (srcA === 'card') await lcdEnd(d.length ? 'ng' : 'ok', d.length ? `${d.length} bytes differ` : 'All match');
+    setView({ title: '比較', sub: `${aName} と ${B.name}`, a, b: B.data, aName, bName: B.name });
+    if (d.length === 0) result('#resCompare', 'ok', 'すべて一致しました', `${aName} と ${B.name} は 32,768 バイトすべて同じです。`);
+    else result('#resCompare', 'ng', `${fmtN(d.length)} バイトが一致しません`, `最初の違いは ${hex4(d[0])}、最後の違いは ${hex4(d[d.length - 1])} です。下のメモリマップで赤い穴を選ぶと、その場所の値を確かめられます。`);
+  };
+  if (srcA === 'card') await task('カードとファイルを比較', '#resCompare', run);
+  else { clearResult('#resCompare'); await run(); }
+});
+
+// =====================================================================
+// 本体だけで行う処理 (SD カード / SPI SRAM)。進捗は本体の P / S 行
+// =====================================================================
+async function deviceOp(cmd, title, resId) {
+  let res = null;
+  await task(title, resId, async () => {
+    progPhase('開始しています');
+    const r = await dev.request(cmd, {
+      timeout: 15000,
+      onLine: (l) => {
+        let m;
+        if ((m = /^P (\d+) (\d+)$/.exec(l))) progSet(+m[1], +m[2]);
+        else if (l.startsWith('S ')) progPhase(PHASE_JA[l.slice(2)] || l.slice(2));
+      },
+    });
+    res = r;
+    if (r.last.startsWith('ERR')) throw errFromLine(r.last);
+  });
+  return res;
+}
+const PHASE_JA = {
+  'Checking SD card': 'SD カードを確認中', 'Opening file': 'ファイルを開いています', 'Reading card': 'カードを読み込み中',
+  'Reading SPI SRAM': 'SPI SRAM を読み込み中', 'Writing card': 'カードに書き込み中', 'Writing SPI SRAM': 'SPI SRAM に書き込み中',
+  'Verifying': '照合中', 'Comparing': '比較中', 'Closing file': 'ファイルを閉じています', 'Saving file': 'ファイルを保存しています',
+  'Erasing': '消去中', 'Testing /CS = D6': '/CS = D6 を試験中', 'Testing /CS = MCP B5': '/CS = MCP B5 を試験中',
+  'Reading 62256': '62256 を読み込み中', 'Writing 62256': '62256 に書き込み中', 'Copying': 'コピー中',
+  'Data lines D0-D7': 'データ線 D0〜D7 を試験中', 'Address lines A0-A14': 'アドレス線 A0〜A14 を試験中',
+};
+function sdName() {
+  let n = $('#sdName').value.trim().replace(/\.bin$/i, '');
+  if (!/^[A-Za-z0-9_-]{1,16}$/.test(n)) {
+    result('#resSd', 'err', 'ファイル名が使えません', '半角の英数字と _ - だけで、16 文字以内にしてください (.bin は自動で付きます)。');
+    return null;
+  }
+  return n;
+}
+function okLine(r) { return r && /^OK /.test(r.last); }
+$('#btnSdSave').addEventListener('click', async () => {
+  const n = sdName(); if (!n) return;
+  const r = await deviceOp(`sd save f ${n}`, 'カード → SD に保存', '#resSd');
+  if (okLine(r)) { setSd(true); result('#resSd', 'ok', `SD カードに ${n}.bin を保存しました`, '32,768 バイト'); listSd(true); }
+});
+$('#btnSdVerify').addEventListener('click', async () => {
+  const n = sdName(); if (!n) return;
+  const r = await deviceOp(`sd verify f ${n}`, 'SD とカードを照合', '#resSd');
+  if (!r) return;
+  if (okLine(r)) result('#resSd', 'ok', `${n}.bin とカードはすべて一致しました`, '32,768 バイト');
+  else if (r.last.startsWith('NG')) {
+    const m = /mismatches=(\d+) first=(0x[0-9A-F]+)/i.exec(r.last);
+    if (/BADSIZE/.test(r.last)) result('#resSd', 'ng', `${n}.bin の大きさが 32,768 バイトではありません`, r.last.replace(/^NG sd\s*/, ''));
+    else result('#resSd', 'ng', `${m ? fmtN(+m[1]) : '一部の'} バイトが一致しません`, m ? `最初の違いは ${m[2]} です。` : r.last);
+  }
+});
+$('#btnSdLoad').addEventListener('click', async () => {
+  const n = sdName(); if (!n) return;
+  if (!(await confirmDlg('カードの内容を上書きします', `SD カードの ${n}.bin をカードに書き込みます。カードの今の内容は消えます。`, '書き込む'))) return;
+  const r = await deviceOp(`sd load f ${n} v`, 'SD → カードに書き込み', '#resSd');
+  if (okLine(r)) result('#resSd', 'ok', `${n}.bin をカードに書き込み、照合しました`, '32,768 バイトすべて一致');
+  else if (r && r.last.startsWith('NG')) result('#resSd', 'ng', '書き込みましたが、照合で違いが見つかりました', r.last);
+});
+async function listSd(quiet) {
+  const r = await deviceOp('sd ls', 'SD カードの一覧', quiet ? '#resTools' : '#resSd');
+  if (!r || !okLine(r)) return;
+  setSd(true);
+  const files = r.lines.filter((l) => l.startsWith('F ')).map((l) => { const p = l.split(' '); return { name: p[1], size: +p[2] }; });
+  const tb = $('#sdFiles tbody');
+  tb.innerHTML = files.length
+    ? files.map((f) => `<tr class="pick" tabindex="0" data-name="${esc(f.name.replace(/\.bin$/i, ''))}"><td>${esc(f.name)}</td><td>${fmtN(f.size)}${f.size !== SIZE ? ' (大きさが違います)' : ''}</td></tr>`).join('')
+    : '<tr class="empty"><td colspan="2">.bin ファイルはありません</td></tr>';
+}
+$('#btnSdList').addEventListener('click', () => listSd(false));
+$('#sdFiles').addEventListener('click', (e) => { const tr = e.target.closest('tr.pick'); if (tr) $('#sdName').value = tr.dataset.name; });
+$('#sdFiles').addEventListener('keydown', (e) => { const tr = e.target.closest('tr.pick'); if (tr && e.key === 'Enter') $('#sdName').value = tr.dataset.name; });
+$('#btnSdCheck').addEventListener('click', async () => {
+  if (state.busy) return;
+  state.busy = true; refreshButtons();
+  try {
+    const r = await dev.request('sdcheck', { timeout: 8000 });
+    setSd(r.last.startsWith('OK'));
+  } catch (e) { showError('#resSd', e); }
+  finally { state.busy = false; refreshButtons(); }
+});
+
+for (const b of $$('.action[data-cmd]')) {
+  b.addEventListener('click', async () => {
+    if (b.dataset.confirm && !(await confirmDlg(b.dataset.title, b.dataset.confirm))) return;
+    const r = await deviceOp(b.dataset.cmd, b.dataset.title, '#resTools');
+    if (!r) return;
+    const msg = r.last.replace(/^(OK|NG) \S+\s*/, '');
+    if (b.dataset.cmd === 'test p') {
+      const m = /data_bad=0x([0-9A-F]+) addr_bad=0x([0-9A-F]+)/i.exec(r.lines.find((l) => l.startsWith('T 62256')) || '');
+      const lines = [];
+      if (m) {
+        const db = parseInt(m[1], 16), ab = parseInt(m[2], 16);
+        for (let i = 0; i < 8; i++) if (db & (1 << i)) lines.push('D' + i);
+        for (let i = 0; i < 15; i++) if (ab & (1 << i)) lines.push('A' + i);
+      }
+      if (okLine(r)) result('#resTools', 'ok', '62256 でのバス試験: 異常はありません', 'データ線 D0〜D7、アドレス線 A0〜A14 とも正しく読み書きできました。');
+      else result('#resTools', 'ng', '62256 でのバス試験: 異常があります', `疑わしい線: ${lines.join('、') || '不明'}。MCP23S17 とバスの配線 (断線・ショート・はんだ) を確かめてください。`);
+    } else if (b.dataset.cmd === 'cmp f p') {
+      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? 'カードと 62256 はすべて一致しました' : 'カードと 62256 に違いがあります', msg);
+    } else if (b.dataset.cmd === 'test') {
+      const t = r.lines.filter((l) => l.startsWith('T ')).join('\n');
+      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? '自己診断: 読み書きできる配線があります' : '自己診断: どちらの配線でも読み書きできません', msg.replace('D6=', '/CS が D6: ').replace(' MCP=', '、/CS が MCP B5: '), `<p style="font-family:var(--mono);font-size:12.5px;white-space:pre-wrap">${esc(t)}</p>`);
+    } else if (b.dataset.cmd === 'cmp') {
+      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? 'カードと SPI SRAM はすべて一致しました' : 'カードと SPI SRAM に違いがあります', msg);
+    } else result('#resTools', okLine(r) ? 'ok' : 'ng', `${b.dataset.title}: ${okLine(r) ? '完了しました' : '違いがあります'}`, msg);
+  });
+}
+
+// ---- コマンド入力 ----
+$('#cmdForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const c = $('#cmdInput').value.trim();
+  if (!c || state.busy || !state.connected) return;
+  $('#cmdInput').value = '';
+  try { await dev.request(c, { timeout: c.length === 1 && /[?h]/.test(c) ? 600 : 20000 }); }
+  catch (err) { if (err.code !== 'TIMEOUT' || !/^[?h]$/.test(c)) log.add('er', explain(err)[0]); }
+});
+
+// =====================================================================
+// メモリマップ (パンチカード) と 16 進表示
+// =====================================================================
+const COLS = 32, ROWS = 16, CELL = 64;
+const cellOf = (addr) => Math.floor(addr / CELL);
+function setView(v) {
+  view = v;
+  view.diffs = v.b ? diffList(v.a, v.b) : [];
+  view.diffSet = new Set(view.diffs);
+  view.sel = null;
+  view.diffPos = -1;
+  const cells = new Array(COLS * ROWS);
+  for (let c = 0; c < cells.length; c++) {
+    let used = 0, zero = true, diff = 0;
+    for (let i = c * CELL; i < (c + 1) * CELL; i++) {
+      const x = v.a[i];
+      if (x !== 0xff) used++;
+      if (x !== 0) zero = false;
+      if (view.diffSet.has(i)) diff++;
+    }
+    cells[c] = { used, zero, diff };
+  }
+  view.cells = cells;
+  $('#viewTitle').textContent = v.title;
+  $('#viewSub').textContent = v.sub || '';
+  $('#viewBody').hidden = false;
+  $('#btnDownloadView').disabled = false;
+  let used = 0, firstUsed = -1, lastUsed = -1;
+  for (let i = 0; i < SIZE; i++) if (v.a[i] !== 0xff) { used++; if (firstUsed < 0) firstUsed = i; lastUsed = i; }
+  const st = [
+    ['大きさ', '32,768 バイト'],
+    ['データのあるバイト', fmtN(used)],
+    ['範囲', used ? `${hex4(firstUsed)} – ${hex4(lastUsed)}` : 'なし (すべて FF)'],
+    ['CRC32', crc32(v.a)],
+  ];
+  if (v.b) st.push(['違い', `${fmtN(view.diffs.length)} バイト`]);
+  $('#viewStats').innerHTML = st.map(([k, val]) => `<div>${esc(k)}<b>${esc(val)}</b></div>`).join('');
+  $('#btnPrevDiff').disabled = $('#btnNextDiff').disabled = view.diffs.length === 0;
+  $('#diffInfo').textContent = v.b ? (view.diffs.length ? `${v.aName} と ${v.bName}: ${fmtN(view.diffs.length)} バイトの違い` : `${v.aName} と ${v.bName}: 違いなし`) : '';
+  drawMap();
+  $('#hex').scrollTop = 0;
+  renderHex();
+  if (view.diffs.length) gotoDiff(0);
+}
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+let mapGeom = null;
+function drawMap() {
+  if (!view) return;
+  const cv = $('#map');
+  const W = cv.clientWidth || 640;
+  const gutter = 52, top = 18;
+  const cell = (W - gutter) / COLS;
+  const H = Math.round(top + ROWS * cell + 4);
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const ink = cssVar('--indigo'), empty = cssVar('--hole-empty'), bad = cssVar('--bad'), muted = cssVar('--muted'), yarn = cssVar('--yarn');
+  ctx.font = `11px ${cssVar('--mono')}`;
+  ctx.fillStyle = muted;
+  ctx.textBaseline = 'middle';
+  for (let c = 0; c < COLS; c += 8) ctx.fillText('+' + (c * CELL).toString(16).toUpperCase().padStart(3, '0'), gutter + c * cell + 2, 8);
+  for (let r = 0; r < ROWS; r++) ctx.fillText((r * COLS * CELL).toString(16).toUpperCase().padStart(4, '0'), 2, top + r * cell + cell / 2);
+  const R = cell * 0.36;
+  for (let i = 0; i < COLS * ROWS; i++) {
+    const c = view.cells[i];
+    const cx = gutter + (i % COLS) * cell + cell / 2, cy = top + Math.floor(i / COLS) * cell + cell / 2;
+    ctx.beginPath();
+    if (c.diff) {
+      ctx.fillStyle = bad; ctx.arc(cx, cy, R * 1.12, 0, Math.PI * 2); ctx.fill();
+    } else if (c.used === 0) {
+      ctx.strokeStyle = empty; ctx.lineWidth = 1.6; ctx.arc(cx, cy, R * 0.86, 0, Math.PI * 2); ctx.stroke();
+    } else if (c.zero) {
+      ctx.fillStyle = muted; ctx.arc(cx, cy, R * 0.32, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = ink; ctx.arc(cx, cy, R * (0.45 + 0.55 * Math.sqrt(c.used / CELL)), 0, Math.PI * 2); ctx.fill();
+    }
+    if (view.sel === i) { ctx.strokeStyle = yarn; ctx.lineWidth = 2.5; ctx.strokeRect(cx - cell / 2 + 1.5, cy - cell / 2 + 1.5, cell - 3, cell - 3); }
+  }
+  mapGeom = { gutter, top, cell };
+}
+function mapHit(e) {
+  if (!mapGeom || !view) return -1;
+  const r = $('#map').getBoundingClientRect();
+  const x = e.clientX - r.left - mapGeom.gutter, y = e.clientY - r.top - mapGeom.top;
+  const col = Math.floor(x / mapGeom.cell), row = Math.floor(y / mapGeom.cell);
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return -1;
+  return row * COLS + col;
+}
+$('#map').addEventListener('mousemove', (e) => {
+  const i = mapHit(e), tip = $('#tip');
+  if (i < 0) { tip.hidden = true; return; }
+  const c = view.cells[i];
+  const lines = [`${hex4(i * CELL)} – ${hex4(i * CELL + CELL - 1)}`, c.used ? `データ ${c.used} / 64 バイト` : '空き (すべて FF)'];
+  if (c.diff) lines.push(`違い ${c.diff} バイト`);
+  tip.innerHTML = lines.map(esc).join('<br>');
+  const pr = $('.punch').getBoundingClientRect();
+  tip.style.left = (e.clientX - pr.left) + 'px'; tip.style.top = (e.clientY - pr.top) + 'px';
+  tip.hidden = false;
+});
+$('#map').addEventListener('mouseleave', () => { $('#tip').hidden = true; });
+$('#map').addEventListener('click', (e) => { const i = mapHit(e); if (i >= 0) gotoAddr(i * CELL); });
+window.addEventListener('resize', () => { drawMap(); drawLcd(); });
+
+const ROW_H = 22, HEX_ROWS = SIZE / 16;
+$('#hexSpacer').style.height = HEX_ROWS * ROW_H + 'px';
+function renderHex() {
+  if (!view) return;
+  const box = $('#hex');
+  const first = Math.max(0, Math.floor(box.scrollTop / ROW_H) - 4);
+  const n = Math.ceil(box.clientHeight / ROW_H) + 8;
+  const selLo = view.sel !== null ? view.sel * CELL : -1, selHi = view.sel !== null ? selLo + CELL : -1;
+  let html = '';
+  for (let r = first; r < Math.min(HEX_ROWS, first + n); r++) {
+    const base = r * 16;
+    let hx = '', as = '';
+    for (let i = 0; i < 16; i++) {
+      const a = base + i, b = view.a[a];
+      const cls = view.diffSet.has(a) ? 'd' : b === 0xff ? 'f' : '';
+      const sel = a >= selLo && a < selHi ? ' s' : '';
+      const title = view.diffSet.has(a) ? ` title="${esc(view.bName)}: ${hex2(view.b[a])}"` : '';
+      hx += `<span class="${cls}${sel}"${title}>${hex2(b)}</span>` + (i < 15 ? ' ' : '');
+      as += b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '.';
+    }
+    html += `<div class="hr"><span class="ad">${hex4(base).slice(2)}</span><span class="hx">${hx}</span><span class="as">${esc(as)}</span></div>`;
+  }
+  const rows = $('#hexRows');
+  rows.style.top = (first * ROW_H + ROW_H) + 'px';
+  rows.innerHTML = html;
+}
+$('#hex').addEventListener('scroll', renderHex, { passive: true });
+function gotoAddr(addr) {
+  if (!view) return;
+  addr = Math.max(0, Math.min(SIZE - 1, addr));
+  view.sel = cellOf(addr);
+  const box = $('#hex');
+  box.scrollTop = Math.max(0, Math.floor(addr / 16) * ROW_H - box.clientHeight / 3);
+  drawMap(); renderHex();
+}
+function gotoDiff(k) {
+  if (!view || !view.diffs.length) return;
+  view.diffPos = (k + view.diffs.length) % view.diffs.length;
+  const a = view.diffs[view.diffPos];
+  gotoAddr(a);
+  $('#diffInfo').textContent = `違い ${fmtN(view.diffPos + 1)} / ${fmtN(view.diffs.length)}: ${hex4(a)}  ${view.aName} ${hex2(view.a[a])} / ${view.bName} ${hex2(view.b[a])}`;
+}
+$('#btnNextDiff').addEventListener('click', () => gotoDiff(view.diffPos + 1));
+$('#btnPrevDiff').addEventListener('click', () => gotoDiff(view.diffPos - 1));
+function goFromInput() { const v = parseInt($('#hexGo').value.replace(/^0x/i, ''), 16); if (!isNaN(v)) gotoAddr(v); }
+$('#btnGo').addEventListener('click', goFromInput);
+$('#hexGo').addEventListener('keydown', (e) => { if (e.key === 'Enter') goFromInput(); });
+$('#btnDownloadView').addEventListener('click', () => { if (view) download(view.a, (view.aName && /\.bin$/i.test(view.aName) ? view.aName.replace(/\.bin$/i, '') + '_copy' : `fujisoku_${stamp()}`) + '.bin'); });
+
+// =====================================================================
+// タブ
+// =====================================================================
+const tabs = $$('.tab');
+function selectTab(t) {
+  for (const x of tabs) {
+    const on = x === t;
+    x.setAttribute('aria-selected', on);
+    x.tabIndex = on ? 0 : -1;
+    $('#' + x.getAttribute('aria-controls')).hidden = !on;
+  }
+}
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => selectTab(t));
+  t.addEventListener('keydown', (e) => {
+    const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (k) { const n = tabs[(i + k + tabs.length) % tabs.length]; selectTab(n); n.focus(); }
+  });
+});
+
+// =====================================================================
+// 起動
+// =====================================================================
+if (!('serial' in navigator)) $('#unsupported').hidden = false;
+setSd(null);
+drawLcd();
+refreshButtons();
+</script>
+</body>
+</html>

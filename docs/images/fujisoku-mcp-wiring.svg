@@ -10,7 +10,7 @@
   <rect width="1000" height="790" fill="#ffffff"/>
 
   <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">MCP23S17 - FUJISOKU card wiring (38-pin card, F1-F38)</text>
-  <text x="20" y="46" font-size="11" fill="#555555">Wiring from the wiring article (2026-04-09); card pin-out from the pin-out article (2026-01-31). MCP pin numbers are the 28-pin package pins.</text>
+  <text x="20" y="46" font-size="11" fill="#555555">Card pin-out and ch6 / ch7 GPA from the articles; ch7 GPB as used by the sketch (confirmed on the board). MCP pin numbers are the 28-pin package pins.</text>
 
   <!-- column headings -->
   <text x="130" y="82" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
@@ -63,11 +63,11 @@
   <text x="30" y="206" font-size="11" fill="#333333">data + control + A16/A17</text>
   <g font-size="11" font-family="monospace" fill="#333333">
     <text x="30" y="232">GPA0-GPA7 = D0-D7</text>
-    <text x="30" y="250">GPB0 = /CE1</text>
-    <text x="30" y="266">GPB1 = CE2</text>
-    <text x="30" y="282">GPB2 = /WE</text>
-    <text x="30" y="298">GPB3 = /OE</text>
-    <text x="30" y="314">GPB4, GPB5 = NC</text>
+    <text x="30" y="250">GPB0 = CS2 (62256 /CS)</text>
+    <text x="30" y="266">GPB1 = /OE</text>
+    <text x="30" y="282">GPB2 = 62256 /OE</text>
+    <text x="30" y="298">GPB3 = /WE</text>
+    <text x="30" y="314">GPB4 = /CE1   GPB5 = SRAM /CS</text>
     <text x="30" y="330">GPB6 = A16</text>
     <text x="30" y="346">GPB7 = A17</text>
   </g>
@@ -86,22 +86,14 @@
     <path d="M240,413 H418" marker-end="url(#arr)"/>
   </g>
   <g font-size="10" fill="#333333" text-anchor="middle">
-    <text x="330" y="185">GPB0 (p1)</text>
-    <text x="330" y="213">GPB1 (p2)</text>
-    <text x="330" y="241">GPB2 (p3)</text>
-    <text x="330" y="269">GPB3 (p4)</text>
+    <text x="330" y="185">GPB4 (p5)</text>
+    <text x="330" y="213">GPB0 (p1)</text>
+    <text x="330" y="241">GPB3 (p4)</text>
+    <text x="330" y="269">GPB1 (p2)</text>
     <text x="330" y="297">GPA0-7 (p21-28)</text>
     <text x="330" y="381">GPB6 (p7)</text>
     <text x="330" y="409">GPB7 (p8)</text>
   </g>
-  <!-- warning markers on the four control rows -->
-  <g fill="#b36b00" font-size="13" font-weight="bold">
-    <text x="622" y="194">!</text>
-    <text x="622" y="222">!</text>
-    <text x="622" y="250">!</text>
-    <text x="622" y="278">!</text>
-  </g>
-
   <!-- notes in the free area next to the power / unused rows (left) -->
   <g font-size="10" fill="#555555" text-anchor="end">
     <text x="414" y="109">power: not described in the articles</text>
@@ -133,26 +125,26 @@
     <text x="652" y="530">not handled in the code</text>
   </g>
 
-  <!-- mismatch callout -->
-  <rect x="650" y="62" width="330" height="214" rx="6" fill="#fffaf0" stroke="#b36b00" stroke-width="1.5"/>
-  <text x="660" y="82" font-weight="bold" fill="#b36b00">! ch7 GPIOB: article wiring vs sketch constants</text>
+  <!-- ch7 GPIOB table -->
+  <rect x="650" y="62" width="330" height="214" rx="6" fill="#f2f7ff" stroke="#1a4fa0" stroke-width="1.5"/>
+  <text x="660" y="82" font-weight="bold" fill="#1a4fa0">ch7 GPIOB (control lines)</text>
   <g font-size="11" font-family="monospace" fill="#111111" font-weight="bold">
     <text x="660" y="104">bit</text>
-    <text x="705" y="104">article</text>
-    <text x="780" y="104">sketch (current)</text>
+    <text x="705" y="104">signal</text>
+    <text x="850" y="104">card pin</text>
   </g>
   <g font-size="11" font-family="monospace" fill="#333333">
-    <text x="660" y="122">B0</text><text x="705" y="122">/CE1</text><text x="780" y="122">nCS_62256 = CS2</text>
-    <text x="660" y="138">B1</text><text x="705" y="138">CE2</text><text x="780" y="138">nOE_FUJISOKU</text>
-    <text x="660" y="154">B2</text><text x="705" y="154">/WE</text><text x="780" y="154">nOE_62256</text>
-    <text x="660" y="170">B3</text><text x="705" y="170">/OE</text><text x="780" y="170">nWE</text>
-    <text x="660" y="186">B4</text><text x="705" y="186">NC</text><text x="780" y="186">nCS1_FUJISOKU</text>
-    <text x="660" y="202">B5</text><text x="705" y="202">NC</text><text x="780" y="202">nCS_SPI_SRAM</text>
-    <text x="660" y="218">B6</text><text x="705" y="218">A16</text><text x="780" y="218">A16</text>
-    <text x="660" y="234">B7</text><text x="705" y="234">A17</text><text x="780" y="234">A17</text>
+    <text x="660" y="122">B0</text><text x="705" y="122">CS2  (= 62256 /CS)</text><text x="850" y="122">F5</text>
+    <text x="660" y="138">B1</text><text x="705" y="138">/OE  card</text><text x="850" y="138">F7</text>
+    <text x="660" y="154">B2</text><text x="705" y="154">/OE  62256</text><text x="850" y="154">-</text>
+    <text x="660" y="170">B3</text><text x="705" y="170">/WE  (shared)</text><text x="850" y="170">F6</text>
+    <text x="660" y="186">B4</text><text x="705" y="186">/CE1 card</text><text x="850" y="186">F4</text>
+    <text x="660" y="202">B5</text><text x="705" y="202">/CS  SPI SRAM</text><text x="850" y="202">-</text>
+    <text x="660" y="218">B6</text><text x="705" y="218">A16</text><text x="850" y="218">F32</text>
+    <text x="660" y="234">B7</text><text x="705" y="234">A17</text><text x="850" y="234">F33</text>
   </g>
-  <text x="660" y="254" font-size="10" fill="#555555">Address, data, A16 and A17 agree.</text>
-  <text x="660" y="268" font-size="10" fill="#555555">Which one the board uses cannot be told from the files.</text>
+  <text x="660" y="254" font-size="10" fill="#555555">Confirmed by the board owner: the sketch constants</text>
+  <text x="660" y="268" font-size="10" fill="#555555">are correct (the article table differs for B0-B5).</text>
 
   <!-- notes -->
   <g font-size="11" fill="#333333">

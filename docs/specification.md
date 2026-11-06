@@ -1,460 +1,231 @@
-# ソフトウェア仕様（FUJISOKU_SRAM_COPY.ino）
+# ソフトウェア仕様（スケッチ v2.1）
 
-シルバー編機のメモリカード（FUJISOKU SRAM）を、シリアルコマンドで SPI SRAM / SD カードとの間でコピー・照合するユーティリティの詳細仕様です。ハード構成と結線は [hardware.md](hardware.md) を参照してください。
-
-> 仕様はスケッチ（`FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino`）を読んで作成し、PC 上のスタブ付きビルドとレジスタモデルで動作を確認したものです（§13）。**実機では確認していません。**
+対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.1）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
 
 ## 1. 概要
 
-- 操作はシリアルコンソール（115200 bps）からの **1 文字コマンド**です。
-- 扱うデータは **0x0000〜0x7FFF の 32 KB**（`fujisoku.bin` と同じ並び）です。
-- 3 つのメモリ（FUJISOKU SRAM / SPI SRAM / SD の `fujisoku.bin`）の間で転送・比較します。
-- 1 バイトずつ MCP23S17 経由でバスを駆動するため低速です。32 KB の転送でシリアル出力だけでも約 9〜10 秒（115200 bps の理論値）かかります。
+FUJISOKU SRAM カード（32KB、0x0000〜0x7FFF）を、次の相手との間でコピー・照合します。
 
-```mermaid
-flowchart LR
-    F["FUJISOKU SRAM"]
-    P["SPI SRAM (buffer)"]
-    D["SD: fujisoku.bin"]
-    F -->|R| P
-    P -->|C| F
-    F -->|B| D
-    D -->|L| F
-    P -->|S| D
-    D -->|W| P
-    D -.->|V 照合| F
-    P -.->|X 比較| F
-```
+| 相手 | 操作する場所 |
+|---|---|
+| PC のファイル | Web アプリ（`rd` / `wr` で PC 側が処理し、本体は読み書きだけ） |
+| SD カードの `*.bin` | 本体（`sd save` / `sd load` / `sd verify`、1 文字コマンド `B` `L` `V`） |
+| SPI SRAM（一時保管） | 本体（`copy` / `cmp` / `erase`、1 文字コマンド `R` `C` `X` `E` `e`） |
+| 62256（オプション、動作確認用） | 本体（対象 `p`、`test p` でバスの配線試験） |
+
+本体にボタンは無く、操作はすべて PC から行います。状態と進捗は 20×4 の画面に表示し、同じ内容を LCD（オプション）と Web アプリに出します。
 
 ## 2. ソース構成
 
-行番号は現行コミット時点の目安です。
+Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メインのファイルを先頭に、残りを名前順につないで 1 つのプログラムとしてビルドされます。
 
-| 範囲 | 内容 |
+| ファイル | 内容 |
 |---|---|
-| 1〜8 | `#include` |
-| 10〜131 | `#define`（§5） |
-| 133〜180 | TFT・タッチ・SD のオブジェクト、`BUTTON`、キー配列、プロトタイプ（§6） |
-| 182〜259 | `setup()`（§7.1） |
-| 261〜318 | `loop()`（§7.2） |
-| 320〜376 | コメントアウトされた旧コード（`SdFileList` ほか） |
-| 378〜471 | `read_silver_memorycard` / `copy_silver_memorycard` / `compare_silver_memorycard` |
-| 473〜599 | `save_sdcard_silver_memorycard` / `write_sdcard_silver_memorycard` |
-| 601〜629 | `dev_read` / `dev_write` / `dev_name` |
-| 631〜718 | `verify_sdcard_silver_memorycard` |
-| 720〜864 | MCP23S17 とメモリのアクセス（`//Hardware Control`） |
-| 866〜940 | `T` の補助関数と `test_spi_sram` |
-| 942〜1028 | SPI SRAM の連続・モード関数（未使用） |
-| 1030〜1277 | TFT・タッチ関連、`hexdump`、コメントアウトされたコード（未使用） |
+| `FUJISOKU_SRAM_COPY.ino` | ライブラリの読み込み（LCD はオプションに応じて）、グローバル変数、`setup()`、`loop()` |
+| `config.h` | **オプション部品の選択**（§3）、設定値、ピン、MCP23S17 のレジスタ、制御定数 |
+| `hardware.ino` | MCP23S17 のレジスタ読み書き、`mcp_init()` / `bus_idle()`、カード・SPI SRAM・62256 の 1 バイト読み書き、`spi_sram_init()` |
+| `storage.ino` | SD カードの状態管理（マウント、生存確認、抜けの検出）、ファイル名の組み立て、一覧 |
+| `operations.ino` | 処理の枠組み（開始・段階・進捗・終了・中断）と各処理（コピー、比較、消去、SD 保存・書き込み・照合、自己診断、62256 のバス試験） |
+| `protocol.ino` | シリアルの行の受信、コマンドの振り分け、`rd` / `wr` / `fill`、PC 主導の表示（`ui`） |
+| `lcd_ui.ino` | 画面（待機・進捗・結果）、LCD の検出と差分だけの書き換え、自作文字、PC への画面送信（`lcd`） |
 
-## 3. ビルド環境
+## 3. 部品の構成とオプション
+
+### 3.1 必須とオプション
+
+| 区分 | 部品 | 設定 |
+|---|---|---|
+| 必須 | MCP23S17 × 2、FUJISOKU カードのスロット、**SPI SRAM（データの一時保管）**、SD カード | - |
+| オプション | 20×4 キャラクタ LCD（I2C） | `USE_LCD` |
+| オプション | 62256 並列 SRAM（動作確認用） | `USE_SRAM62256` |
+
+### 3.2 `config.h` のオプション
+
+```c
+#define USE_LCD 1         // 20x4 キャラクタ LCD (I2C)。0 で LCD のコードとライブラリを外す
+#define USE_SRAM62256 0   // 動作確認用の 62256。1 で対象 p と test p が使える
+```
+
+| 設定 | 1 のとき | 0 のとき |
+|---|---|---|
+| `USE_LCD` | 起動時に LCD を探し、見つかれば表示する（見つからなければ LCD には送らない） | LCD のコードを入れない。LiquidCrystal I2C と Wire を読み込まない |
+| `USE_SRAM62256` | 対象 `p`、`test p` が使える。`read_sram()` / `write_sram()` が入る | 62256 のコードを入れない。`p` を指定すると `ERR ARG` |
+
+どちらの設定でも、本体は画面の内容を持ち続けるので、Web アプリには同じ画面が出ます。`hello` の応答（`lcd=20x4|none`、`sram62256=1|0`）で、PC は構成を知ることができます。
+
+各設定は `#ifndef` で囲んであるので、ビルド時に `-DUSE_LCD=0` のように外から変えることもできます（テストではこれを使っています）。
+
+v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃止しました。
+
+## 4. ビルド
 
 | 項目 | 内容 |
 |---|---|
-| IDE | Arduino IDE（スケッチフォルダ名 = `FUJISOKU_SRAM_COPY`） |
-| ライブラリ | SPI、Adafruit GFX Library、Adafruit ILI9341、XPT2046_Touchscreen、SdFat（v2 系の `FsFile`） |
-| ボード | Arduino UNO R4（ハード記事に記載）。**UNO R4 でのビルドは未検証** |
-| シリアル | 115200 bps |
-| 不要な include | `<unistd.h>`、`<fcntl.h>`、`<iostream>` は使用していません |
+| ボード | Arduino UNO R4（Minima / WiFi） |
+| ライブラリ | SdFat（Bill Greiman、v2 系）。`USE_LCD` が 1 のときは LiquidCrystal I2C（Frank de Brabander）も |
+| 標準ライブラリ | SPI（`USE_LCD` が 1 のときは Wire も） |
 
-- `BUTTON` 型を引数に取る関数は、Arduino IDE の自動プロトタイプ生成が効かないため、スケッチ内に手書きのプロトタイプがあります。
-- SD カード（`CS_SDcard` = D7）が初期化できないと `setup()` で停止します。起動時は SD カードを挿入しておく必要があります。
+### 4.1 設定値（`config.h`）
 
-## 4. コマンド一覧
+| 定義 | 既定値 | 内容 |
+|---|---|---|
+| `USE_LCD` | `1` | §3.2 |
+| `USE_SRAM62256` | `0` | §3.2 |
+| `LCD_I2C_ADDR` | `0x27` | LCD バックパックの I2C アドレス（`0x3F` の基板もある） |
+| `RESULT_HOLD_MS` | `15000` | 結果画面を出しておく時間 |
+| `SPI_BUS_HZ` | `4000000` | MCP23S17 / SPI SRAM の SPI クロック |
+| `SD_ALIVE_CHECK_MS` | `1500` | 待機中に SD カードの応答を確かめる間隔 |
+| `CHUNK_BYTES` | `64` | `rd` の 1 行、`wr` の最大バイト数 |
+| `BLOCK_BYTES` | `256` | SD との読み書きの単位 |
+| `SD_TMP_NAME` | `"FSU_TMP.TMP"` | バックアップ中の一時ファイル |
 
-| キー | 動作 | 転送元 → 転送先 | 破壊的操作 |
-|---|---|---|---|
-| `R` | カード読み出し | FUJISOKU → SPI SRAM | SPI SRAM を `0xFF` で消去してから書き込み |
-| `C` | カード書き戻し | SPI SRAM → FUJISOKU | **FUJISOKU を `0xFF` で消去してから書き込み** |
-| `X` | 比較 | SPI SRAM ↔ FUJISOKU | なし |
-| `S` | 保存 | SPI SRAM → SD | `fujisoku.bin` を削除して再作成 |
-| `W` | 読み込み | SD → SPI SRAM | SPI SRAM を上書き |
-| `B` | バックアップ | FUJISOKU → SD | `fujisoku.bin` を削除して再作成 |
-| `L` | ロード | SD → FUJISOKU | **FUJISOKU を上書き** |
-| `V` | 照合 | SD ↔ FUJISOKU | なし |
-| `T` | SPI SRAM 自己診断 | SPI SRAM のみ | 試験領域を書き換えて復元 |
+## 5. 起動と周期処理
 
-メニューに表示される `E`（SPI SRAM 消去）と `e`（FUJISOKU 消去）は、**`switch` に処理がなく未実装**です。
+### 5.1 `setup()`
 
-> `SPI_SRAM` を定義してビルドすると、「SPI SRAM」として扱っている部分が並列 62256 SRAM に切り替わります（名前が逆の意味になっている点に注意）。
+1. `Serial.begin(115200)`（PC の接続は待たない）。
+2. `SPI.begin()`、/CS ピンを出力・High、MCP23S17 の /RESET パルス。
+3. `ui_begin()`: `USE_LCD` が 1 なら I2C で LCD を探し、見つかれば初期化して自作文字を登録する。起動画面を出す。
+4. `mcp_init()`: MCP23S17 を BANK=1・HAEN にして全チャネルを初期化し、`bus_idle()`。
+5. `spi_sram_init()`: SPI SRAM をバイトモードにする（[hardware.md §9.1](hardware.md#91-spi-sram必須データの一時保管)）。
+6. `sd_mount()`: SD カードがあればマウント。無くても止まらない。
+7. 待機画面を出し、`FUJISOKU SRAM Utility 2.1 ready (LCD 20x4, 62256 off). ...` を送る（LCD が無ければ `LCD none`）。
 
-### 4.1 使い方の例
+### 5.2 `loop()`
 
-| 目的 | 手順 |
+`delay()` は使わず、次の 3 つを繰り返します。
+
+| 関数 | 内容 |
 |---|---|
-| カードを SD にバックアップして検証 | `B` → 完了後 `V` → `VERIFY OK` を確認 |
-| SD からカードへ書き戻して検証 | `L` → 完了後 `V` → `VERIFY OK` を確認 |
-| カードの内容を SPI SRAM に取り込んで確認 | `R` → `X` |
-| SPI SRAM が動いているか調べる | `T` |
+| `proto_poll()` | シリアルから 1 行ずつ取り込んでコマンドを実行。PC 主導の表示が 8 秒止まったら表示を戻す |
+| `ui_poll()` | 待機画面の SD / PC 表示の更新（0.2 秒ごと）、結果画面から待機画面への切り替え、`lcd on` のときの画面送信 |
+| `sd_idle_check()` | SD が使える状態なら 1.5 秒ごとに応答を確かめ、抜かれたら `E SD 0` |
 
-`C` は先にカードを消去します。SPI SRAM に正しい内容が入っていること（直前に `R` か `W` を実行したこと）を確認してから使ってください。
+## 6. 処理（`operations.ino`）
 
-## 5. 定義（`#define`）一覧
+### 6.1 対象メモリ
 
-### 5.1 MCP23S17
-
-| 定義名 | 値 | 内容 |
-|---|---|---|
-| `MCP23x17_OPE_WRITE` | `0x40` | 書き込みオペコード（実際は `+ ch*2`） |
-| `MCP23x17_OPE_WRITE_A2` | `0x48` | A2=1 用の書き込みオペコード（初期化のみ） |
-| `MCP23x17_OPE_READ` | `0x41` | 読み出しオペコード（実際は `+ ch*2`） |
-| `MCP_ALL_INPUT` | `0xFF` | 全ビット入力 |
-| `MCP_ALL_OUTPUT` | `0x00` | 全ビット出力 |
-| `MCP7_PORT_PULUP` | `0xFF` | 定義のみ（未使用） |
-| `MCP23x17_IOCR_BANK0` | `0x0A` | 初期化時の IOCON アドレス（BANK=0） |
-
-レジスタアドレス（BANK=1）。BANK=0 版の定義は `/* */` 内に残っています。
-
-| 定義名 | 値 | 使用 |
-|---|---|---|
-| `MCP23x17_DDR_A` / `MCP23x17_DDR_B` | `0x00` / `0x10` | 使用 |
-| `MCP23x17_GPUP_A` / `MCP23x17_GPUP_B` | `0x06` / `0x16` | 初期化で使用 |
-| `MCP23x17_GPIO_A` / `MCP23x17_GPIO_B` | `0x09` / `0x19` | 使用 |
-| `MCP23x17_OLAT_A` / `MCP23x17_OLAT_B` | `0x0A` / `0x1A` | 使用 |
-| `MCP23x17_IOCR` | `0x05` | `read_IOCR` のみ（未使用） |
-
-その他（`MCP23x17_POL_*`、`MCP23x17_GPINTEN_*`、`MCP23x17_DEFVAL_*`、`MCP23x17_INTCON_*`、`MCP23x17_IOCR_B`、`MCP23x17_INTF_*`、`MCP23x17_INTCAP_*`）は定義のみです。
-
-IOCON のビット（`IOCR_*`）: `IOCR_BANK1` = `0x80`、`IOCR_MIRROR` = `0x40`、`IOCR_SEQOP` = `0x20`、`IOCR_DISSLW` = `0x10`、`IOCR_HAEN` = `0x08`、`IOCR_ODR` = `0x04`、`IOCR_INTPOL` = `0x02`、`IOCR_NI` = `0x01`。初期化では `IOCR_BANK1 + IOCR_HAEN + IOCR_ODR` = `0x8C` を書きます。
-
-### 5.2 SPI SRAM
-
-| 定義名 | 値 | 内容 |
-|---|---|---|
-| `SRAM_OPE_READ` | `0x03` | READ 命令 |
-| `SRAM_OPE_WRITE` | `0x02` | WRITE 命令 |
-| `REG_READ` | `0x05` | RDMR（モードレジスタ読み出し） |
-| `REG_WRITE` | `0x01` | WRMR（モードレジスタ書き込み） |
-| `MODE_RW_BYTE` | `0x00` | ダミーバイト送信値としても使用 |
-| `MODE_RW_PAGE` | `0x40` | 未使用 |
-| `MODE_RW_SEQ` | `0x80` | 未使用 |
-| `SRAM_OPE_MODE` | `0xFF` | 未使用 |
-
-### 5.3 ピン
-
-| 定義名 | 値 | 内容 |
-|---|---|---|
-| `CS_TFT` | 10 | ILI9341 /CS |
-| `DC_TFT` | 9 | ILI9341 DC |
-| `CS_touch` | 8 | XPT2046 /CS |
-| `CS_SDcard` | 7 | SD /CS |
-| `CS_SRAM_512` | 6 | SPI SRAM /CS |
-| `CS_RESET` | 5 | MCP23S17 /RESET |
-| `CS_MCP23S17` | 4 | MCP23S17 /CS |
-| `CS_FSRAM_512` | 1 | 未使用 |
-| `IRQ_MCP` | 3 | 入力設定のみ |
-| `IRQ_touch` | 2 | 入力設定のみ |
-
-### 5.4 MCP チャネル
-
-| 定義名 | 値 | 内容 |
-|---|---|---|
-| `CH_MCP_BUS_ADDRESS` | 6 | アドレスバス |
-| `CH_MCP_BUS_DATA` | 7 | データバス |
-| `CH_MCP_CONTROL` | 7 | 制御線 + A16/A17 |
-
-### 5.5 ch7 ポート B の制御値
-
-ビットの意味はスケッチのコメントに基づきます。記事の配線とは一致しません（[hardware.md §6](hardware.md#6-ch7-ポート-b-記事とスケッチの食い違い)）。
-
-| 定義名 | 値 | 用途 |
-|---|---|---|
-| `DISENABLE_SRAM` | `0x3F` | 全制御線 非選択（起動時・待機時） |
-| `DISENABLE_FUJISOKU` | `0x3E` | FUJISOKU アクセス終了時 |
-| `ENABLE_FUJISOKU_nCS1_CS2` | `0x2F` | FUJISOKU 選択（B4 = Low、B0 = High） |
-| `ENABLE_SRAM_nCS` | `0x3E` | 62256 選択（B0 = Low） |
-| `AND_ENABLE_nWE` | `0xF7` | B3 を Low（書き込みパルス） |
-| `AND_ENABLE_FUJISOKU_nOE` | `0xFD` | B1 を Low |
-| `AND_ENABLE_SRAM_nOE` | `0xFB` | B2 を Low |
-| `AND_ENABLE_SPI_SRAM` | `0xDF` | B5 を Low |
-| `MCP_IODIR_PE1_CONNECT` | `0xDB` | 未使用 |
-
-`MCP_IODIR_FUJISOKU_CONNECT` と `MCP_IODIR_SRAM_CONNECT` はどちらも `0x00` で、未使用です。
-
-### 5.6 その他
-
-| 定義名 | 値 | 内容 |
-|---|---|---|
-| `SRAM_ERASE` | `0xFF` | 消去値 |
-| `DEV_SPI_SRAM` | 0 | `dev` 引数: SPI SRAM（`SPI_SRAM` 定義時は 62256） |
-| `DEV_FUJISOKU` | 1 | `dev` 引数: FUJISOKU |
-| `SPI_SRAM` | 未定義 | コメントアウト。定義すると 62256 側に切り替わる |
-
-## 6. グローバルオブジェクト
-
-| 名前 | 型 | 内容 |
-|---|---|---|
-| `tft` | `Adafruit_ILI9341` | `CS_TFT`、`DC_TFT`。`setup()` で `tft.begin()`、`tft.setRotation(0)` のみ |
-| `ts` | `XPT2046_Touchscreen` | `CS_touch`、`IRQ_touch`。コマンドからは使わない |
-| `BUTTON` | 構造体 | `x`、`y`、`w`、`t`、`key`。タッチキー用 |
-| `key_C`〜`key_3`、`key_array[16]` | `BUTTON` | 16 進キーの配置。未使用 |
-| `caliblation_x1`、`caliblation_y1`、`delta_x`、`delta_y` | `float` | タッチ補正値。未使用 |
-| `SD` | `SdFat` | SD カード |
-| `myFile` | `FsFile` | S/W/B/L/V が共用するファイルハンドル |
-
-## 7. 起動と周期処理
-
-### 7.1 `setup()`
-
-| # | 処理 | 内容 |
-|---|---|---|
-| 1 | シリアル | `Serial.begin(115200)`、`"FUJISOKU Memory Card!"` を表示 |
-| 2 | SPI | `SPI.begin()` |
-| 3 | ピン設定 | 出力: `CS_TFT`、`CS_touch`、`CS_SDcard`、`CS_SRAM_512`、`CS_RESET`、`CS_MCP23S17`。入力: `IRQ_touch`、`IRQ_MCP` |
-| 4 | /CS 非選択 | 上の出力ピン 6 本を High |
-| 5 | /RESET | `CS_RESET` を Low → High（待ち時間なし） |
-| 6 | TFT | `tft.begin()`、`tft.setRotation(0)` |
-| 7 | IOCON | オペコード `0x40` と `0x48` で、アドレス `0x0A` に `0x8C` を書く（以後 BANK=1） |
-| 8 | 全チャネル初期化 | ch0〜ch7 に各 6 回: OLAT_A/B = `0x00`、DDR_A/B = `0xFF`、GPUP_A/B = `0xFF`（計 48 回） |
-| 9 | バス設定 | ch7 DDR_A、ch6 DDR_A/B = 入力。ch7 DDR_B = 出力。ch7 GPIO_B = `0x3F` |
-| 10 | SD | `"Initializing SD card..."` → `SD.begin(CS_SDcard)`。失敗: `"initialization failed!"`、`SD.initErrorHalt()`、`while (1);` で停止。成功: `"initialization done."` |
-
-手順 9 で ch7 DDR_B を出力にした時点の OLAT_B は `0x00` なので、GPIO_B に `0x3F` を書くまでの短時間は全制御線が Low で出力されます（実機の影響は未確認）。`dat` と `strhex` は未使用です。
-
-### 7.2 `loop()`
-
-1 周期の流れ:
-
-1. メニュー 5 行を表示（毎周期）。
-
-   ```
-   R:FUJISOKU SRAM -> SPI SRAM, C:SPI SRAM -> FUJISOKU SRAM
-   S:SPI SRAM -> SD , W:SD -> SPI SRAM
-   E:Erase SPI SRAM , e:Erase FUJISOKU SRAM
-   X:Compare SPI SRAM <-> FUJISOKU SRAM , T:Test SPI SRAM
-   B:FUJISOKU SRAM -> SD , L:SD -> FUJISOKU SRAM , V:Verify SD <-> FUJISOKU SRAM
-   ```
-
-2. `Serial.available() > 0` なら **1 文字だけ**読み、`switch` で振り分け（`default` は何もしない）。ファイル名は `char sfilename[16] = "fujisoku"` を渡します。
-3. 待機状態に戻す: ch7 DDR_A、ch6 DDR_A/B = 入力、ch7 DDR_B = 出力、ch7 GPIO_B = `0x3F`。
-4. `delay(1000)`。
-
-- コマンド実行中は次のキー入力を受け付けません。複数文字を続けて送ると、1 周期につき 1 文字ずつ処理されます。
-- 改行コードも 1 文字として読み捨てられます（`default`）。
-- ローカル変数 `i`、`ii`、`iii`、`dat` は未使用です。
-
-## 8. コマンド詳細
-
-共通: アドレスは 0x0000〜0x7FFF。`<dev>` は `SPI SRAM`（`DEV_SPI_SRAM`）または `FUJISOKU SRAM`（`DEV_FUJISOKU`）。MCP の回数は 1 バイトあたり `read_fujisoku` 11 回、`write_fujisoku` 12 回（[hardware.md §7](hardware.md#7-アクセスシーケンス実測トレース)）で、下表は 32768 バイト分の回数です（コードから計算）。
-
-| キー | 関数 | 引数 | 処理量（MCP トランザクション） |
+| 対象 | 定義 | コマンドの文字 | 読み書き |
 |---|---|---|---|
-| `R` | `read_silver_memorycard()` | なし | 360,448（FUJISOKU 読み）+ SPI SRAM 書き 65,536 回 |
-| `C` | `copy_silver_memorycard()` | なし | 786,432（消去 393,216 + 書き 393,216）+ SPI SRAM 読み 32,768 回 |
-| `X` | `compare_silver_memorycard()` | なし | 360,448 + SPI SRAM 読み 32,768 回 |
-| `S` | `save_sdcard_silver_memorycard(sfilename, DEV_SPI_SRAM)` | ファイル名、dev | SPI SRAM 読み 32,768 回 + SD 書き 32 回（1024 バイト） |
-| `W` | `write_sdcard_silver_memorycard(sfilename, DEV_SPI_SRAM)` | ファイル名、dev | SPI SRAM 書き 32,768 回 + SD 1 バイト読み 32,768 回 |
-| `B` | `save_sdcard_silver_memorycard(sfilename, DEV_FUJISOKU)` | ファイル名、dev | 360,448 + SD 書き 32 回 |
-| `L` | `write_sdcard_silver_memorycard(sfilename, DEV_FUJISOKU)` | ファイル名、dev | 393,216 + SD 1 バイト読み 32,768 回 |
-| `V` | `verify_sdcard_silver_memorycard(sfilename, DEV_FUJISOKU)` | ファイル名、dev | 360,448 + SD 読み 256 回（128 バイト）+ 末尾確認 1 回 |
-| `T` | `test_spi_sram()` | なし | D6 経路と MCP B5 経路の両方で SPI SRAM を試験 |
+| FUJISOKU カード | `DEV_FUJISOKU` | `f` | `read_fujisoku()` / `write_fujisoku()` |
+| SPI SRAM | `DEV_SPI_SRAM` | `s` | `read_spi_sram_byte()` / `write_spi_sram_byte()`（/CS = D6） |
+| 62256 | `DEV_SRAM62256` | `p` | `read_sram()` / `write_sram()`（`USE_SRAM62256` のときだけ） |
 
-### 8.1 `R` FUJISOKU → SPI SRAM
+`dev_read()` / `dev_write()` / `dev_name()` が対象を振り分けます。
 
-1. `"Erase SRAM:"` を表示し、0x0000〜0x7FFF の SPI SRAM を `0xFF` で埋める。
-2. `"READ Silver Reed Memory Card:"` を表示する。
-3. 16 バイト（`UNIT_SIZE` = `0x10`）ごとに `R%04X:` を表示し、`read_fujisoku()` で読んだ値を SPI SRAM に書いて、`XX:` を表示する。
+### 6.2 処理の枠組み
 
-読み戻し検証や異常検出はありません。結果の確認は `X` で行います。
+本体だけで行う処理は、すべて同じ流れです。
 
-### 8.2 `C` SPI SRAM → FUJISOKU
+| 段階 | 関数 | PC への出力 | 画面 |
+|---|---|---|---|
+| 開始 | `op_start()` | - | 進捗画面（題名、内容） |
+| 段階 | `op_phase()` | `S <段階>` | 2 行目 |
+| 進捗 | `op_step()` | `P <済み> <合計>`（0.1 秒ごと） | 進捗バーと %（変わるたび）、アドレスと速度（0.5 秒ごと） |
+| 終了 | `op_finish()` | `OK` / `NG` / `ERR` の 1 行 | 結果画面 |
 
-1. `"Erase FUJISOKU SRAM:"` を表示し、`write_fujisoku()` で 0x0000〜0x7FFF を `0xFF` で埋める。
-2. `"Copy Silver Reed Memory Card:"` を表示する。
-3. 16 バイトごとに `C%04X:` を表示し、SPI SRAM から読んだ値を `write_fujisoku()` で書き、`XX:` を表示する。
+- `op_step()` のたびに PC からの入力を確かめ、`!` があれば中断します（`ERR CANCEL cancelled`）。
+- `op_finish()` は最初に `bus_idle()` を呼び、アドレス・データ線を入力に戻して制御線をすべて非選択にします。
+- 処理中に届いた `!` 以外の入力は読み捨てます。
 
-消去してから書くため、途中で止めるとカードの内容は失われます。
+### 6.3 処理の一覧
 
-### 8.3 `X` 比較
+| 処理 | 関数 | 画面の題名 | 内容 |
+|---|---|---|---|
+| コピー | `op_copy(src, dst)` | WRITE CARD / READ CARD / COPY | 1 バイトずつ読んで書く（任意の 2 つの対象） |
+| 比較 | `op_compare(a, b)` | COMPARE | 全域を比べ、最初の 8 か所を `M` 行で、不一致の数と最初のアドレスを終了行で返す |
+| 消去 | `op_erase(dev)` | ERASE | すべて `FF` |
+| SD に保存 | `op_sd_save(dev, name)` | BACKUP / SAVE | 256 バイトずつ一時ファイルに書き、閉じてから名前を付け替える |
+| SD から書き込み | `op_sd_load(dev, name, v)` | RESTORE / LOAD | 32,768 バイトちょうどのファイルだけ。`v` 付きなら続けて照合（進捗の合計は 65,536） |
+| SD と照合 | `op_sd_verify(dev, name)` | VERIFY | 256 バイトずつ比べる |
+| SD の一覧 | `op_sd_list()` | SD FILES | ルートの `*.bin` を最大 32 件 |
+| SD の確認 | `op_sd_check()` | SD CHECK | マウントし直す |
+| SPI SRAM の自己診断 | `op_test_spi()` | SPI SRAM TEST | /CS = D6 と MCP B5 のそれぞれで、0x0000〜 と 0x7FF0〜 の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す） |
+| 62256 のバス試験 | `op_test_62256()` | 62256 TEST | データ線とアドレス線の H / L 固定・ショートを調べる（[hardware.md §9.2](hardware.md#92-62256-並列-sramオプション動作確認用)）。`USE_SRAM62256` のときだけ |
 
-128 バイト（`UNIT_SIZE` = `0x80`）ごとに `X%04X:` を表示し、SPI SRAM と FUJISOKU の同じアドレスを読み比べて、一致なら `.`、不一致なら `X` を 1 文字ずつ表示します。一致数・不一致数の合計は表示しません。
+v1 との違い:
+- `R` / `C` は書き込み前の消去をやめました（全域を上書きするため不要）。
+- SD から書き込むとき、ファイルの大きさを確かめます（32,768 バイトでなければ書かない）。
+- v1 の毎秒のメニュー表示、TFT の描画、使われていなかったコードは削除しました。
 
-### 8.4 `S` / `B` メモリ → SD
+## 7. SD カードの扱い（`storage.ino`）
 
-1. ファイル名を `"%.8s.bin"` で組み立てる（`fujisoku.bin`）。
-2. `"Save <dev> -> SD card : fujisoku.bin"` を表示する。
-3. 既存ファイルがあれば削除（`"ファイル削除成功"`。失敗なら `"ファイル削除失敗"` で中断）。
-4. `O_WRONLY | O_CREAT | O_TRUNC` で開く（失敗: `"ファイルのオープンに失敗しました"`）。
-5. 1024 バイト（`BUF_SIZE` = `0x400`）× 32 回: `%02uSDW%04lX:` を表示し、`dev_read()` で 1024 バイト読んで `XX:` を表示し、SD へ書く。書き込み長が違えば `"書き込みエラー"` で閉じて中断。
-6. 閉じて `"SAVEが完了しました"` を表示する。
+| 状態 | 意味 |
+|---|---|
+| `SD_STATE_UNKNOWN` | 起動直後 |
+| `SD_STATE_READY` | マウント済み |
+| `SD_STATE_ABSENT` | 無い、または抜かれた |
 
-### 8.5 `W` / `L` SD → メモリ
+- **SD を使う処理を始めるたびに `sd_mount()` でマウントし直します。** 処理の合間に抜き差し（差し替えを含む）しても、次の処理は新しいカードで動きます。
+- 処理の途中で読み書きに失敗したら、カードが応答するか（`sectorCount()` が 0 でないか）を確かめ、応答すれば `SDERR`、しなければ `SDLOST` として終わります（`SDLOST` のときは状態を ABSENT にして `E SD 0`）。
+- 待機中は READY のときだけ 1.5 秒ごとに応答を確かめます。ABSENT のときは確かめません（カードが無いと `SD.begin()` が約 2 秒止まるため）。挿したカードは、次の SD 処理か `sdcheck` で認識します。
+- `SD.end()` は UNO R4 では共有の SPI ごと止めるので、直後に `spi_revive()` で動かし直します。
+- 状態が変わると `E SD 0` / `E SD 1` を PC に送り、画面の表示も変わります。
 
-1. ファイル名を組み立て、`"Write SD DATA -> <dev> : fujisoku.bin"` を表示する。
-2. ファイルが無ければ `"ファイルが存在しません"`、開けなければ `"ファイルのオープンに失敗しました"` で終了する。
-3. 先頭から 256 バイト（`UNIT_SIZE` = `0x100`）× 128 回: `SDC%04lX:` を表示し、1 バイトずつ読んで `dev_write()` で書き、`XX:` を表示する。
-4. EOF が来たら `"予期しない EOF"` を表示して中断する（それまでに書いた分は残る）。
-5. 閉じて `"コピーが完了しました"` を表示する。
+## 8. 表示（LCD と Web アプリ）
 
-ファイルが 32 KB より大きい場合、超過分は無視されます。書き込み後の照合は行わないので、`L` の後は `V` を実行してください。
+![LCD の表示](images/lcd-screens.png)
 
-### 8.6 `V` 照合（SD ↔ FUJISOKU）
+上の図は左上から、待機、処理中（SD に保存）、完了、不一致、SD カードなし、PC 主導の処理中です。
 
-1. ファイル名を組み立て、`"Verify SD <-> <dev> : fujisoku.bin"` を表示する。
-2. ファイルが無い／開けない場合は §8.5 と同じメッセージで終了する。
-3. 128 バイト（`UNIT_SIZE` = `0x80`）× 256 回: SD から 128 バイト読み（短ければ `"NG: ファイルが 32KB (0x8000) に満たない"` で中断）、`V%04lX:` を表示し、`dev_read()` と比べて `.` / `X` を表示する。不一致の先頭 8 件のアドレスと値を記録する。
-4. 32 KB を超えるデータがファイルに残っているかを 1 バイト読んで確認する。
-5. 記録した不一致を `  AAAA: SD=xx MEM=yy` 形式で表示する。
-6. 判定行を表示する（§10.1）。
+| 画面 | 1 行目 | 2 行目 | 3 行目 | 4 行目 |
+|---|---|---|---|---|
+| 待機 | `FUJISOKU SRAM   v2.1` | `SD:OK / NONE`、`PC:OK / --` | `Ready` または `Waiting for PC (USB)` | `Last:` 直前の結果 |
+| 処理中 | 題名と経過時間 | 段階 | 進捗バー（15 文字）と % | アドレス / 合計と速度 |
+| 結果 | 記号、題名、見出し（`DONE` `MISMATCH` `NO SD` `SD LOST` `CANCELED` など） | 説明（2 行に折り返し） | | 所要時間とエラーコード |
 
-ファイルが短くて中断した場合、不一致の一覧と判定行は表示されません。
+- 画面の内容は `lcd_shadow[4][20]` にいつも持っています。`lcd_row()` は前回の内容と比べて変わった文字だけを記録し、LCD があればその文字だけを送ります（I2C の LCD は 1 文字約 1 ms かかるため。32KB の保存全体で LCD に送るのは数百文字）。
+- LCD の有無: `USE_LCD` が 1 なら、`ui_begin()` で `LCD_I2C_ADDR` に I2C で呼びかけ、応答がなければ `lcd_present` を false にして、以後 LCD には何も送りません。`USE_LCD` が 0 なら LCD のコードはありません。どちらの場合も `lcd_shadow` は更新され、`lcd` コマンドや Web アプリへの送信は同じように動きます。
+- 進捗バーは CGRAM に登録した自作文字で、1 文字を 5 段階に分けます（15 文字 = 75 段階）。チェックとバツの記号も自作文字です。自作文字は文字コード `0x08`〜`0x0F` で書きます（`0x00`〜`0x07` と同じ文字で、文字列に 0 を入れずに済む）。
+- 結果画面は 15 秒で待機画面に戻ります。次の処理が始まれば、すぐ進捗画面になります。
+- 文字は ASCII だけを使います（LCD の文字 ROM の違いに左右されないように）。
+- `lcd on` のあいだ、表示が変わるたび（最短 0.25 秒間隔）に `LCD <16進 160 桁>` を PC に送ります。Web アプリはこれで本体と同じ画面を描きます。
 
-### 8.7 `T` SPI SRAM 自己診断
+## 9. PC との通信（`protocol.ino`）
 
-`path` = 0（/CS = D6）と 1（/CS = MCP ch7 B5）の順に、次を行います。
+コマンドと応答の書式は [protocol.md](protocol.md) にまとめています。
 
-1. `"SPI SRAM /CS=D6      : RDMR="` または `"SPI SRAM /CS=MCP GPB5: RDMR="` に続けて、`spi_sram_rdmr()` の値を表示する。
-2. 0x0000〜0x000F と 0x7FF0〜0x7FFF の 32 バイトを退避する。
-3. パターン `0xA0 + i` を書いて読み戻し、次に反転パターンを書いて読み戻して比較する（計 64 バイト）。1 回目の 0x0000〜0x000F の読み戻し値は `  readback:` の後に表示する。
-4. 退避した内容を書き戻す。
-5. `"  PASS"` または `"  FAIL mismatches=n/64"` を表示する。
+- 受信した文字を 1 行（最大 199 文字）にためて、改行で実行します。長すぎる行は `ERR LINE` を返して捨てます。
+- 1 文字だけの行は v1 の 1 文字コマンドとして扱います。
+- `!` は行に入れず、待機中なら捨てます（処理中は `op_poll_cancel()` が中断の合図として受け取る）。
+- PC 主導の表示（`ui begin` 〜 `ui end`）の間は `op_session = 2` で、本体だけの処理は `ERR BUSY` になります。どのコマンドが届いても連絡があったものとして時刻を更新し、8 秒届かなければ画面に「PC LOST」を出して `E UI timeout` を送ります。
 
-## 9. ファイル仕様（`fujisoku.bin`）
+## 10. ファイル形式
 
 | 項目 | 内容 |
 |---|---|
-| ファイル名 | `fujisoku.bin`（`loop()` の `sfilename = "fujisoku"` に `.bin` を付加。先頭 8 文字 + `.bin`） |
-| 場所 | SD カードのルート |
-| サイズ | 32768 バイト（0x8000）固定 |
-| 形式 | 生データ。オフセット N のバイト = メモリのアドレス N。ヘッダ・チェックサムなし |
-| 既存ファイル | `S`/`B` は削除して再作成（確認なし）。`W`/`L`/`V` はファイルが無ければメッセージを出して終了 |
+| 中身 | カードの 0x0000〜0x7FFF をそのまま並べたもの（ヘッダなし） |
+| 大きさ | 32,768 バイト |
+| SD 上の名前 | 英数字と `_` `-` の 16 文字まで + `.bin`（既定 `fujisoku.bin`） |
+| PC 上の名前 | Web アプリの既定は `fujisoku_日付_時刻.bin`、書き込み前の自動保存は `backup_日付_時刻.bin` |
 
-## 10. 出力フォーマット
+## 11. データを守るための仕組み
 
-| コマンド | 出力 |
+| 場面 | 仕組み |
 |---|---|
-| `R` | `Erase SRAM:` → `READ Silver Reed Memory Card:` → 16 バイトごとに `R%04X:` + `XX:` × 16 |
-| `C` | `Erase FUJISOKU SRAM:` → `Copy Silver Reed Memory Card:` → 16 バイトごとに `C%04X:` + `XX:` × 16 |
-| `X` | `Compare Silver Reed Memory Card:` → 128 バイトごとに `X%04X:` + 1 バイト 1 文字（一致 `.` / 不一致 `X`）。合計は表示しない |
-| `S` / `B` | `Save <デバイス名> -> SD card : fujisoku.bin` → 1024 バイトごとに `NNSDW%04lX:` + `XX:` × 1024 → `SAVEが完了しました` |
-| `W` / `L` | `Write SD DATA -> <デバイス名> : fujisoku.bin` → 256 バイトごとに `SDC%04lX:` + `XX:` × 256 → `コピーが完了しました` |
-| `V` | `Verify SD <-> <デバイス名> : fujisoku.bin` → 128 バイトごとに `V%04lX:` + `.` / `X` → 不一致の先頭 8 件 → 判定行 |
-| `T` | 経路ごとに RDMR 値・読み戻し 16 バイト・判定 |
+| SD への保存が途中で止まった | 一時ファイルに書き、最後に名前を付け替える。前のファイルは残る |
+| サイズの違うファイル | 本体（`sd load`）も Web アプリも、32,768 バイトでなければ書き込まない |
+| 上書きの前 | Web アプリは確認ダイアログを出し、既定で書き込む前のカードを PC に保存する |
+| 読み違い | Web アプリは既定で 2 回読んで比べ、違えば保存しない |
+| 書き込みの確かめ | `sd load ... v` と Web アプリの書き込みは、読み戻して照合する |
+| PC が途中で止まった | 本体は 8 秒で PC 主導の表示を終える。カードへの書き込みは 64 バイト単位なので、途中までは書かれている（Web アプリの自動保存から戻せる） |
+| 配線の不安 | 62256 があれば、カードを挿す前に `test p` でバスを確かめられる |
 
-`<デバイス名>` は `SPI SRAM` または `FUJISOKU SRAM`。行数は `R`/`C` が 2048 行、`X`/`V` が 256 行、`W`/`L` が 128 行、`S`/`B` が 32 行です。
+## 12. 確かめたこと
 
-### 10.1 `V` の判定
+実機での確認はまだです。代わりに次のことを行いました（手順は [test/README.md](../test/README.md)）。
 
-| 結果 | 出力 |
+| 確認 | 内容 |
 |---|---|
-| 全一致 | `VERIFY OK: 32768 bytes all match` |
-| 不一致あり | 先頭 8 件を `  AAAA: SD=xx MEM=yy` 形式で表示し、`VERIFY NG: mismatch = n / 32768 bytes` |
-| ファイルが 32 KB 未満 | `NG: ファイルが 32KB (0x8000) に満たない` で中断 |
-| ファイルが 32 KB 超 | `NG: ファイルが 32KB より大きい`（全バイト一致でも NG） |
-| ファイルなし | `ファイルが存在しません` |
+| ホストでのビルド | スケッチを Arduino IDE と同じ手順で 1 ファイルにまとめ、既定・`USE_LCD=0`・`USE_SRAM62256=1` の 3 通りを `-Wall -Wextra` で警告なしにビルド |
+| 本物のライブラリでの型チェック | 本物の SdFat と LiquidCrystal I2C のヘッダに対して、3 通りとも警告・エラーなし。`USE_LCD=0` は LiquidCrystal I2C を渡さずに確認 |
+| シミュレータでの動作 | MCP23S17 ×2（BANK・HAEN・A2 の癖まで）、カード、62256、23LC512、SD カード（抜き差し・差し替え）、HD44780 LCD（あり・なし）を再現したシミュレータで、ファームウェア 25 件、表示 9 件、Web アプリ 16 件の自動テストがすべて成功 |
+| バスの使い方 | ファームウェアと表示のテストで、トランザクション外の SPI 転送、MCP の上限を超えるクロック、バス衝突、書き込み中のアドレス変更、SPI SRAM への余計な書き込み、LCD の CGRAM への誤書き込み、LCD が無いのに LCD へ送ること、が 0 件 |
+| 62256 のバス試験 | データ線・アドレス線を H / L に固定する故障を入れると、その線を言い当てることを確認 |
 
-### 10.2 `T` の出力例と読み方
+## 13. 注意点
 
-（数値は説明用の例です。実機の出力ではありません。）
-
-```
-SPI SRAM /CS=D6      : RDMR=40
-  readback:A0:A1:A2:A3:A4:A5:A6:A7:A8:A9:AA:AB:AC:AD:AE:AF:
-  PASS
-SPI SRAM /CS=MCP GPB5: RDMR=FF
-  readback:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:
-  FAIL mismatches=64/64
-```
-
-- `RDMR` はモードレジスタの値です。応答があれば電源投入直後は `0x40` が目安で、`0xFF` は無応答（/CS 未接続・MISO が High のまま）を疑います（上の例は D6 経路が実配線の場合）。
-- `PASS` になった経路が実際の /CS 配線です。
-
-## 11. 低レベルアクセス
-
-MCP23S17 のレジスタ書き込みは 1 トランザクション 3 バイト（オペコード、レジスタ、値）、読み出しも 3 バイト（最後の 1 バイトが応答）です。`read_fujisoku` と `write_fujisoku` の全トランザクションは [hardware.md §7](hardware.md#7-アクセスシーケンス実測トレース) にあります。
-
-| 関数 | MCP トランザクション | 備考 |
-|---|---|---|
-| `read_fujisoku` | 11（33 バイト） | |
-| `write_fujisoku` | 12（36 バイト） | |
-| `read_sram` | 11 | |
-| `write_sram` | 12 | |
-| `read_spi_sram_byte` / `write_spi_sram_byte` | 0 | SPI SRAM に 4 バイト |
-| `write_spi_sram4MCP_byte` | 3 | SPI SRAM に 4 バイト |
-
-OLAT_B を読んでから制御ビットを AND する方式のため、`set_mcp_sram_address()` が書いた A17/A16 を保ったまま /OE・/WE だけを動かします。
-
-## 12. 関数リファレンス
-
-### 12.1 コマンド処理
-
-| 関数 | 呼び出し元 | 役割 |
-|---|---|---|
-| `read_silver_memorycard()` | `loop` | `R` |
-| `copy_silver_memorycard()` | `loop` | `C` |
-| `compare_silver_memorycard()` | `loop` | `X` |
-| `save_sdcard_silver_memorycard(const char *sp_filename, uint8_t dev)` | `loop` | `S` / `B`。`dev_read` を使う |
-| `write_sdcard_silver_memorycard(const char *sp_filename, uint8_t dev)` | `loop` | `W` / `L`。`dev_write` を使う |
-| `verify_sdcard_silver_memorycard(const char *sp_filename, uint8_t dev)` | `loop` | `V`。`dev_read` を使う |
-| `test_spi_sram()` | `loop` | `T` |
-
-### 12.2 デバイス抽象化
-
-| 関数 | 役割 |
-|---|---|
-| `dev_read(uint8_t dev, unsigned long address)` | `DEV_FUJISOKU` なら `read_fujisoku`、それ以外は SPI SRAM（`SPI_SRAM` 定義時は `read_sram`） |
-| `dev_write(uint8_t dev, unsigned long address, uint8_t dat)` | 同上の書き込み |
-| `dev_name(uint8_t dev)` | 表示名（`SPI SRAM` / `FUJISOKU SRAM`） |
-
-### 12.3 ハードウェアアクセス
-
-| 関数 | 役割 |
-|---|---|
-| `read_mcp_register(uint8_t ch, uint8_t address)` | MCP23S17 のレジスタ読み出し（オペコード `0x41 + ch*2`） |
-| `write_mcp_register(uint8_t ch, uint8_t address, uint8_t dat)` | レジスタ書き込み（オペコード `0x40 + ch*2`） |
-| `set_mcp_sram_address(unsigned long int address, uint8_t CS)` | ch6 DDR を出力にしてアドレス下位 16 ビットを出力し、ch7 GPIO_B に `CS` + A17/A16 を出力 |
-| `read_fujisoku(unsigned long int address)` | FUJISOKU の 1 バイト読み出し |
-| `write_fujisoku(unsigned long int address, uint8_t dat)` | FUJISOKU の 1 バイト書き込み |
-| `read_sram(unsigned long int address)` | 62256 の 1 バイト読み出し |
-| `write_sram(unsigned long int address, uint8_t dat)` | 62256 の 1 バイト書き込み |
-| `read_spi_sram_byte(unsigned int address)` | SPI SRAM（/CS = D6）の 1 バイト読み出し |
-| `write_spi_sram_byte(unsigned int address, uint8_t dat)` | SPI SRAM（/CS = D6）の 1 バイト書き込み |
-| `read_spi_sram4MCP_byte(unsigned int address)` | SPI SRAM（/CS = MCP B5）の読み出し。`T` のみ |
-| `write_spi_sram4MCP_byte(unsigned int address, uint8_t dat)` | 同書き込み。`T` のみ |
-
-### 12.4 `T` の補助関数
-
-| 関数 | 役割 |
-|---|---|
-| `spi_sram_rd(uint8_t path, unsigned int a)` / `spi_sram_wr(uint8_t path, unsigned int a, uint8_t d)` | `path` 0 = D6、1 = MCP B5 を切り替えて 1 バイト読み書き |
-| `spi_sram_rdmr(uint8_t path)` | RDMR（`0x05`）でモードレジスタを読む |
-
-### 12.5 使われていないコード
-
-次の関数・定義は現在のコマンドから呼ばれていません。
-
-- SPI SRAM（MCP 経由 /CS）: `read_spi_sram4MCP_seq`、`write_spi_sram4MCP_seq`、`set_spi_sram4MCP_read_mode`、`set_spi_sram4MCP_write_mode`（`T` は `*4MCP_byte` と `spi_sram_rdmr` のみ使用）
-- SPI SRAM（連続・モード）: `read_spi_sram_seq`、`write_spi_sram_seq`、`set_spi_sram_read_mode`、`set_spi_sram_write_mode`
-- TFT・タッチ: `draw_button`、`is_in_area`、`is_touch_button`、`caliblation`、`drawCrossPoint`、`convert_x`、`convert_y`、`print_tft`、`print_tft2`、キーボタンの配列
-- その他: `read_IOCR`、`hexdump`、`MCP_IODIR_PE1_CONNECT`、`CS_FSRAM_512`
-
-## 13. 検証状況
-
-確認したこと（PC 上）:
-
-- スタブヘッダ（Arduino、SPI、SdFat、TFT、タッチ）付きで警告付きビルドし、`-fsanitize=address,undefined` で `R`/`C`/`X`/`S`/`W`/`B`/`L`/`V`/`T` を模擬メモリに対して実行。
-- `read_fujisoku` ほかの低レベル関数を、MCP23S17 のレジスタモデルに接続して SPI トランザクションを記録（[hardware.md §7](hardware.md#7-アクセスシーケンス実測トレース)）。
-- 本資料の定数値・コマンド一覧・関数名・リンクを、スクリプトでスケッチと突き合わせ。
-
-確認していないこと:
-
-- 実機動作（UNO R4、MCP23S17、FUJISOKU カード、SPI SRAM、SD）。
-- UNO R4 でのコンパイル。
-- 実際の転送時間、信号タイミング。
-- 記事の結線とスケッチ定数のどちらが実機か（[hardware.md §6](hardware.md#6-ch7-ポート-b-記事とスケッチの食い違い)）。
-
-## 14. 既知の注意点
-
-1. 制御線の割り当てが記事と食い違っています。記事の配線の実機に現行スケッチを使うと、カードを読み書きできないと読めます（[hardware.md §6](hardware.md#6-ch7-ポート-b-記事とスケッチの食い違い)）。
-2. メニューの `E` / `e` は未実装です。
-3. `SPI_SRAM` マクロは、**定義すると SPI SRAM ではなく並列 62256 を使います**（名前と意味が逆）。
-4. `C` は先にカードを消去します。SPI SRAM の内容が正しいことを確認してから実行してください。
-5. 転送は 1 バイトごとにアドレスと制御線を設定し直すため低速です。ログ出力（16 進ダンプ）も時間がかかります。
-6. `SPI.transfer()` を `beginTransaction` なしで使っています。SD（SdFat の SPI 設定）と同一バスのため、SD 利用後に SPI 設定が引き継がれる可能性があります。**未検証**ですが、`V` で原因不明の不一致が出る場合は確認してください。
-7. 起動時に SD カードが無いと停止します。
-8. `B` と `S` は同じ `fujisoku.bin` を上書きします（確認なし）。
-9. `setup()` の途中で、全制御線が Low で出力される短い期間があります（§7.1）。
-10. `R`/`C`/`X` の `snprintf` は `unsigned long` を `%X` で整形しています。`long` と `int` が同じ幅の 32 ビットボードでは問題ありませんが、他のボードでは `%lX` に直してください。
-11. `MODE_RW_PAGE` と `MODE_RW_SEQ` は 23LC512 のデータシートと割り当てが逆に見えます（未使用のため実害なし）。
-12. `V` はメニュー上 FUJISOKU との照合のみです。関数自体は `DEV_SPI_SRAM` も受け付けます。
-13. ハード側の要確認事項は [hardware.md §10](hardware.md#10-要確認事項) にまとめています。
+- `USE_LCD` が 1 で LCD が無い場合、起動時の検出に最大 0.1 秒かかるだけで、ほかの動作には影響しません。LCD があるのに表示されないときは、`LCD_I2C_ADDR` を `0x3F` にするか、バックパックの半固定抵抗でコントラストを調整してください。
+- 処理の速さは実機で測っていません。シミュレータの見積もりでは、32KB の読み込みが 10 秒前後です。
+- SPI SRAM の /CS が MCP B5 側だけにつながっている基板では、コピー・比較（経路 D6 を使う）は動きません。自己診断で経路を確かめてください。
+- Web アプリは Web Serial を使うため、PC の Chrome / Edge が必要です（スマートフォンは不可）。
