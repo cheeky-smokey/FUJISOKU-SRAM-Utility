@@ -1,0 +1,447 @@
+// ファームウェア (ホストシミュレータ上) の動作テスト
+//   実行: test/build.sh && test/build.sh fsu_sim_article -DCTRL_MAP_ARTICLE=1 && node --test test/tests
+const test = require('node:test');
+const { afterEach } = test;
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const { Firmware } = require('../lib/fw');
+
+const OUT = path.join(__dirname, '..', 'out');
+afterEach(() => Firmware.closeAll());
+
+function pattern(seed = 0) {
+  const b = Buffer.alloc(0x8000);
+  for (let i = 0; i < b.length; i++) b[i] = (i * 31 + (i >> 8) * 7 + seed) & 0xff;
+  return b;
+}
+async function boot(opts = {}) {
+  const fw = new Firmware(opts);
+  await fw.advance(50);
+  return fw;
+}
+async function expectClean(fw, extra = {}) {
+  const d = await fw.diag();
+  const want = { no_txn: 0, spi_dead: 0, over_clock: 0, bus_conflict: 0, contention: 0, addr_change_in_write: 0, oe_we_overlap: 0, mcp_unaddressed: 0, sram_junk: 0, lcd_cgram_stray: 0, lcd_before_init: 0, lcd_absent_writes: 0, ...extra };
+  for (const k of Object.keys(want)) assert.equal(d[k], want[k], `diag ${k}`);
+}
+const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
+
+test('起動: SD があれば READY、バスの不正利用なし', async () => {
+  const fw = await boot();
+  assert.ok(fw.lines.includes('E SD 1'));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1 ready (LCD 20x4, 62256 off)')));
+  const r = await fw.cmd('hello');
+  assert.match(r.last, /^HELLO FSU 2\.1 size=32768 chunk=64 lcd=20x4 sram62256=0$/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('wr / rd / fill でカードを読み書きできる', async () => {
+  const fw = await boot();
+  await fw.cardLoad(Buffer.alloc(0x8000, 0xff));
+  let r = await fw.cmd('wr f 0x0100 DEADBEEF');
+  assert.equal(r.last, 'OK wr 256 4');
+  r = await fw.cmd('rd f 0x100 4');
+  assert.deepEqual(r.lines.slice(0, 2), ['D 0100 DEADBEEF', 'OK rd 4']);
+  r = await fw.cmd('fill f 0x7ff0 16 0x5a');
+  assert.equal(r.last, 'OK fill 16');
+  const card = await fw.cardDump();
+  assert.equal(card.subarray(0x100, 0x104).toString('hex'), 'deadbeef');
+  assert.equal(card.subarray(0x7ff0, 0x8000).toString('hex'), '5a'.repeat(16));
+  assert.equal(card[0xff], 0xff);
+  assert.equal(card[0x104], 0xff);
+  // 範囲外・不正な引数
+  assert.match((await fw.cmd('rd f 0x7fff 2')).last, /^ERR RANGE/);
+  assert.match((await fw.cmd('wr f 0 ZZ')).last, /^ERR ARG/);
+  assert.match((await fw.cmd('wr f 0 ABC')).last, /^ERR ARG/);
+  assert.match((await fw.cmd('bogus')).last, /^ERR CMD/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('rd は 64 バイトごとの行で全域を読める', async () => {
+  const fw = await boot();
+  const pat = pattern(3);
+  await fw.cardLoad(pat);
+  const r = await fw.cmd('rd f 0 32768');
+  assert.equal(r.last, 'OK rd 32768');
+  const lines = r.lines.filter((l) => l.startsWith('D '));
+  assert.equal(lines.length, 512);
+  const got = Buffer.concat(lines.map((l) => Buffer.from(l.split(' ')[2], 'hex')));
+  assert.ok(got.equals(pat));
+  await fw.close();
+});
+
+for (const [name, cs] of [['D6 のみ', 'd6'], ['D6 と MCP 両方', 'both']]) {
+  test(`SPI SRAM (/CS ${name}): R / C / X / E`, async () => {
+    const fw = await boot({ args: ['--spi-cs', cs] });
+    const pat = pattern(5);
+    await fw.cardLoad(pat);
+    let r = await fw.cmd('R');
+    assert.match(r.last, /^OK copy 32768 bytes/);
+    assert.ok((await fw.spiDump()).equals(pat));
+    assert.match((await fw.cmd('X')).last, /^OK cmp all 32768 bytes match/);
+    await fw.cardLoad(pattern(9));
+    r = await fw.cmd('X');
+    assert.match(r.last, /^NG cmp/);
+    r = await fw.cmd('C');
+    assert.match(r.last, /^OK copy/);
+    assert.ok((await fw.cardDump()).equals(pat));
+    r = await fw.cmd('E');
+    assert.match(r.last, /^OK fill/);
+    assert.ok((await fw.spiDump()).every((b) => b === 0xff));
+    await expectClean(fw);
+    await fw.close();
+  });
+}
+
+test('SPI SRAM 自己診断: 配線ごとの判定と、MCP 経由の書き込みで隣が壊れない', async () => {
+  for (const [cs, want] of [['d6', 'D6=PASS MCP=FAIL'], ['mcp', 'D6=FAIL MCP=PASS'], ['both', 'D6=PASS MCP=PASS']]) {
+    const fw = await boot({ args: ['--spi-cs', cs] });
+    await fw.ctl('spi fill 3c');
+    const r = await fw.cmd('T');
+    assert.equal(r.last, 'OK test ' + want, cs);
+    const spi = await fw.spiDump();
+    // 診断が触れるのは 0x0000-0x000F と 0x7FF0-0x7FFF だけ。それ以外は元のまま
+    for (let i = 0x10; i < 0x7ff0; i++) if (spi[i] !== 0x3c) assert.fail(`${cs}: 0x${i.toString(16)} が壊れた`);
+    const d = await fw.diag();
+    assert.equal(d.sram_junk, 0, cs + ': MCP への書き込みが SRAM に紛れ込んだ');
+    await fw.close();
+  }
+});
+
+test('B (バックアップ) → V (照合) → L (書き込み) の往復', async () => {
+  const fw = await boot();
+  const pat = pattern(1);
+  await fw.cardLoad(pat);
+  let r = await fw.cmd('B');
+  assert.match(r.last, /^OK sd /);
+  assert.ok(fs.readFileSync(sdfile(fw)).equals(pat));
+  assert.match((await fw.cmd('V')).last, /^OK sd all 32768 bytes match/);
+  // カードを 3 か所書き換える → 不一致
+  await fw.ctl('poke card 0 00');
+  await fw.ctl('poke card 1234 ee');
+  await fw.ctl('poke card 7fff 11');
+  r = await fw.cmd('V');
+  assert.match(r.last, /^NG sd/);
+  assert.match(r.last, /3/);
+  // 書き戻す
+  r = await fw.cmd('L');
+  assert.match(r.last, /^OK sd/);
+  assert.ok((await fw.cardDump()).equals(pat));
+  assert.match((await fw.cmd('V')).last, /^OK sd all 32768 bytes match/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('sd コマンド: 名前付き保存・一覧・書き込み後の照合・サイズ不正', async () => {
+  const fw = await boot();
+  const pat = pattern(2);
+  await fw.cardLoad(pat);
+  assert.match((await fw.cmd('sd save f game1')).last, /^OK sd/);
+  assert.ok(fs.existsSync(sdfile(fw, 'game1.bin')));
+  const ls = await fw.cmd('sd ls');
+  assert.ok(ls.lines.some((l) => /^F game1\.bin 32768$/.test(l)), ls.lines.join('|'));
+  await fw.cardLoad(Buffer.alloc(0x8000, 0));
+  const r = await fw.cmd('sd load f game1 v');
+  assert.match(r.last, /^OK sd/);
+  assert.ok((await fw.cardDump()).equals(pat));
+  // サイズが違うファイルは書き込まない
+  fs.writeFileSync(sdfile(fw, 'bad.bin'), Buffer.alloc(1000, 1));
+  await fw.cardLoad(pat);
+  const bad = await fw.cmd('sd load f bad');
+  assert.match(bad.last, /^ERR BADSIZE/);
+  assert.ok((await fw.cardDump()).equals(pat), 'サイズ不正のとき中身は変わらない');
+  assert.match((await fw.cmd('sd verify f bad')).last, /^NG .*BADSIZE|^NG/);
+  assert.match((await fw.cmd('sd load f nothing')).last, /^ERR NOFILE/);
+  assert.match((await fw.cmd('sd load f bad/name')).last, /^ERR ARG/);
+  await fw.close();
+});
+
+test('SD なしで起動しても止まらない。後から挿して使える', async () => {
+  const fw = await boot({ args: ['--no-sd'] });
+  assert.ok(fw.lines.some((l) => l.includes('ready')), '起動完了');
+  assert.ok(!fw.lines.some((l) => l.startsWith('ERR')), 'エラーは出ない');
+  assert.ok(fw.lines.includes('E SD 0'));
+  const st = await fw.cmd('status');
+  assert.match(st.last, /^STATUS sd=0 busy=0/);
+  // カードなしで SD の処理 → 分かりやすいエラー (固まらない)
+  let r = await fw.cmd('B');
+  assert.equal(r.last, 'ERR NOSD No SD card');
+  // 挿入 → 次の処理で自動的に認識
+  await fw.ctl('sd insert');
+  await fw.cardLoad(pattern(4));
+  r = await fw.cmd('B');
+  assert.match(r.last, /^OK sd/);
+  assert.ok(fw.lines.includes('E SD 1'));
+  assert.match((await fw.cmd('status')).last, /^STATUS sd=1/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('処理の合間に SD を抜き差ししてもエラーにならない', async () => {
+  const fw = await boot();
+  await fw.cardLoad(pattern(6));
+  assert.match((await fw.cmd('B')).last, /^OK sd/);
+
+  // 抜く → 待機中に検出して状態が変わる
+  await fw.ctl('sd remove');
+  await fw.advance(2000);
+  assert.ok(fw.lines.filter((l) => l === 'E SD 0').length >= 1);
+  assert.match((await fw.cmd('status')).last, /^STATUS sd=0/);
+  assert.equal((await fw.cmd('V')).last, 'ERR NOSD No SD card');
+
+  // 挿す → すぐ使える
+  await fw.ctl('sd insert');
+  let r = await fw.cmd('V');
+  assert.match(r.last, /^OK sd all 32768 bytes match/);
+
+  // 抜き差しを素早く (検出の間隔より短く) 繰り返す。古い接続は使えないが、再マウントして使える
+  await fw.ctl('sd remove');
+  await fw.ctl('sd insert');
+  r = await fw.cmd('V');
+  assert.match(r.last, /^OK sd all 32768 bytes match/, r.last);
+  await fw.ctl('sd swap');
+  r = await fw.cmd('B');
+  assert.match(r.last, /^OK sd/, r.last);
+
+  // sdcheck
+  await fw.ctl('sd remove');
+  assert.equal((await fw.cmd('sdcheck')).last, 'ERR NOSD No SD card');
+  await fw.ctl('sd insert');
+  assert.match((await fw.cmd('sdcheck')).last, /^OK sdcheck/);
+
+  // 抜き差しの後も MCP / SRAM が動く (SD.end() が共有 SPI を止めない)
+  assert.match((await fw.cmd('R')).last, /^OK copy/);
+  assert.match((await fw.cmd('X')).last, /^OK cmp/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('処理の途中で SD を抜くと SDLOST になり、挿し直せば復帰する', async () => {
+  for (const [cmd, label] of [['B', 'backup'], ['V', 'verify'], ['L', 'restore']]) {
+    const fw = await boot();
+    await fw.cardLoad(pattern(7));
+    await fw.cmd('B');
+    await fw.ctl('trigger P>=12000 => sd remove');
+    const old = fs.readFileSync(sdfile(fw));
+    const r = await fw.cmd(cmd);
+    assert.equal(r.last, 'ERR SDLOST SD card removed', label);
+    assert.ok(fs.readFileSync(sdfile(fw)).equals(old), label + ': 前のバックアップは変わらない');
+    assert.ok(fw.lines.includes('E SD 0'), label);
+    // 抜いたまま → NOSD。挿せば元通り
+    assert.equal((await fw.cmd('V')).last, 'ERR NOSD No SD card', label);
+    await fw.ctl('sd insert');
+    assert.match((await fw.cmd('V')).last, /^OK sd|^NG sd/, label);
+    assert.match((await fw.cmd('B')).last, /^OK sd/, label);
+    assert.match((await fw.cmd('V')).last, /^OK sd all/, label);
+    await expectClean(fw);
+    await fw.close();
+  }
+});
+
+test('中断 (!) できる。中断しても前のバックアップは壊れない', async () => {
+  const fw = await boot();
+  await fw.cardLoad(pattern(8));
+  await fw.cmd('B');
+  const before = fs.readFileSync(sdfile(fw));
+  assert.equal(before.length, 32768);
+  await fw.cardLoad(pattern(10));
+  await fw.ctl('trigger P>=9000 => inject 21');
+  let r = await fw.cmd('B');
+  assert.match(r.last, /^ERR CANCEL/);
+  assert.ok(fs.readFileSync(sdfile(fw)).equals(before), '前のバックアップが残っている');
+  assert.ok(!fs.existsSync(sdfile(fw, 'FSU_TMP.TMP')), '一時ファイルが残っていない');
+  // 中断しても次の処理はできる (カードは書き換えたので照合は不一致)
+  r = await fw.cmd('V');
+  assert.match(r.last, /^NG sd/);
+  await fw.ctl('trigger P>=9000 => inject 21');
+  r = await fw.cmd('R');
+  assert.match(r.last, /^ERR CANCEL/);
+  assert.match((await fw.cmd('status')).last, /busy=0/);
+  // 待機中に届いた '!' は次のコマンドに混ざらない
+  await fw.ctl('inject 21');
+  assert.match((await fw.cmd('status')).last, /^STATUS/);
+  await fw.close();
+});
+
+test('rd 中の中断', async () => {
+  const fw = await boot();
+  await fw.ctl('trigger D 0400 => inject 21');
+  const r = await fw.cmd('rd f 0 32768');
+  assert.match(r.last, /^ERR CANCEL/);
+  assert.ok(r.lines.filter((l) => l.startsWith('D ')).length < 100);
+  await fw.close();
+});
+
+test('旧 1 文字コマンドと CRLF', async () => {
+  const fw = await boot();
+  fw.send('?\r\n');
+  await fw.advance(50);
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1')));
+  const r = await fw.cmd('e');
+  assert.match(r.last, /^OK fill/);
+  assert.ok((await fw.cardDump()).every((b) => b === 0xff));
+  fw.send('Z\n');
+  await fw.advance(50);
+  assert.ok(fw.lines.some((l) => /^ERR CMD/.test(l)));
+  await fw.close();
+});
+
+test('長すぎる行は ERR LINE、その次の行は普通に処理される', async () => {
+  const fw = await boot();
+  fw.send('x'.repeat(500) + '\n');
+  await fw.advance(50);
+  assert.ok(fw.lines.some((l) => /^ERR LINE/.test(l)));
+  assert.match((await fw.cmd('status')).last, /^STATUS/);
+  await fw.close();
+});
+
+test('USB が無くても (LCD だけで) 動く', async () => {
+  const fw = await boot({ args: ['--no-usb'] });
+  fw.send('status\n');
+  await fw.advance(50);
+  assert.equal(fw.lines.length, 0, 'USB 未接続のときは何も送らない');
+  await fw.ctl('usb 1');
+  assert.match((await fw.cmd('status')).last, /^STATUS/);
+  await fw.close();
+});
+
+test('Web アプリと同じ手順 (64 バイトずつ wr、rd で読み戻し) で全域を書き換えられる', async () => {
+  const fw = await boot({ args: ['--realtime'] });
+  const pat = pattern(11);
+  await fw.cardLoad(pattern(12));
+  await fw.cmd('ui begin 65536 Write_from_PC');
+  for (let a = 0; a < 0x8000; a += 64) {
+    const r = await fw.cmd(`wr f ${a} ${pat.subarray(a, a + 64).toString('hex')}`, 5000);
+    assert.match(r.last, /^OK wr/);
+    if ((a & 0x7ff) === 0x7c0) assert.match((await fw.cmd(`ui prog ${a + 64} Writing_card`)).last, /^OK ui/);
+  }
+  assert.ok((await fw.cardDump()).equals(pat), '書き込み');
+  const r = await fw.cmd('rd f 0 32768');
+  const got = Buffer.concat(r.lines.filter((l) => l.startsWith('D ')).map((l) => Buffer.from(l.split(' ')[2], 'hex')));
+  assert.ok(got.equals(pat), '読み出し');
+  assert.match((await fw.cmd('ui end ok Written')).last, /^OK ui/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('wr は 1 行 64 バイトまで', async () => {
+  const fw = await boot();
+  assert.match((await fw.cmd('wr f 0 ' + '00'.repeat(65))).last, /^ERR ARG/);
+  await fw.close();
+});
+
+test('処理が終わるとアドレス・データ線を手放し、制御線はすべて非選択', async () => {
+  const fw = await boot();
+  const idle = 'bus addr_dir=FFFF data_dir=FF ctrl=3F ctrl_dir=00';
+  assert.equal(await fw.ctl('bus'), idle, '起動直後');
+  for (const c of ['B', 'V', 'R', 'X', 'rd f 0 16', 'wr f 0 00', 'fill f 0 4 0', 'sd ls']) {
+    await fw.cmd(c);
+    assert.equal(await fw.ctl('bus'), idle, c);
+  }
+  await fw.ctl('trigger P>=5000 => inject 21');
+  await fw.cmd('L');
+  assert.equal(await fw.ctl('bus'), idle, '中断のあと');
+  await fw.close();
+});
+
+test('カードが挿さっていないとき、読み出しは全部 FF (照合で不一致になる)', async () => {
+  const fw = await boot({ args: ['--no-card'] });
+  const r = await fw.cmd('rd f 0 8');
+  assert.equal(r.lines[0], 'D 0000 FFFFFFFFFFFFFFFF');
+  await fw.close();
+});
+
+// ---- オプション部品 ----
+const lcdText = (line) => {
+  const h = line.slice(4);
+  const rows = [];
+  for (let r = 0; r < 4; r++) rows.push(Buffer.from(h.slice(r * 40, r * 40 + 40), 'hex').toString('latin1').replace(/[\x00-\x0f]/g, '#'));
+  return rows;
+};
+
+test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
+  const fw = await boot({ args: ['--no-lcd'] });
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1 ready (LCD none')));
+  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0$/);
+  assert.match((await fw.cmd('status')).last, /lcd=0$/);
+  assert.match((await fw.cmd('B')).last, /^OK sd/);
+  const r = await fw.cmd('lcd');
+  assert.match(lcdText(r.last)[0], /^# BACKUP +DONE$/);
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('USE_LCD=0 でビルドしても同じように動く (LCD のコードなし)', async () => {
+  const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nolcd') });
+  assert.match((await fw.cmd('hello')).last, /lcd=none/);
+  await fw.cardLoad(pattern(21));
+  assert.match((await fw.cmd('B')).last, /^OK sd/);
+  assert.match((await fw.cmd('V')).last, /^OK sd all/);
+  assert.match((await fw.cmd('ui begin 100 Test')).last, /^OK ui/);
+  assert.match((await fw.cmd('ui end ok Done')).last, /^OK ui/);
+  assert.match(lcdText((await fw.cmd('lcd')).last)[0], /^# Test +DONE$/);
+  const d = await fw.diag();
+  assert.equal(d.lcd_writes, 0, 'LCD に何も送らない');
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('62256 を使わない設定 (既定) では対象 p は使えない', async () => {
+  const fw = await boot();
+  for (const c of ['rd p 0 1', 'wr p 0 00', 'copy f p', 'cmp f p', 'test p', 'erase p']) assert.match((await fw.cmd(c)).last, /^ERR ARG/, c);
+  assert.match((await fw.cmd('cmp f f')).last, /^ERR ARG/);
+  assert.match((await fw.cmd('cmp f s')).last, /^(OK|NG) cmp/);
+  await fw.close();
+});
+
+test('62256 オプション (USE_SRAM62256=1): 読み書き・コピー・比較・SD 保存', async () => {
+  const fw = await boot({ bin: path.join(OUT, 'fsu_sim_62256') });
+  assert.ok(fw.lines.some((l) => l.includes('62256 on')));
+  assert.match((await fw.cmd('hello')).last, /sram62256=1$/);
+  const pat = pattern(22);
+  await fw.cardLoad(pat);
+  assert.match((await fw.cmd('wr p 0x10 A1B2C3')).last, /^OK wr/);
+  assert.equal((await fw.cmd('rd p 0x10 3')).lines[0], 'D 0010 A1B2C3');
+  assert.match((await fw.cmd('copy f p')).last, /^OK copy/);
+  const f = path.join(fw.tmp, 'r62.bin');
+  await fw.ctl('ram62 dump ' + f);
+  assert.ok(fs.readFileSync(f).equals(pat), '62256 にカードの内容が入る');
+  assert.match((await fw.cmd('cmp f p')).last, /^OK cmp all 32768 bytes match/);
+  await fw.ctl('poke card 7fff 00');
+  assert.match((await fw.cmd('cmp f p')).last, /^NG cmp mismatches=1 first=0x7FFF/);
+  assert.match((await fw.cmd('sd save p ram')).last, /^OK sd/);
+  assert.ok(fs.readFileSync(path.join(fw.sdRoot, 'ram.bin')).equals(pat));
+  assert.match((await fw.cmd('erase p')).last, /^OK fill/);
+  // カードとの切り替え (B0 共用) でカードを壊していない
+  const card = await fw.cardDump();
+  assert.equal(card[0x7fff], 0x00);
+  assert.ok(card.subarray(0, 0x7fff).equals(pat.subarray(0, 0x7fff)));
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('62256 でのバス試験 (test p): 正常なら OK、線の固定やショートを見つける', async () => {
+  const fw = await boot({ bin: path.join(OUT, 'fsu_sim_62256') });
+  let r = await fw.cmd('test p');
+  assert.equal(r.last, 'OK test D0-D7 OK A0-A14 OK');
+  assert.ok(r.lines.includes('T 62256 data_bad=0x00 addr_bad=0x0'));
+  await fw.ctl('stuck data 2 0');
+  r = await fw.cmd('test p');
+  assert.match(r.last, /^NG test data bad=0x04/);
+  await fw.ctl('stuck clear');
+  await fw.ctl('stuck addr 5 1');
+  r = await fw.cmd('test p');
+  assert.match(r.last, /^NG test data bad=0x00 addr bad=0x[0-9A-F]+$/);
+  assert.ok(parseInt(r.last.split('0x').pop(), 16) & (1 << 5), 'A5 が含まれる: ' + r.last);
+  await fw.ctl('stuck clear');
+  await fw.ctl('stuck addr 11 0');
+  r = await fw.cmd('test p');
+  assert.ok(parseInt(r.last.split('0x').pop(), 16) & (1 << 11), 'A11 が含まれる: ' + r.last);
+  await fw.ctl('stuck clear');
+  assert.equal((await fw.cmd('test p')).last, 'OK test D0-D7 OK A0-A14 OK');
+  await expectClean(fw);
+  await fw.close();
+});
