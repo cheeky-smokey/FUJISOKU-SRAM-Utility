@@ -1,6 +1,6 @@
 # FUJISOKU SRAM Utility
 
-シルバー編機のメモリカード（FUJISOKU SRAM）を、Arduino 互換ボードから SPI SRAM / SD カードとの間でコピー・照合するユーティリティです。MCP23S17 を 2個使った GPIO エキスパンダ経由でカードのアドレス/データバスを直接制御します。
+シルバー編機のメモリカード（FUJISOKU SRAM）を、Arduino UNO R4 から SPI SRAM / SD カードとの間でコピー・照合するユーティリティです。MCP23S17 を 2 個使った GPIO エキスパンダ経由でカードのアドレス/データ/制御線を直接駆動します。
 
 ## できること
 
@@ -22,19 +22,29 @@
 
 ![ハードウェア接続図](docs/images/hardware-connection.svg)
 
-接続図と信号表は [docs/hardware.md](docs/hardware.md) にあります。これらは **スケッチのコードから読み取った構成**で、基板の回路図ではありません。要確認事項は [hardware.md §9](docs/hardware.md#9-要確認事項) を参照してください。
+![MCP23S17 とカードの結線図](docs/images/fujisoku-mcp-wiring.svg)
+
+結線とピン配置は次の記事に基づきます（記事の本文から読み取った値なので、原文と照合してください）。
+
+- MCP23S17 とカードの結線: <https://note.com/cheekysmokey/n/nef1ee2754b83>
+- FUJISOKU カードのピン配置: <https://note.com/cheekysmokey/n/n0525462640a3>
+
+接続図、信号表、F1〜F38 のピン配置は [docs/hardware.md](docs/hardware.md) にあります。
+
+> **要注意**: ch7 ポート B の制御線（/CE1、CE2、/WE、/OE）の割り当てが、記事とスケッチで一致していません。どちらが実機の配線かを確認してください。詳細は [hardware.md §6](docs/hardware.md#6-ch7-ポート-b-記事とスケッチの食い違い) を参照してください。
 
 ## ビルド
 
 1. Arduino IDE に次のライブラリを入れる：Adafruit GFX Library、Adafruit ILI9341、XPT2046_Touchscreen、SdFat（v2 系）。
-2. `FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino` を開く（32 ビットボードが前提）。
+2. `FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino` を開く（UNO R4 でのビルドは未検証）。
 3. SD カードを挿入して書き込む。起動時に SD が初期化できないと停止します。
 
 ## 構成
 
 ```
 FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino   スケッチ本体
-docs/hardware.md                            ハードウェア仕様・信号表
-docs/specification.md                       ソフトウェア仕様（コマンド・関数）
-docs/images/hardware-connection.svg         接続図
+docs/hardware.md                            ハードウェア仕様・結線・ピン配置
+docs/specification.md                       ソフトウェア詳細仕様（定義・起動・コマンド・関数）
+docs/images/hardware-connection.svg         全体接続図
+docs/images/fujisoku-mcp-wiring.svg         MCP23S17 とカードの結線図
 ```

@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 790" width="1000" height="790" font-family="Helvetica, Arial, sans-serif" font-size="12">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+    <marker id="arrS" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M10,0 L0,5 L10,10 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="790" fill="#ffffff"/>
+
+  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">MCP23S17 - FUJISOKU card wiring (38-pin card, F1-F38)</text>
+  <text x="20" y="46" font-size="11" fill="#555555">Wiring from the wiring article (2026-04-09); card pin-out from the pin-out article (2026-01-31). MCP pin numbers are the 28-pin package pins.</text>
+
+  <!-- column headings -->
+  <text x="130" y="82" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
+  <text x="530" y="82" text-anchor="middle" font-weight="bold" fill="#111111">FUJISOKU card connector</text>
+  <text x="900" y="290" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch6</text>
+
+  <!-- connector rows: y = 92 + (n-1)*28, height 26 -->
+  <g stroke="#555555" stroke-width="1">
+    <rect x="420" y="92"  width="220" height="26" fill="#fde8e8"/>
+    <rect x="420" y="120" width="220" height="26" fill="#eeeeee"/>
+    <rect x="420" y="148" width="220" height="26" fill="#fde8e8"/>
+    <rect x="420" y="176" width="220" height="26" fill="#fff4e0"/>
+    <rect x="420" y="204" width="220" height="26" fill="#fff4e0"/>
+    <rect x="420" y="232" width="220" height="26" fill="#fff4e0"/>
+    <rect x="420" y="260" width="220" height="26" fill="#fff4e0"/>
+    <rect x="420" y="288" width="220" height="26" fill="#e6f6ea"/>
+    <rect x="420" y="316" width="220" height="26" fill="#e8f0fe"/>
+    <rect x="420" y="344" width="220" height="26" fill="#e8f0fe"/>
+    <rect x="420" y="372" width="220" height="26" fill="#e8f0fe"/>
+    <rect x="420" y="400" width="220" height="26" fill="#e8f0fe"/>
+    <rect x="420" y="428" width="220" height="26" fill="#eeeeee"/>
+    <rect x="420" y="456" width="220" height="26" fill="#eeeeee"/>
+    <rect x="420" y="484" width="220" height="26" fill="#fde8e8"/>
+    <rect x="420" y="512" width="220" height="26" fill="#eeeeee"/>
+    <rect x="420" y="540" width="220" height="26" fill="#fde8e8"/>
+  </g>
+  <g font-size="12" fill="#111111">
+    <text x="430" y="110">F1    GND</text>
+    <text x="430" y="138">F2    BATT-DET (out)</text>
+    <text x="430" y="166">F3    Vcc</text>
+    <text x="430" y="194">F4    /CE1 (in)</text>
+    <text x="430" y="222">F5    CE2 (in)</text>
+    <text x="430" y="250">F6    /WE (in)</text>
+    <text x="430" y="278">F7    /OE (in)</text>
+    <text x="430" y="306">F8-F15    D0-D7</text>
+    <text x="430" y="334">F16-F23   A0-A7</text>
+    <text x="430" y="362">F24-F31   A8-A15</text>
+    <text x="430" y="390">F32   A16</text>
+    <text x="430" y="418">F33   A17</text>
+    <text x="430" y="446">F34   A18</text>
+    <text x="430" y="474">F35   A19</text>
+    <text x="430" y="502">F36   Vcc</text>
+    <text x="430" y="530">F37   /CARD DET (out)</text>
+    <text x="430" y="558">F38   GND</text>
+  </g>
+
+  <!-- ch7 box -->
+  <rect x="20" y="170" width="220" height="262" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="30" y="190" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
+  <text x="30" y="206" font-size="11" fill="#333333">data + control + A16/A17</text>
+  <g font-size="11" font-family="monospace" fill="#333333">
+    <text x="30" y="232">GPA0-GPA7 = D0-D7</text>
+    <text x="30" y="250">GPB0 = /CE1</text>
+    <text x="30" y="266">GPB1 = CE2</text>
+    <text x="30" y="282">GPB2 = /WE</text>
+    <text x="30" y="298">GPB3 = /OE</text>
+    <text x="30" y="314">GPB4, GPB5 = NC</text>
+    <text x="30" y="330">GPB6 = A16</text>
+    <text x="30" y="346">GPB7 = A17</text>
+  </g>
+  <text x="30" y="376" font-size="10" fill="#555555">A2:A0 address pins are not stated in</text>
+  <text x="30" y="390" font-size="10" fill="#555555">the article; the sketch addresses</text>
+  <text x="30" y="404" font-size="10" fill="#555555">this chip as channel 7.</text>
+
+  <!-- ch7 wires (arrow from MCP to card; data is bidirectional) -->
+  <g stroke="#333333" stroke-width="1.6" fill="none">
+    <path d="M240,189 H418" marker-end="url(#arr)"/>
+    <path d="M240,217 H418" marker-end="url(#arr)"/>
+    <path d="M240,245 H418" marker-end="url(#arr)"/>
+    <path d="M240,273 H418" marker-end="url(#arr)"/>
+    <path d="M242,301 H418" marker-end="url(#arr)" marker-start="url(#arrS)"/>
+    <path d="M240,385 H418" marker-end="url(#arr)"/>
+    <path d="M240,413 H418" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="10" fill="#333333" text-anchor="middle">
+    <text x="330" y="185">GPB0 (p1)</text>
+    <text x="330" y="213">GPB1 (p2)</text>
+    <text x="330" y="241">GPB2 (p3)</text>
+    <text x="330" y="269">GPB3 (p4)</text>
+    <text x="330" y="297">GPA0-7 (p21-28)</text>
+    <text x="330" y="381">GPB6 (p7)</text>
+    <text x="330" y="409">GPB7 (p8)</text>
+  </g>
+  <!-- warning markers on the four control rows -->
+  <g fill="#b36b00" font-size="13" font-weight="bold">
+    <text x="622" y="194">!</text>
+    <text x="622" y="222">!</text>
+    <text x="622" y="250">!</text>
+    <text x="622" y="278">!</text>
+  </g>
+
+  <!-- notes in the free area next to the power / unused rows (left) -->
+  <g font-size="10" fill="#555555" text-anchor="end">
+    <text x="414" y="109">power: not described in the articles</text>
+    <text x="414" y="137">not handled in the code</text>
+    <text x="414" y="165">voltage not stated</text>
+  </g>
+
+  <!-- ch6 box + wires -->
+  <rect x="820" y="296" width="160" height="96" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="830" y="316" font-weight="bold" fill="#111111">MCP23S17 ch6</text>
+  <text x="830" y="332" font-size="11" fill="#333333">address bus</text>
+  <g font-size="11" font-family="monospace" fill="#333333">
+    <text x="830" y="356">GPA0-7 = A0-A7</text>
+    <text x="830" y="374">GPB0-7 = A8-A15</text>
+  </g>
+  <g stroke="#333333" stroke-width="1.6" fill="none">
+    <path d="M820,329 H642" marker-end="url(#arr)"/>
+    <path d="M820,357 H642" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="10" fill="#333333" text-anchor="middle">
+    <text x="731" y="325">GPA0-7 (p21-28)</text>
+    <text x="731" y="353">GPB0-7 (p1-8)</text>
+  </g>
+
+  <!-- notes beside the unused rows (right) -->
+  <g font-size="10" fill="#555555">
+    <text x="652" y="446">not driven (A0-A17 only)</text>
+    <text x="652" y="474">not driven (A0-A17 only)</text>
+    <text x="652" y="530">not handled in the code</text>
+  </g>
+
+  <!-- mismatch callout -->
+  <rect x="650" y="62" width="330" height="214" rx="6" fill="#fffaf0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="660" y="82" font-weight="bold" fill="#b36b00">! ch7 GPIOB: article wiring vs sketch constants</text>
+  <g font-size="11" font-family="monospace" fill="#111111" font-weight="bold">
+    <text x="660" y="104">bit</text>
+    <text x="705" y="104">article</text>
+    <text x="780" y="104">sketch (current)</text>
+  </g>
+  <g font-size="11" font-family="monospace" fill="#333333">
+    <text x="660" y="122">B0</text><text x="705" y="122">/CE1</text><text x="780" y="122">nCS_62256 = CS2</text>
+    <text x="660" y="138">B1</text><text x="705" y="138">CE2</text><text x="780" y="138">nOE_FUJISOKU</text>
+    <text x="660" y="154">B2</text><text x="705" y="154">/WE</text><text x="780" y="154">nOE_62256</text>
+    <text x="660" y="170">B3</text><text x="705" y="170">/OE</text><text x="780" y="170">nWE</text>
+    <text x="660" y="186">B4</text><text x="705" y="186">NC</text><text x="780" y="186">nCS1_FUJISOKU</text>
+    <text x="660" y="202">B5</text><text x="705" y="202">NC</text><text x="780" y="202">nCS_SPI_SRAM</text>
+    <text x="660" y="218">B6</text><text x="705" y="218">A16</text><text x="780" y="218">A16</text>
+    <text x="660" y="234">B7</text><text x="705" y="234">A17</text><text x="780" y="234">A17</text>
+  </g>
+  <text x="660" y="254" font-size="10" fill="#555555">Address, data, A16 and A17 agree.</text>
+  <text x="660" y="268" font-size="10" fill="#555555">Which one the board uses cannot be told from the files.</text>
+
+  <!-- notes -->
+  <g font-size="11" fill="#333333">
+    <text x="20" y="600" font-weight="bold" fill="#111111">Notes</text>
+    <text x="20" y="620">1. The article's wiring table lists D2 and D3 both on GPA3; this drawing reads it as a typo (D2 = GPA2).</text>
+    <text x="20" y="638">2. The pin-out table has no row for F28; the wiring table gives F28 = A12 (ch6 GPB4).</text>
+    <text x="20" y="656">3. The MCP chips drive A0-A17 only. The pin-out article says the pattern processor (PE1) outputs up to A15 and leaves A16-A19 unconnected.</text>
+    <text x="20" y="674">4. In the card sizes of the pin-out article, 128 KB leaves A17-A19 NC, 256 KB leaves A18-A19 NC, 512 KB leaves A19 NC.</text>
+    <text x="20" y="692">5. The card is estimated to be a Fujisoku BS32D1-A (32 KB); the article says this is not an official statement.</text>
+    <text x="20" y="710">6. Supply voltage, level shifting and the connector's physical orientation are not given in the articles.</text>
+    <text x="20" y="734" fill="#555555" font-size="10">Sources: note.com/cheekysmokey/n/nef1ee2754b83 (wiring) and note.com/cheekysmokey/n/n0525462640a3 (pin-out). Values were read from the article text; check them against the originals.</text>
+  </g>
+</svg>
