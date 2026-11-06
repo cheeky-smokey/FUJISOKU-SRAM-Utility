@@ -1,6 +1,6 @@
 # FUJISOKU SRAM Utility
 
-シルバー編機のメモリカード（FUJISOKU SRAM）を、Arduino 互換ボードから SPI SRAM / SD カードとの間でコピー・照合するユーティリティです。MCP23S17 を 8 個使った GPIO エキスパンダ経由でカードのアドレス/データバスを直接制御します。
+シルバー編機のメモリカード（FUJISOKU SRAM）を、Arduino 互換ボードから SPI SRAM / SD カードとの間でコピー・照合するユーティリティです。MCP23S17 を 1個使った GPIO エキスパンダ経由でカードのアドレス/データバスを直接制御します。
 
 ## できること
 
