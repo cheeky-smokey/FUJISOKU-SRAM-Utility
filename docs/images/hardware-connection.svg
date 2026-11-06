@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" width="1000" height="760" font-family="Helvetica, Arial, sans-serif" font-size="12">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+    <marker id="arrAlt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b36b00"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="760" fill="#ffffff"/>
+
+  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility - hardware connection overview</text>
+
+  <!-- Arduino -->
+  <rect x="20" y="40" width="960" height="60" rx="6" fill="#e8f0fe" stroke="#1a4fa0" stroke-width="1.5"/>
+  <text x="32" y="62" font-size="13" font-weight="bold" fill="#111111">Arduino-compatible 32-bit board  (SPI master, Serial 115200 bps)</text>
+  <text x="32" y="82" font-size="11" fill="#333333">SPI.transfer() with default settings (mode 0, MSB first); no SPISettings / beginTransaction in the sketch</text>
+
+  <!-- shared SPI bus -->
+  <path d="M40,100 V150 H930" fill="none" stroke="#1a4fa0" stroke-width="3"/>
+  <text x="285" y="144" font-size="11" fill="#1a4fa0">SPI bus (SCK/MOSI/MISO)</text>
+  <g stroke="#1a4fa0" stroke-width="2.5" fill="none">
+    <path d="M170,150 V200"/>
+    <path d="M350,150 V200"/>
+    <path d="M510,150 V200"/>
+    <path d="M690,150 V200"/>
+    <path d="M930,150 V200"/>
+  </g>
+  <g fill="#1a4fa0">
+    <circle cx="170" cy="150" r="3.5"/>
+    <circle cx="350" cy="150" r="3.5"/>
+    <circle cx="510" cy="150" r="3.5"/>
+    <circle cx="690" cy="150" r="3.5"/>
+    <circle cx="930" cy="150" r="3.5"/>
+  </g>
+
+  <!-- chip-select lines -->
+  <g stroke="#333333" stroke-width="1.5" fill="none">
+    <path d="M100,100 V198" marker-end="url(#arr)"/>
+    <path d="M270,100 V198" marker-end="url(#arr)"/>
+    <path d="M440,100 V198" marker-end="url(#arr)"/>
+    <path d="M610,100 V198" marker-end="url(#arr)"/>
+    <path d="M800,100 V198" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="11" fill="#333333">
+    <text x="106" y="118">D10 /CS, D9 DC</text>
+    <text x="276" y="118">D8 /CS, D2 IRQ</text>
+    <text x="446" y="118">D7 /CS</text>
+    <text x="616" y="118">D6 /CS</text>
+    <text x="806" y="118">D4 /CS, D5 /RESET, D3 IRQ</text>
+  </g>
+
+  <!-- SPI devices -->
+  <rect x="40" y="200" width="160" height="80" rx="6" fill="#f3f4f6" stroke="#555555" stroke-width="1.3"/>
+  <text x="50" y="222" font-weight="bold" fill="#111111">TFT ILI9341</text>
+  <text x="50" y="240" font-size="11" fill="#333333">tft.begin() only</text>
+  <text x="50" y="256" font-size="11" fill="#333333">(drawing code unused)</text>
+
+  <rect x="220" y="200" width="160" height="80" rx="6" fill="#f3f4f6" stroke="#555555" stroke-width="1.3"/>
+  <text x="230" y="222" font-weight="bold" fill="#111111">Touch XPT2046</text>
+  <text x="230" y="240" font-size="11" fill="#333333">ts object only</text>
+  <text x="230" y="256" font-size="11" fill="#333333">(code unused)</text>
+
+  <rect x="400" y="200" width="140" height="80" rx="6" fill="#f3f4f6" stroke="#555555" stroke-width="1.3"/>
+  <text x="410" y="222" font-weight="bold" fill="#111111">SD card</text>
+  <text x="410" y="240" font-size="11" fill="#333333">SdFat, CS = D7</text>
+  <text x="410" y="256" font-size="11" fill="#333333">file: fujisoku.bin</text>
+
+  <rect x="560" y="200" width="160" height="80" rx="6" fill="#f3f4f6" stroke="#555555" stroke-width="1.3"/>
+  <text x="570" y="218" font-weight="bold" fill="#111111">SPI SRAM</text>
+  <text x="570" y="234" font-size="11" fill="#333333">READ 03   WRITE 02</text>
+  <text x="570" y="250" font-size="11" fill="#333333">RDMR 05   WRMR 01</text>
+  <text x="570" y="266" font-size="11" fill="#333333">(23LC512-class, assumed)</text>
+
+  <rect x="740" y="200" width="220" height="80" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="750" y="218" font-weight="bold" fill="#111111">MCP23S17 x 8  (ch0 - ch7)</text>
+  <text x="750" y="234" font-size="11" fill="#333333">common /CS (D4), HAEN = 1</text>
+  <text x="750" y="250" font-size="11" fill="#333333">ch6 and ch7 are used</text>
+  <text x="750" y="266" font-size="11" fill="#333333">all 8: init as inputs + pull-ups</text>
+
+  <!-- MCP summary -> ch6 / ch7 -->
+  <path d="M760,280 V305 H480 V328" fill="none" stroke="#333333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M850,280 V328" fill="none" stroke="#333333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- alternative /CS route for the SPI SRAM -->
+  <path d="M660,280 V440 H716" fill="none" stroke="#b36b00" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrAlt)"/>
+  <text x="652" y="424" font-size="11" text-anchor="end" fill="#b36b00">alt. /CS route via MCP GPB5</text>
+  <text x="652" y="438" font-size="11" text-anchor="end" fill="#b36b00">(verify with T command)</text>
+
+  <!-- ch6 -->
+  <rect x="340" y="330" width="280" height="70" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="350" y="350" font-weight="bold" fill="#111111">MCP23S17 ch6  (A2:A0 = 6)</text>
+  <text x="350" y="370" font-size="11" font-family="monospace" fill="#333333">GPIOA = A0-A7</text>
+  <text x="350" y="388" font-size="11" font-family="monospace" fill="#333333">GPIOB = A8-A15</text>
+
+  <!-- ch7 -->
+  <rect x="720" y="330" width="260" height="214" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <text x="730" y="350" font-weight="bold" fill="#111111">MCP23S17 ch7  (A2:A0 = 7)</text>
+  <text x="730" y="370" font-size="11" font-family="monospace" fill="#333333">GPIOA = D0-D7 (data bus)</text>
+  <text x="730" y="390" font-size="11" font-family="monospace" fill="#333333">GPIOB = A16/A17 + control:</text>
+  <g font-size="11" font-family="monospace" fill="#333333">
+    <text x="740" y="412">B7  A17</text>
+    <text x="740" y="428">B6  A16</text>
+    <text x="740" y="444">B5  nCS_SPI_SRAM</text>
+    <text x="740" y="460">B4  nCS1_FUJISOKU</text>
+    <text x="740" y="476">B3  nWE (62256 / FUJISOKU)</text>
+    <text x="740" y="492">B2  nOE_62256</text>
+    <text x="740" y="508">B1  nOE_FUJISOKU</text>
+    <text x="740" y="524">B0  nCS_62256 = CS2_FUJISOKU</text>
+  </g>
+
+  <!-- feeds into the shared parallel bus -->
+  <path d="M380,400 V586" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="388" y="500" font-size="11" fill="#333333">ADDR[15:0]</text>
+  <path d="M850,544 V586" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="858" y="570" font-size="11" fill="#333333">DATA[7:0] + CTRL[7:0]</text>
+
+  <rect x="340" y="588" width="640" height="26" rx="4" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="660" y="605" font-size="11" text-anchor="middle" fill="#111111">shared parallel bus: A0-A15, A16-A17, D0-D7, /CS /OE /WE</text>
+
+  <path d="M490,614 V646" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
+  <path d="M830,614 V646" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- parallel memories -->
+  <rect x="340" y="650" width="300" height="70" rx="6" fill="#e6f6ea" stroke="#1e7a3c" stroke-width="1.5"/>
+  <text x="350" y="670" font-weight="bold" fill="#111111">FUJISOKU memory card (Silver Reed)</text>
+  <text x="350" y="688" font-size="11" fill="#333333">A0-A17, D0-D7, /CS1, CS2, /OE, /WE</text>
+  <text x="350" y="704" font-size="11" fill="#333333">accessed range: 0x0000-0x7FFF (32 KB)</text>
+
+  <rect x="680" y="650" width="300" height="70" rx="6" fill="#f0e9fa" stroke="#6b3fa0" stroke-width="1.5"/>
+  <text x="690" y="670" font-weight="bold" fill="#111111">62256 parallel SRAM (32 KB)</text>
+  <text x="690" y="688" font-size="11" fill="#333333">A0-A14, D0-D7, /CS, /OE, /WE</text>
+  <text x="690" y="704" font-size="11" fill="#333333">read_sram() / write_sram()</text>
+
+  <!-- legend -->
+  <rect x="20" y="330" width="300" height="214" rx="6" fill="#fafafa" stroke="#bbbbbb" stroke-width="1"/>
+  <text x="32" y="352" font-weight="bold" fill="#111111">Legend / notes</text>
+  <path d="M32,372 H70" stroke="#1a4fa0" stroke-width="3"/>
+  <text x="80" y="376" font-size="11" fill="#333333">shared SPI bus</text>
+  <path d="M32,392 H70" stroke="#333333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="80" y="396" font-size="11" fill="#333333">chip select / signal flow</text>
+  <path d="M32,412 H70" stroke="#b36b00" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrAlt)"/>
+  <text x="80" y="416" font-size="11" fill="#333333">alternative route (to confirm)</text>
+  <text x="32" y="446" font-size="11" fill="#333333">MCP23S17 ch0-ch5 are initialised as inputs with</text>
+  <text x="32" y="462" font-size="11" fill="#333333">pull-ups and are otherwise unused by the sketch.</text>
+  <text x="32" y="488" font-size="11" fill="#333333">Pin numbers and bit assignments come from the</text>
+  <text x="32" y="504" font-size="11" fill="#333333">#defines in the sketch. This is not a schematic.</text>
+  <text x="32" y="530" font-size="11" fill="#333333">D1 (CS_FSRAM_512) and D3 (IRQ_MCP) are unused.</text>
+
+  <text x="20" y="745" font-size="11" fill="#555555">Derived from FUJISOKU_SRAM_COPY.ino. Connector pinout, power rails and level shifting cannot be determined from the code.</text>
+</svg>
