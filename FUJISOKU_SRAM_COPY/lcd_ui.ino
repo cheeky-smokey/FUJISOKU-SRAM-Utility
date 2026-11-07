@@ -179,7 +179,11 @@ void ui_splash_status(const char *text) {
 static void draw_idle_status() {
   char line[40];
   bool usb = (bool)Serial;
+#if USE_SD
   const char *sd = sd_state == SD_STATE_READY ? "OK" : (sd_state == SD_STATE_ABSENT ? "NONE" : "--");
+#else
+  const char *sd = "off";  // SD カードを使わない設定
+#endif
   snprintf(line, sizeof(line), "SD:%-8sPC:%s", sd, usb ? "OK" : "--");
   lcd_row(1, line);
   lcd_row(2, usb ? "Ready" : "Waiting for PC (USB)");

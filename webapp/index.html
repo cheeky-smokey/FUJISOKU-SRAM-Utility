@@ -301,8 +301,10 @@ dialog .row { justify-content: flex-end; }
         <dt>62256</dt><dd id="ramState">—</dd>
         <dt>スケッチ</dt><dd id="fwVer">—</dd>
       </dl>
-      <button class="btn ghost small" id="btnSdCheck" disabled>SD カードを確認</button>
-      <p class="hint">SD カードは処理と処理の合間なら抜き差しできます。挿したあとは「SD カードを確認」を押すか、そのまま SD の操作を始めてください。</p>
+      <div id="sdHelp">
+        <button class="btn ghost small" id="btnSdCheck" disabled>SD カードを確認</button>
+        <p class="hint">SD カードは処理と処理の合間なら抜き差しできます。挿したあとは「SD カードを確認」を押すか、そのまま SD の操作を始めてください。</p>
+      </div>
     </section>
   </aside>
 
@@ -543,6 +545,7 @@ const ERR_TEXT = {
   SDERR: ['SD カードの読み書きに失敗しました', 'SD カードが壊れていないか、FAT32 / exFAT でフォーマットされているかを確かめてください。'],
   CANCEL: ['中断しました', ''],
   BUSY: ['本体が別の処理をしています', '終わるのを待ってから、もう一度実行してください。'],
+  DISABLED: ['この本体は SD カードを使わない設定です', 'スケッチの config.h で USE_SD を 1 にすると使えます。'],
   TIMEOUT: ['本体から応答がありません', 'USB ケーブルを確かめて、接続し直してください。'],
   CLOSED: ['本体との接続が切れました', 'USB ケーブルを確かめて、「本体に接続」からつなぎ直してください。'],
   NOHELLO: ['本体がこのアプリに応答しません', 'FUJISOKU SRAM Utility v2 のスケッチが書き込まれているか、別のアプリがシリアルポートを使っていないかを確かめてください。'],
@@ -715,7 +718,7 @@ class Device {
 // 画面の状態
 // =====================================================================
 const dev = new Device();
-const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, writeFile: null, fileA: null, fileB: null };
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, writeFile: null, fileA: null, fileB: null };
 let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
 
 function refreshButtons() {
@@ -737,10 +740,23 @@ function setConnected(on, ver) {
   if (!on) {
     lcdBytes = null; setSd(null); drawLcd();
     $('#lcdState').textContent = '—'; $('#ramState').textContent = '—'; $('#tools62256').hidden = true;
+    state.sdcard = true; showSdUi(true); setSd(null);
   }
   refreshButtons();
 }
+// SD カードを使わない本体では、SD のタブと案内を隠す
+function showSdUi(on) {
+  $('#t-sd').hidden = !on;
+  $('#sdHelp').hidden = !on;
+  if (!on) {
+    if ($('#t-sd').getAttribute('aria-selected') === 'true') selectTab($('#t-save'));
+    const el = $('#sdState');
+    el.className = 'pill';
+    el.textContent = '使わない';
+  }
+}
 function setSd(v) {
+  if (state.connected && !state.sdcard) return;
   state.sd = v;
   const el = $('#sdState');
   el.className = 'pill' + (v === true ? ' ok' : v === false ? ' bad' : '');
@@ -848,13 +864,15 @@ async function connect() {
     const ver = (/HELLO FSU (\S+)/.exec(hello) || [])[1] || '?';
     state.lcd = (/lcd=(\S+)/.exec(hello) || [])[1] || 'none';
     state.ram62256 = /sram62256=1/.test(hello);
+    state.sdcard = !/sdcard=0/.test(hello);  // 古いスケッチには sdcard= が無い (SD あり)
     setConnected(true, 'v' + ver);
     $('#lcdState').textContent = state.lcd === 'none' ? 'なし (表示はここだけ)' : 'あり (20×4)';
     $('#ramState').textContent = state.ram62256 ? '使う' : '使わない';
     $('#tools62256').hidden = !state.ram62256;
+    showSdUi(state.sdcard);
     const st = await dev.request('status');
     const m = /sd=(\d)/.exec(st.last);
-    if (m) setSd(m[1] === '1');
+    if (m && state.sdcard) setSd(m[1] === '1');
     await dev.request('lcd on');
     clearResult('#resSave');
   } catch (e) {
@@ -1386,11 +1404,14 @@ function selectTab(t) {
     $('#' + x.getAttribute('aria-controls')).hidden = !on;
   }
 }
-tabs.forEach((t, i) => {
+tabs.forEach((t) => {
   t.addEventListener('click', () => selectTab(t));
   t.addEventListener('keydown', (e) => {
     const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (k) { const n = tabs[(i + k + tabs.length) % tabs.length]; selectTab(n); n.focus(); }
+    if (!k) return;
+    const vis = tabs.filter((x) => !x.hidden);  // 隠したタブ (SD を使わない本体の SD タブ) は飛ばす
+    const n = vis[(vis.indexOf(t) + k + vis.length) % vis.length];
+    selectTab(n); n.focus();
   });
 });
 

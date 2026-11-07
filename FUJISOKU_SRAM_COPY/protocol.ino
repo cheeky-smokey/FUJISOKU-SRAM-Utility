@@ -59,6 +59,13 @@ static int hex_val(char c) {
   return -1;
 }
 
+#if !USE_SD
+// SD カードを使わない設定 (USE_SD = 0) のときの返事
+static void reply_no_sd() {
+  reply_err("DISABLED", "SD card is not used (USE_SD 0)");
+}
+#endif
+
 // '_' を空白に変える (LCD 用の短い文章を 1 トークンで渡すため)
 static void underscores_to_spaces(char *s) {
   for (; *s; s++)
@@ -67,7 +74,11 @@ static void underscores_to_spaces(char *s) {
 
 void print_status() {
   Serial.print("STATUS sd=");
+#if USE_SD
   Serial.print(sd_state == SD_STATE_READY ? 1 : 0);
+#else
+  Serial.print('-');  // SD カードを使わない設定
+#endif
   Serial.print(" busy=");
   Serial.print(op_session ? 1 : 0);
   Serial.print(" spi=");
@@ -270,11 +281,19 @@ static void proto_legacy(char c) {
     case 'R': op_copy(DEV_FUJISOKU, DEV_SPI_SRAM); break;
     case 'C': op_copy(DEV_SPI_SRAM, DEV_FUJISOKU); break;
     case 'X': op_compare(DEV_SPI_SRAM, DEV_FUJISOKU); break;
+#if USE_SD
     case 'S': op_sd_save(DEV_SPI_SRAM, NULL); break;
     case 'W': op_sd_load(DEV_SPI_SRAM, NULL, false); break;
     case 'B': op_sd_save(DEV_FUJISOKU, NULL); break;
     case 'L': op_sd_load(DEV_FUJISOKU, NULL, false); break;
     case 'V': op_sd_verify(DEV_FUJISOKU, NULL); break;
+#else
+    case 'S':
+    case 'W':
+    case 'B':
+    case 'L':
+    case 'V': reply_no_sd(); break;
+#endif
     case 'T': op_test_spi(); break;
     case 'E': op_erase(DEV_SPI_SRAM); break;
     case 'e': op_erase(DEV_FUJISOKU); break;
@@ -285,6 +304,11 @@ static void proto_legacy(char c) {
 }
 
 static void proto_sd(int argc, char **argv) {
+#if !USE_SD
+  (void)argc;
+  (void)argv;
+  reply_no_sd();
+#else
   uint8_t dev = DEV_FUJISOKU;
   const char *name = NULL;
   if (argc < 2) {
@@ -310,6 +334,7 @@ static void proto_sd(int argc, char **argv) {
   else if (strcmp(argv[1], "load") == 0) op_sd_load(dev, name, verify_after);
   else if (strcmp(argv[1], "verify") == 0) op_sd_verify(dev, name);
   else reply_err("ARG", "sd save|load|verify|ls|check");
+#endif
 }
 
 void proto_exec(char *line) {
@@ -347,11 +372,17 @@ void proto_exec(char *line) {
     Serial.print(" lcd=");
     Serial.print(ui_lcd_present() ? "20x4" : "none");
     Serial.print(" sram62256=");
-    Serial.println(USE_SRAM62256);
+    Serial.print(USE_SRAM62256);
+    Serial.print(" sdcard=");
+    Serial.println(USE_SD);
   } else if (strcmp(cmd, "status") == 0) {
     print_status();
   } else if (strcmp(cmd, "sdcheck") == 0) {
+#if USE_SD
     if (proto_idle_or_busy()) op_sd_check();
+#else
+    reply_no_sd();
+#endif
   } else if (strcmp(cmd, "help") == 0) {
     print_help();
   } else if (strcmp(cmd, "rd") == 0) {

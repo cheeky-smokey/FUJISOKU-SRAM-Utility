@@ -4,12 +4,20 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.1"
+#define FSU_VERSION "2.2"
 
 // ---------------------------------------------------------------------
 // オプション部品 (1 = 使う、0 = 使わない)
-//   必須: MCP23S17 x 2、FUJISOKU カードのスロット、SPI SRAM (データの一時保管)、SD カード
+//   必須: MCP23S17 x 2、FUJISOKU カードのスロット、SPI SRAM (データの一時保管)
+//   カードの吸い出し・書き込み・比較は Web アプリ (PC) でできるので、SD カードと LCD はなくてもよい
 // ---------------------------------------------------------------------
+// SD カード (本体だけでの保存・照合・書き戻し)。
+//   0 にすると SdFat ライブラリも不要になり、sd コマンドと B L V S W は ERR DISABLED を返す。
+//   1 のときは、起動時にカードが無くても、処理の合間に抜き差ししても動く。
+#ifndef USE_SD
+#define USE_SD 1
+#endif
+
 // 20 文字 x 4 行のキャラクタ LCD (I2C)。
 //   0 にすると LiquidCrystal I2C ライブラリも不要になる。
 //   1 のままでも、起動時に LCD が見つからなければ表示を飛ばして動く (Web アプリには同じ内容が出る)。
@@ -133,7 +141,7 @@
 #define MODE_RW_SEQ 0x80
 
 // SPI Chip Select pin number (LCD を使うときは I2C: SDA = A4, SCL = A5)
-#define CS_SDcard 7
+#define CS_SDcard 7  // USE_SD = 0 でも High にしておく (モジュールが付いたままでも SPI を邪魔しない)
 #define CS_SRAM_512 6
 #define CS_RESET 5
 #define CS_MCP23S17 4

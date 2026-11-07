@@ -9,7 +9,9 @@ static uint8_t blockbuf[BLOCK_BYTES];
 static const char *op_name = "";
 static uint32_t op_total = 0;
 static uint32_t op_last_ms = 0;
+#if USE_SD
 static char sd_fname[24];
+#endif
 
 // ---------------------------------------------------------------------
 // 対象メモリの 1 バイト読み書き
@@ -130,6 +132,7 @@ uint8_t op_cancelled(uint32_t done) {
   return op_finish(RES_CANCEL, "CANCEL", m);
 }
 
+#if USE_SD
 // SD の失敗を「SDERR (カードは生きている)」か「SDLOST (抜かれた)」に分類して終わる
 uint8_t op_sd_error(const char *what) {
   if (myFile.isOpen()) myFile.close();
@@ -157,6 +160,7 @@ bool op_sd_prepare(const char *base) {
   }
   return true;
 }
+#endif  // USE_SD
 
 // ---------------------------------------------------------------------
 // FUJISOKU <-> SPI SRAM のコピー / 比較
@@ -218,6 +222,7 @@ uint8_t op_erase(uint8_t dev) {
   return op_finish(RES_OK, "", "32768 bytes = FF");
 }
 
+#if USE_SD
 // ---------------------------------------------------------------------
 // SD カードとの間の保存 / 書き込み / 照合
 // ---------------------------------------------------------------------
@@ -382,6 +387,7 @@ uint8_t op_sd_check() {
   if (!sd_mount()) return op_finish(RES_ERR, "NOSD", "No SD card");
   return op_finish(RES_OK, "", "SD card ready");
 }
+#endif  // USE_SD
 
 // ---------------------------------------------------------------------
 // SPI SRAM 自己診断 (T)

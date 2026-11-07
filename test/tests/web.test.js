@@ -83,14 +83,15 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.1');
+  assert.equal(await page.textContent('#fwVer'), 'v2.2');
+  assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
   assert.equal(await page.textContent('#ramState'), '使わない');
   assert.equal(await page.isHidden('#tools62256'), true);
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.1');
+  assert.equal(t[0], 'FUJISOKU SRAM   v2.2');
   assert.equal(t[1].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
   noErrors(page);
@@ -367,6 +368,40 @@ test('LCD なし・62256 ありの本体: LCD は「なし」と出て、62256 �
   await page.screenshot({ path: path.join(SHOTS, 'tools62256.png'), fullPage: true });
   const d = await fw.diag();
   assert.equal(d.lcd_absent_writes, 0);
+  noErrors(page);
+  await app.close();
+});
+
+test('SD カードを使わない本体: SD のタブと案内を隠し、PC への保存と書き込みはできる', async () => {
+  const card = pattern(15);
+  const app = await connected({ bin: path.join(OUT, 'fsu_sim_nosd'), card });
+  const { page, fw } = app;
+  assert.equal(await page.textContent('#sdState'), '使わない');
+  assert.equal(await page.isHidden('#t-sd'), true);
+  assert.equal(await page.isHidden('#sdHelp'), true);
+  // 矢印キーで隠したタブに移らない
+  await page.focus('#t-compare');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.getAttribute('#t-tools', 'aria-selected'), 'true');
+  await page.click('#t-save');
+  const dl = page.waitForEvent('download', { timeout: 90000 });
+  await page.click('#btnSave');
+  assert.ok(fs.readFileSync(await (await dl).path()).equals(card));
+  assert.equal((await waitResult(page, '#resSave')).kind, 'ok');
+  const img = Buffer.from(card); img[0x200] ^= 0xff;
+  await page.click('#t-write');
+  await page.uncheck('#optBackup');
+  await fileInput(page, '#fileWrite', 'img.bin', img);
+  await page.click('#btnWrite');
+  await page.click('#dlgYes');
+  assert.equal((await waitResult(page, '#resWrite')).kind, 'ok');
+  assert.ok((await fw.cardDump()).equals(img));
+  await page.waitForFunction(() => lcdBytes && /SD:off/.test(String.fromCharCode(...lcdBytes.slice(20, 40))), null, { timeout: 30000 });
+  await page.screenshot({ path: path.join(SHOTS, 'nosd.png'), fullPage: true });
+  // 切断すると SD のタブは戻る
+  await page.click('#btnConnect');
+  await page.waitForFunction(() => document.querySelector('#connState').textContent === '未接続');
+  assert.equal(await page.isHidden('#t-sd'), false);
   noErrors(page);
   await app.close();
 });

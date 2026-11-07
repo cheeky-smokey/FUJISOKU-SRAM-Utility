@@ -44,8 +44,8 @@ Web アプリ（`webapp/index.html`）は、この仕様のコマンドだけで
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.1 size=32768 chunk=64 lcd=20x4 sram62256=0`。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` は `USE_SRAM62256` の値 |
-| `status` | `STATUS sd=1 busy=0 spi=0 lcd=1`（`spi` は SPI SRAM のモードレジスタ。起動時にバイトモードにするので通常は `0`、応答がなければ `FF`。`lcd` は LCD の有無） |
+| `hello` | `HELLO FSU 2.2 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1`。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `status` | `STATUS sd=1 busy=0 spi=0 lcd=1`（`sd` は SD カードが使えるか。`USE_SD` が 0 なら `sd=-`。`spi` は SPI SRAM のモードレジスタで、起動時にバイトモードにするので通常は `0`、応答がなければ `FF`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
 | `lcd on` / `lcd off` | 表示が変わるたびに `LCD` 行を送る / やめる（`lcd off` は `OK lcd off`）。USB が切れると自動でやめる |
@@ -64,7 +64,7 @@ Web アプリ（`webapp/index.html`）は、この仕様のコマンドだけで
 
 ### 2.3 本体だけで行う処理
 
-すべて `S` / `P` 行で進み具合を知らせ、`OK` / `NG` / `ERR` の 1 行で終わります。
+すべて `S` / `P` 行で進み具合を知らせ、`OK` / `NG` / `ERR` の 1 行で終わります。SD のコマンド（`sd` `sdcheck`）は `USE_SD` が 1 のときだけ使えます。0 のときは `ERR DISABLED SD card is not used (USE_SD 0)` を返します。
 
 | コマンド | 内容 | 終了行の例 |
 |---|---|---|
@@ -99,7 +99,7 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 
 | 操作 | 送るコマンド |
 |---|---|
-| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` と `sram62256=` で構成を知る）→ `status` → `lcd on` |
+| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sram62256=` `sdcard=` で構成を知り、`sdcard=0` なら SD のタブを隠す）→ `status` → `lcd on` |
 | PC に保存 | `ui begin 65536 Card_to_PC` → `rd f <a> 2048` と `ui prog` を 16 回 × 2 周 → 2 周の結果を比べる → `ui end ok Saved_to_PC` |
 | カードに書き込み | （書き込む前の保存: 上と同じ読み込みを 1 周）→ `ui begin <合計> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `rd` で読み戻して照合 → `ui end ok ...` |
 | 比較（カード） | `ui begin 32768 Compare` → `rd` を 16 回 → PC 側で比較 → `ui end ok\|ng ...` |
@@ -121,6 +121,7 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 | `SDERR` | SD カードは応答するが読み書きに失敗した | カードを確かめる |
 | `NOFILE` | 指定したファイルが無い | `sd ls` で確かめる |
 | `BADSIZE` | ファイルが 32,768 バイトでない | |
+| `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` が 0 のときの SD コマンド） | `config.h` を確かめる |
 
 ## 4. 1 文字コマンド（v1 互換）
 
@@ -128,8 +129,8 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 |---|---|
 | `R` / `C` | `copy f s` / `copy s f` |
 | `X` | `cmp` |
-| `B` / `L` / `V` | `sd save f` / `sd load f` / `sd verify f`（`fujisoku.bin`） |
-| `S` / `W` | `sd save s` / `sd load s` |
+| `B` / `L` / `V` | `sd save f` / `sd load f` / `sd verify f`（`fujisoku.bin`）。`USE_SD` が 0 なら `ERR DISABLED` |
+| `S` / `W` | `sd save s` / `sd load s`（同上） |
 | `T` | `test` |
 | `E` / `e` | `erase s` / `erase f` |
 | `?` / `h` | `help` |
@@ -140,7 +141,7 @@ v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は�
 
 ```
 > hello
-< HELLO FSU 2.1 size=32768 chunk=64 lcd=20x4 sram62256=0
+< HELLO FSU 2.2 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1
 > sd save f game1
 < S Checking SD card
 < S Opening file

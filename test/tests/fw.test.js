@@ -30,9 +30,9 @@ const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
 test('起動: SD があれば READY、バスの不正利用なし', async () => {
   const fw = await boot();
   assert.ok(fw.lines.includes('E SD 1'));
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1 ready (LCD 20x4, 62256 off)')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2 ready (LCD 20x4, SD on, 62256 off)')));
   const r = await fw.cmd('hello');
-  assert.match(r.last, /^HELLO FSU 2\.1 size=32768 chunk=64 lcd=20x4 sram62256=0$/);
+  assert.match(r.last, /^HELLO FSU 2\.2 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1$/);
   await expectClean(fw);
   await fw.close();
 });
@@ -279,7 +279,7 @@ test('旧 1 文字コマンドと CRLF', async () => {
   const fw = await boot();
   fw.send('?\r\n');
   await fw.advance(50);
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2')));
   const r = await fw.cmd('e');
   assert.match(r.last, /^OK fill/);
   assert.ok((await fw.cardDump()).every((b) => b === 0xff));
@@ -364,8 +364,8 @@ const lcdText = (line) => {
 
 test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
   const fw = await boot({ args: ['--no-lcd'] });
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.1 ready (LCD none')));
-  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0$/);
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2 ready (LCD none')));
+  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1$/);
   assert.match((await fw.cmd('status')).last, /lcd=0$/);
   assert.match((await fw.cmd('B')).last, /^OK sd/);
   const r = await fw.cmd('lcd');
@@ -400,7 +400,7 @@ test('62256 を使わない設定 (既定) では対象 p は使えない', asyn
 test('62256 オプション (USE_SRAM62256=1): 読み書き・コピー・比較・SD 保存', async () => {
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_62256') });
   assert.ok(fw.lines.some((l) => l.includes('62256 on')));
-  assert.match((await fw.cmd('hello')).last, /sram62256=1$/);
+  assert.match((await fw.cmd('hello')).last, /sram62256=1 sdcard=1$/);
   const pat = pattern(22);
   await fw.cardLoad(pat);
   assert.match((await fw.cmd('wr p 0x10 A1B2C3')).last, /^OK wr/);
@@ -443,5 +443,45 @@ test('62256 でのバス試験 (test p): 正常なら OK、線の固定やショ
   await fw.ctl('stuck clear');
   assert.equal((await fw.cmd('test p')).last, 'OK test D0-D7 OK A0-A14 OK');
   await expectClean(fw);
+  await fw.close();
+});
+
+test('SD カードを使わない設定 (USE_SD=0): SD のコマンドは ERR DISABLED、ほかは同じように動く', async () => {
+  const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nosd') });
+  assert.ok(fw.lines.some((l) => l.includes('SD off')), fw.lines.join('|'));
+  assert.ok(!fw.lines.some((l) => /^E SD/.test(l)), 'SD の通知は出さない');
+  assert.match((await fw.cmd('hello')).last, /sdcard=0$/);
+  assert.match((await fw.cmd('status')).last, /^STATUS sd=- busy=0/);
+  for (const c of ['B', 'L', 'V', 'S', 'W', 'sdcheck', 'sd ls', 'sd check', 'sd save f', 'sd load f x v', 'sd verify f']) {
+    assert.equal((await fw.cmd(c)).last, 'ERR DISABLED SD card is not used (USE_SD 0)', c);
+  }
+  // PC からの読み書き (Web アプリの手順) と SPI SRAM は使える
+  const pat = pattern(31);
+  await fw.cardLoad(pattern(32));
+  for (let a = 0; a < 0x400; a += 64) assert.match((await fw.cmd(`wr f ${a} ${pat.subarray(a, a + 64).toString('hex')}`)).last, /^OK wr/);
+  const rd = await fw.cmd('rd f 0 1024');
+  const got = Buffer.concat(rd.lines.filter((l) => l.startsWith('D ')).map((l) => Buffer.from(l.split(' ')[2], 'hex')));
+  assert.ok(got.equals(pat.subarray(0, 0x400)));
+  assert.match((await fw.cmd('R')).last, /^OK copy/);
+  assert.match((await fw.cmd('X')).last, /^OK cmp all/);
+  // 表示は SD:off
+  const lcd = lcdText((await fw.cmd('lcd')).last);
+  await fw.advance(16000);
+  assert.match(lcdText((await fw.cmd('lcd')).last)[1], /^SD:off +PC:OK/);
+  assert.ok(lcd.length === 4);
+  const d = await fw.diag();
+  assert.equal(d.sd_ops, 0, 'SD カードに触れない');
+  await expectClean(fw);
+  await fw.close();
+});
+
+test('SD を抜いても挿しても、SD を使わない設定では何も起きない', async () => {
+  const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nosd') });
+  await fw.ctl('sd remove');
+  await fw.advance(3000);
+  await fw.ctl('sd insert');
+  await fw.advance(3000);
+  assert.ok(!fw.lines.some((l) => /^E SD/.test(l)));
+  assert.equal((await fw.diag()).sd_ops, 0);
   await fw.close();
 });
