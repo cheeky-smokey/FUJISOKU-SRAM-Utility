@@ -8,10 +8,10 @@
 
 ```sh
 test/run_all.sh                  # すべて (4 構成のビルド → 型チェック → 53 件のテスト)
-test/build.sh                    # シミュレータだけビルド (test/out/fsu_sim)
-test/build.sh fsu_sim_nolcd -DUSE_LCD=0          # LCD のコードなし
-test/build.sh fsu_sim_62256 -DUSE_SRAM62256=1    # 62256 あり
-test/build.sh fsu_sim_nosd -DUSE_SD=0            # SD カードのコードなし
+test/build.sh fsu_sim -DUSE_SD=1                          # シミュレータだけビルド (SD・LCD あり。テストの大半はこれ)
+test/build.sh fsu_sim_nolcd -DUSE_SD=1 -DUSE_LCD=0        # LCD のコードなし
+test/build.sh fsu_sim_62256 -DUSE_SD=1 -DUSE_SRAM62256=1  # 62256 あり
+test/build.sh fsu_sim_nosd                                # config.h の既定 (SD のコードなし)
 test/check_real_headers.sh       # 本物の SdFat / LiquidCrystal I2C のヘッダで型チェック (5 構成。使わないライブラリは渡さない)
 node --test test/tests/fw.test.js   # ファームウェアのテストだけ
 ```

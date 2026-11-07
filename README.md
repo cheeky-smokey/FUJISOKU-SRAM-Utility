@@ -35,14 +35,14 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 |---|---|---|
 | 必須 | Arduino UNO R4、MCP23S17 × 2、FUJISOKU カードのスロット | - |
 | 必須 | **SPI SRAM**（23LC512 クラス、データの一時保管。/CS は D6。MCP23S17 にはつながない） | - |
-| オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 1） |
+| オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 
-カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
+カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定は SD カードなし・LCD ありです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 
 ```c
-#define USE_SD 1          // SD カードをつながないなら 0 (SdFat ライブラリも不要になる)
+#define USE_SD 0          // SD カードをつないだら 1 (SdFat ライブラリが要る)
 #define USE_LCD 1         // LCD をつながないなら 0 (LiquidCrystal I2C ライブラリも不要になる)
 #define USE_SRAM62256 0   // 62256 をつないだら 1
 ```
@@ -56,7 +56,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 ## ビルド
 
 1. Arduino IDE のライブラリマネージャで、使う部品に合わせて入れる（SD と LCD を使わないなら不要）。
-   - **SdFat**（Bill Greiman、v2 系）。`USE_SD` が 1 のときだけ必要です。
+   - **SdFat**（Bill Greiman、v2 系）。`USE_SD` を 1 にしたときだけ必要です（既定の 0 なら不要）。
    - **LiquidCrystal I2C**（Frank de Brabander）。`USE_LCD` が 1 のときだけ必要です。「AVR 用」と警告が出ることがありますが、UNO R4 でも使えます。
 2. `FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino` を開いてボードに書き込む（同じフォルダの `.ino` と `config.h` はタブとして一緒に開かれます）。
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # スケッチをホストでビルドする (Arduino IDE と同じ連結 + プロトタイプ生成、-Wall -Wextra)
 #   使い方: test/build.sh [出力名] [g++ に渡す追加オプション...]
-#   例    : test/build.sh fsu_sim_spi62256 -DSPI_SRAM=1
+#   例    : test/build.sh fsu_sim -DUSE_SD=1   (オプションの既定は config.h。USE_SD の既定は 0)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$HERE")"

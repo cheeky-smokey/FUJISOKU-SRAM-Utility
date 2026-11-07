@@ -20,9 +20,9 @@ check() {  # $1 = 説明、残り = g++ の追加オプション (ライブラ�
 }
 SDFAT=(-isystem "$DEPS/SdFat/src")
 LCDLIB=(-isystem "$DEPS/LiquidCrystal_I2C")
-check "既定 (SD・LCD あり、62256 なし)" "${SDFAT[@]}" "${LCDLIB[@]}"
-check "62256 あり" "${SDFAT[@]}" "${LCDLIB[@]}" -DUSE_SRAM62256=1
 # 使わない部品のライブラリは渡さずに確かめる (ライブラリが無くてもビルドできること)
-check "LCD なし (LiquidCrystal I2C なし)" "${SDFAT[@]}" -DUSE_LCD=0
-check "SD なし (SdFat なし)" "${LCDLIB[@]}" -DUSE_SD=0
-check "SD・LCD なし (外部ライブラリなし)" -DUSE_SD=0 -DUSE_LCD=0
+check "既定 (SD なし、LCD あり。SdFat なし)" "${LCDLIB[@]}"
+check "SD・LCD あり" "${SDFAT[@]}" "${LCDLIB[@]}" -DUSE_SD=1
+check "SD・LCD・62256 あり" "${SDFAT[@]}" "${LCDLIB[@]}" -DUSE_SD=1 -DUSE_SRAM62256=1
+check "SD あり、LCD なし (LiquidCrystal I2C なし)" "${SDFAT[@]}" -DUSE_SD=1 -DUSE_LCD=0
+check "SD・LCD なし (外部ライブラリなし)" -DUSE_LCD=0

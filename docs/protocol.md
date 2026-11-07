@@ -44,8 +44,8 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.3 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1`。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
-| `status` | `STATUS sd=1 busy=0 spi=40 lcd=1`（`sd` は SD カードが使えるか。`USE_SD` が 0 なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`。`lcd` は LCD の有無） |
+| `hello` | `HELLO FSU 2.3 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=0`（既定の構成）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `status` | `STATUS sd=- busy=0 spi=40 lcd=1`（`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
 | `lcd on` / `lcd off` | 表示が変わるたびに `LCD` 行を送る / やめる（`lcd off` は `OK lcd off`）。USB が切れると自動でやめる |
@@ -64,7 +64,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 ### 2.3 本体だけで行う処理
 
-すべて `S` / `P` 行で進み具合を知らせ、`OK` / `NG` / `ERR` の 1 行で終わります。SD のコマンド（`sd` `sdcheck`）は `USE_SD` が 1 のときだけ使えます。0 のときは `ERR DISABLED SD card is not used (USE_SD 0)` を返します。
+すべて `S` / `P` 行で進み具合を知らせ、`OK` / `NG` / `ERR` の 1 行で終わります。SD のコマンド（`sd` `sdcheck`）は `USE_SD` を 1 にしたときだけ使えます。0（既定）のときは `ERR DISABLED SD card is not used (USE_SD 0)` を返します。
 
 | コマンド | 内容 | 終了行の例 |
 |---|---|---|
@@ -138,6 +138,8 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は書き込み前に消去しません（全域を上書きするため）。`L` / `W` は 32,768 バイトちょうどのファイルだけを受け付けます。
 
 ## 5. やりとりの例
+
+`USE_SD` を 1 にした本体の例です。
 
 ```
 > hello
