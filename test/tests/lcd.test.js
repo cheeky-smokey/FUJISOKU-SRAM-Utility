@@ -51,7 +51,7 @@ async function expectCleanLcd(fw) {
 test('待機画面: 名前・カードと電池・SD/PC の状態・直前の結果', async () => {
   const fw = await boot();
   const r = await rows(fw, 'idle');
-  assert.deepEqual(r, ['FUJISOKU SRAM   v2.6', 'Card:OK   Bat:3.00V ', 'SD:OK      PC:OK    ', 'Last:---            ']);
+  assert.deepEqual(r, ['FUJISOKU SRAM   v2.7', 'Card:OK   Bat:3.00V ', 'SD:OK      PC:OK    ', 'Last:---            ']);
   await expectCleanLcd(fw);
 });
 
@@ -163,7 +163,7 @@ test('結果画面は 15 秒後に待機画面へ戻り、結果は Last: に残
   assert.match((await rows(fw))[0], /DONE$/);
   await fw.advance(11000);
   const r = await rows(fw, 'idle_last');
-  assert.equal(r[0], 'FUJISOKU SRAM   v2.6');
+  assert.equal(r[0], 'FUJISOKU SRAM   v2.7');
   assert.equal(r[3], 'Last:{6} BACKUP OK    ');
 });
 

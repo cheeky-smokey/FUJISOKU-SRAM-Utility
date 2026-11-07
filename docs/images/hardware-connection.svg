@@ -6,7 +6,7 @@
   </defs>
   <rect width="1000" height="700" fill="#ffffff"/>
 
-  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v2.6 - hardware connection overview</text>
+  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v2.7 - hardware connection overview</text>
   <text x="20" y="44" font-size="11" fill="#555555">solid boxes = required, dashed boxes = optional (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256 in config.h)</text>
 
   <!-- PC -->
@@ -103,7 +103,7 @@
   <text x="650" y="484" font-size="10" fill="#555555">GPB0 is also /CS of the 62256 (low = 62256)</text>
 
   <!-- legend -->
-  <rect x="20" y="360" width="300" height="132" rx="6" fill="#fafafa" stroke="#bbbbbb" stroke-width="1"/>
+  <rect x="20" y="360" width="300" height="140" rx="6" fill="#fafafa" stroke="#bbbbbb" stroke-width="1"/>
   <text x="32" y="382" font-weight="bold" fill="#111111">Legend</text>
   <path d="M32,402 H70" stroke="#1a4fa0" stroke-width="3"/>
   <text x="80" y="406" font-size="11" fill="#333333">shared SPI bus</text>
@@ -111,8 +111,9 @@
   <text x="80" y="426" font-size="11" fill="#333333">chip select / signal flow</text>
   <rect x="32" y="436" width="38" height="14" rx="3" fill="#f3f4f6" stroke="#555555" stroke-dasharray="5,3"/>
   <text x="80" y="447" font-size="11" fill="#333333">optional part</text>
-  <text x="32" y="474" font-size="11" fill="#333333">D2 = /CARD DET (F37), A2 = BATT-DET (F2)</text>
-  <text x="32" y="488" font-size="11" fill="#333333">D3 not connected; D8, D9, D10 free</text>
+  <text x="32" y="462" font-size="11" fill="#333333">D2 = /CARD DET (F37)</text>
+  <text x="32" y="476" font-size="11" fill="#333333">A2 = BATT-DET (F2), 1 MΩ to GND</text>
+  <text x="32" y="490" font-size="11" fill="#333333">D3 not connected; D8, D9, D10 free</text>
 
   <!-- parallel bus -->
   <path d="M380,446 V526" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>

@@ -30,9 +30,9 @@ const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
 test('起動: SD があれば READY、バスの不正利用なし', async () => {
   const fw = await boot();
   assert.ok(fw.lines.includes('E SD 1'));
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6 ready (LCD 20x4, SD on, 62256 off, SPI SRAM ok, card in)')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.7 ready (LCD 20x4, SD on, 62256 off, SPI SRAM ok, card in)')));
   const r = await fw.cmd('hello');
-  assert.match(r.last, /^HELLO FSU 2\.6 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
+  assert.match(r.last, /^HELLO FSU 2\.7 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000 battnone=400$/);
   await expectClean(fw);
   await fw.close();
 });
@@ -320,7 +320,7 @@ test('旧 1 文字コマンドと CRLF', async () => {
   const fw = await boot();
   fw.send('?\r\n');
   await fw.advance(50);
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.7')));
   const r = await fw.cmd('e');
   assert.match(r.last, /^OK fill/);
   assert.ok((await fw.cardDump()).every((b) => b === 0xff));
@@ -421,7 +421,7 @@ test('カードの検出 (/CARD DET = D2): 無ければ ERR NOCARD、抜き差�
   await fw.close();
 });
 
-test('電池電圧 (BATT-DET = A2): 50 mV 以上の変化で E BATT、1.00 V 以下で LCD に警告', async () => {
+test('電池電圧 (BATT-DET = A2): 50 mV 以上の変化で E BATT、1.00 V 以下で「少ない」、0.40 V 以下で「電池なし」', async () => {
   const fw = await boot({ args: ['--batt-mv', '2950'] });
   await fw.advance(800);
   assert.match((await fw.cmd('status')).last, / batt=2950$/);
@@ -440,6 +440,22 @@ test('電池電圧 (BATT-DET = A2): 50 mV 以上の変化で E BATT、1.00 V 以
   await fw.advance(800);
   assert.ok(fw.lines.includes('E BATT 1040'));
   assert.match(lcdText((await fw.cmd('lcd')).last)[3], /^Last:/);
+  // 電池なし: 1 MΩ のプルダウンで 0 V 近く (作者の基板では 0.24 V)。0.40 V 以下は「電池なし」
+  await fw.ctl('batt 240');
+  await fw.advance(800);
+  assert.ok(fw.lines.some((l) => /^E BATT 24[01]$/.test(l)), fw.lines.slice(-5).join('|'));  // 12 ビットの丸めで 240 か 241
+  lcd = lcdText((await fw.cmd('lcd')).last);
+  assert.equal(lcd[1], 'Card:OK   Bat:NONE! ');
+  assert.equal(lcd[3], '! No card battery ! ');
+  await fw.ctl('batt 400');  // 0.40 V ちょうども電池なし
+  await fw.advance(800);
+  assert.equal(lcdText((await fw.cmd('lcd')).last)[1], 'Card:OK   Bat:NONE! ');
+  await fw.ctl('batt 420');  // 境目をまたいだら送る。0.42 V は「少ない」
+  await fw.advance(800);
+  assert.ok(fw.lines.includes('E BATT 420'));
+  lcd = lcdText((await fw.cmd('lcd')).last);
+  assert.equal(lcd[1], 'Card:OK   Bat:0.42V!');
+  assert.equal(lcd[3], '! Card battery low !');
   await fw.close();
 });
 
@@ -453,8 +469,8 @@ const lcdText = (line) => {
 
 test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
   const fw = await boot({ args: ['--no-lcd'] });
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6 ready (LCD none')));
-  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.7 ready (LCD none')));
+  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000 battnone=400$/);
   assert.match((await fw.cmd('status')).last, / lcd=0 /);
   assert.match((await fw.cmd('B')).last, /^OK sd/);
   const r = await fw.cmd('lcd');
@@ -491,7 +507,7 @@ test('62256 を使わない設定 (既定) では対象 p は ERR DISABLED', asy
 test('62256 オプション (USE_SRAM62256=1): 読み書き・コピー・比較・SD 保存', async () => {
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_62256') });
   assert.ok(fw.lines.some((l) => l.includes('62256 on')));
-  assert.match((await fw.cmd('hello')).last, /sram62256=1 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
+  assert.match((await fw.cmd('hello')).last, /sram62256=1 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000 battnone=400$/);
   const pat = pattern(22);
   await fw.cardLoad(pat);
   assert.match((await fw.cmd('wr p 0x10 A1B2C3')).last, /^OK wr/);
@@ -541,7 +557,7 @@ test('62256 でのバス試験 (test p): 正常なら OK、線の固定やショ
 test('SPI SRAM を使わない設定 (USE_SPI_SRAM=0): 対象 s と R C X E S W T は ERR DISABLED、カードは使える', async () => {
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nospi') });
   assert.ok(fw.lines.some((l) => l.includes('SPI SRAM off')), fw.lines.join('|'));
-  assert.match((await fw.cmd('hello')).last, /spisram=off carddet=0 battdet=0 battlow=1000$/);
+  assert.match((await fw.cmd('hello')).last, /spisram=off carddet=0 battdet=0 battlow=1000 battnone=400$/);
   assert.match((await fw.cmd('status')).last, / spi=- /);
   const want = 'ERR DISABLED SPI SRAM is not used (USE_SPI_SRAM 0)';
   for (const c of ['R', 'C', 'X', 'E', 'S', 'W', 'T', 'rd s 0 1', 'wr s 0 00', 'fill s 0 1 0', 'copy f s', 'copy s f', 'cmp', 'cmp s f', 'erase s', 'test', 'test s']) {
@@ -560,7 +576,7 @@ test('SPI SRAM を使わない設定 (USE_SPI_SRAM=0): 対象 s と R C X E S W 
 test('SPI SRAM が見つからない (USE_SPI_SRAM=1): SPI SRAM を使う操作は ERR NOSPI、自己診断は実行して NG', async () => {
   const fw = await boot({ args: ['--no-spi-sram'] });
   assert.ok(fw.lines.some((l) => l.includes('SPI SRAM none')), fw.lines.join('|'));
-  assert.match((await fw.cmd('hello')).last, /spisram=none carddet=1 battdet=1 battlow=1000$/);
+  assert.match((await fw.cmd('hello')).last, /spisram=none carddet=1 battdet=1 battlow=1000 battnone=400$/);
   for (const c of ['R', 'C', 'X', 'E', 'S', 'W', 'rd s 0 1', 'copy f s', 'cmp', 'erase s', 'sd save s']) {
     assert.equal((await fw.cmd(c)).last, 'ERR NOSPI SPI SRAM not found', c);
   }
@@ -573,7 +589,7 @@ test('SD カードを使わない設定 (USE_SD=0): SD のコマンドは ERR DI
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nosd') });
   assert.ok(fw.lines.some((l) => l.includes('SD off')), fw.lines.join('|'));
   assert.ok(!fw.lines.some((l) => /^E SD/.test(l)), 'SD の通知は出さない');
-  assert.match((await fw.cmd('hello')).last, /sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1000$/);
+  assert.match((await fw.cmd('hello')).last, /sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1000 battnone=400$/);
   assert.match((await fw.cmd('status')).last, /^STATUS sd=- busy=0/);
   for (const c of ['B', 'L', 'V', 'S', 'W', 'sdcheck', 'sd ls', 'sd check', 'sd save f', 'sd load f x v', 'sd verify f']) {
     assert.equal((await fw.cmd(c)).last, 'ERR DISABLED SD card is not used (USE_SD 0)', c);

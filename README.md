@@ -2,14 +2,14 @@
 
 # FUJISOKU SRAM Utility
 
-**最新版 v2.6**（カードの検出と電池電圧の表示を追加）。Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
+**最新版 v2.7**（電池なしの検出を追加。v2.6 でカードの検出と電池電圧の表示を追加）。Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
 
 Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 256KB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
 
 - **PC から操作**: ブラウザの Web アプリで、カードを PC に保存・PC のファイルをカードに書き込み・比較。
 - **表示**: 状態・処理の段階・進捗バー・結果を 20 文字 × 4 行で表示。同じ画面が Web アプリにも出るので、LCD はオプションです。
 - **SD カード（オプション）**: 本体だけでカード ⇄ SD のバックアップ・照合・書き戻し。SD カードは処理の合間に抜き差しでき、最初から入っていなくても止まりません。
-- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.00 V 以下で警告します。
+- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.00 V 以下で「少ない」、0.40 V 以下で「電池なし」と警告します。
 - **62256（オプション）**: 動作確認用の SRAM で、カードを使わずにバスの配線を試験できます。
 
 ![Web アプリ](docs/images/webapp.png)
@@ -44,7 +44,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | オプション | SPI SRAM（23LC512。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 | 配線 | カードの検出（カードの F37 /CARD DET → D2） | `USE_CARD_DET`（既定 1） |
-| 配線 | 電池電圧（カードの F2 BATT-DET → A2） | `USE_BATT_DET`（既定 1） |
+| 配線 | 電池電圧（カードの F2 BATT-DET → A2。A2 と GND の間に 1 MΩ） | `USE_BATT_DET`（既定 1） |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 

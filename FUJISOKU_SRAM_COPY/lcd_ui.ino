@@ -13,7 +13,7 @@
 //  +--------------------+   +--------------------+   +--------------------+
 //
 // - 待機画面の 2 行目はカードの有無と電池電圧。電池が BATT_LOW_MV 以下なら電圧の後ろに '!' を付け、
-//   4 行目を "! Card battery low !" にする (Last の代わり)
+//   4 行目を "! Card battery low !" (電池なしは "! No card battery !") にする (Last の代わり)
 //
 // - 進捗バーは CGRAM の自作文字で 1 文字を 5 段階に分け、15 文字 = 75 段階で表示する
 // - I2C の LCD は 1 文字の転送に約 1ms かかるため、前回の表示と違う文字だけを書き換える
@@ -186,7 +186,9 @@ static void draw_idle_status() {
 
   // 2 行目: カードと電池
   const char *card = USE_CARD_DET ? (card_inserted ? "OK" : "NONE") : "--";
-  if (batt_mv >= 0) {
+  if (batt_none()) {
+    snprintf(line, sizeof(line), "Card:%-5sBat:NONE!", card);
+  } else if (batt_mv >= 0) {
     snprintf(line, sizeof(line), "Card:%-5sBat:%u.%02uV%s", card, (unsigned)(batt_mv / 1000), (unsigned)(batt_mv % 1000 / 10),
              batt_low() ? "!" : "");
   } else {
@@ -204,7 +206,9 @@ static void draw_idle_status() {
   lcd_row(2, line);
 
   // 4 行目: 電池の警告、なければ最後の結果
-  if (batt_low()) {
+  if (batt_none()) {
+    lcd_row(3, "! No card battery !");
+  } else if (batt_low()) {
     lcd_row(3, "! Card battery low !");
   } else if (ui_last_res == 255) {
     lcd_row(3, "Last:---");

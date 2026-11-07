@@ -83,7 +83,7 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.6');
+  assert.equal(await page.textContent('#fwVer'), 'v2.7');
   assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
   assert.equal(await page.textContent('#ramState'), '使わない');
@@ -91,7 +91,7 @@ test('接続: バージョン・SD の状態・本体 LCD の表示が出る', a
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.6');
+  assert.equal(t[0], 'FUJISOKU SRAM   v2.7');
   assert.equal(t[1].trim(), 'Card:OK   Bat:3.00V');
   assert.equal(t[2].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
@@ -548,7 +548,7 @@ test('SPI SRAM: 使わない設定なら操作を隠し、見つからなけれ�
   await app.close();
 });
 
-test('カードと電池: 状態を表示し、1.00 V 以下で警告、抜くと NOCARD の案内', async () => {
+test('カードと電池: 状態を表示し、1.00 V 以下で「少ない」、0.40 V 以下で「電池なし」、抜くと NOCARD の案内', async () => {
   const app = await connected({ card: pattern(14), fwArgs: ['--batt-mv', '2950'] });
   const { page, fw } = app;
   assert.equal(await page.textContent('#cardState'), '入っています');
@@ -559,6 +559,14 @@ test('カードと電池: 状態を表示し、1.00 V 以下で警告、抜く�
   await page.waitForFunction(() => /0\.90 V \(少ない\)/.test(document.querySelector('#battState').textContent), null, { timeout: 10000 });
   assert.equal(await page.isVisible('#battAlert'), true);
   assert.match(await page.textContent('#battAlert'), /電池が少なくなっています \(0\.90 V\)/);
+  // 電池なし (0.40 V 以下)
+  await fw.ctl('batt 240');
+  await page.waitForFunction(() => document.querySelector('#battState').textContent === 'なし', null, { timeout: 10000 });
+  assert.match(await page.textContent('#battAlert'), /カードに電池が入っていません/);
+  assert.match(await page.textContent('#battAlert'), /カードを抜くと中身が消えます/);
+  await page.screenshot({ path: path.join(SHOTS, 'batt-none.png'), fullPage: true });
+  await fw.ctl('batt 900');
+  await page.waitForFunction(() => /0\.90 V \(少ない\)/.test(document.querySelector('#battState').textContent), null, { timeout: 10000 });
   await page.waitForFunction(() => lcdBytes && /Bat:0\.90V!/.test(String.fromCharCode(...lcdBytes.slice(20, 40))), null, { timeout: 10000 });
   await page.screenshot({ path: path.join(SHOTS, 'batt-low.png'), fullPage: true });
   // カードを抜く

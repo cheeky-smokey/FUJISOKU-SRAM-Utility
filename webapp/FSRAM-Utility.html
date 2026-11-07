@@ -329,8 +329,8 @@ dialog .row { justify-content: flex-end; }
 
   <div class="work">
     <div class="alert" id="battAlert" role="alert" hidden>
-      <strong>カードの電池が少なくなっています (<span id="battAlertV"></span>)</strong>
-      <span>電池が切れるとカードの中身が消えます。いまのうちに「PC に保存」で保存してから、電池を交換してください。</span>
+      <strong id="battAlertTitle">カードの電池が少なくなっています</strong>
+      <span id="battAlertText">電池が切れるとカードの中身が消えます。いまのうちに「PC に保存」で保存してから、電池を交換してください。</span>
     </div>
     <section class="card prog" id="prog" hidden aria-live="polite">
       <div class="prog-head"><strong id="progTitle">処理中</strong><span id="progPhase"></span></div>
@@ -773,7 +773,7 @@ class Device {
 // 画面の状態
 // =====================================================================
 const dev = new Device();
-const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, spisram: 'ok', carddet: false, battdet: false, card: null, batt: null, battLow: 1000, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, spisram: 'ok', carddet: false, battdet: false, card: null, batt: null, battLow: 1000, battNone: 0, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
 let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
 
 function refreshButtons() {
@@ -837,16 +837,20 @@ function setCard(v) {
   el.textContent = v === true ? '入っています' : v === false ? '入っていません' : (state.connected && !state.carddet ? '検出しない' : '—');
   if (v !== true) setBatt(null);
 }
-// 電池電圧 [mV]。null = 測っていない。state.battLow 以下なら警告
+// 電池電圧 [mV]。null = 測っていない。state.battNone 以下なら「電池なし」、state.battLow 以下なら「少ない」
 function setBatt(mv) {
   state.batt = mv;
   const el = $('#battState');
+  const none = mv !== null && mv <= state.battNone;
   const low = mv !== null && mv <= state.battLow;
   const v = mv !== null ? `${(mv / 1000).toFixed(2)} V` : '';
-  el.className = 'pill' + (mv === null ? '' : low ? ' warn' : ' ok');
-  el.textContent = mv === null ? (state.connected && !state.battdet ? '測らない' : '—') : low ? `${v} (少ない)` : v;
+  el.className = 'pill' + (mv === null ? '' : none ? ' bad' : low ? ' warn' : ' ok');
+  el.textContent = mv === null ? (state.connected && !state.battdet ? '測らない' : '—') : none ? 'なし' : low ? `${v} (少ない)` : v;
   $('#battAlert').hidden = !low;
-  $('#battAlertV').textContent = v;
+  $('#battAlertTitle').textContent = none ? 'カードに電池が入っていません' : `カードの電池が少なくなっています (${v})`;
+  $('#battAlertText').textContent = none
+    ? 'いまは本体の電源で中身を保っていますが、カードを抜くと中身が消えます。抜く前に「PC に保存」で保存し、電池を入れてください。'
+    : '電池が切れるとカードの中身が消えます。いまのうちに「PC に保存」で保存してから、電池を交換してください。';
 }
 function setSd(v) {
   if (state.connected && !state.sdcard) return;
@@ -982,6 +986,7 @@ async function connect() {
     state.carddet = /carddet=1/.test(hello);
     state.battdet = /battdet=1/.test(hello);
     state.battLow = +((/battlow=(\d+)/.exec(hello) || [])[1] || 1000);
+    state.battNone = +((/battnone=(\d+)/.exec(hello) || [])[1] || 0);  // v2.6 までは「電池なし」の判定なし
     const c = /card=([01-])/.exec(st.last), b = /batt=(\d+|-)/.exec(st.last);
     setCard(c ? (c[1] === '-' ? null : c[1] === '1') : null);
     if (b && b[1] !== '-') setBatt(+b[1]);

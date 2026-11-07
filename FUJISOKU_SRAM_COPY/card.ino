@@ -5,7 +5,9 @@
 //   カードが無いとき、カードを使うコマンドは ERR NOCARD を返す (protocol.ino の dev_ready())。
 //   処理中に抜かれたら op_poll_cancel() が気づいて止める (ERR NOCARD Card removed ...)。
 // BATT-DET (カードの F2): カードの電池の電圧。A2 で 0.5 秒ごとに測る (12 ビット、8 回の平均)。
-//   50 mV 以上変わったときと、警告の境目 (BATT_LOW_MV) をまたいだときに "E BATT <mV>" を送る。
+//   A2 と GND の間の 1 MΩ で、電池が無いときは 0 V 近くになる (無いと漏れ電流で 3〜4 V に浮く)。
+//   BATT_NONE_MV 以下 = 電池なし、BATT_LOW_MV 以下 = 少ない。
+//   50 mV 以上変わったときと、この境目をまたいだときに "E BATT <mV>" を送る。
 //   カードが無いときは A2 が浮いているので測らない (batt_mv = -1)。
 // USE_CARD_DET = 0 なら、いつもカードが入っているものとして扱う。
 
@@ -24,7 +26,12 @@ bool card_now() {
 #endif
 }
 
-// 電池の警告中か
+// 電池が無いか (BATT_NONE_MV 以下)
+bool batt_none() {
+  return batt_mv >= 0 && batt_mv <= BATT_NONE_MV;
+}
+
+// 電池の警告中か (少ない、または無い)
 bool batt_low() {
   return batt_mv >= 0 && batt_mv <= BATT_LOW_MV;
 }
@@ -54,10 +61,11 @@ static void batt_poll(uint32_t now) {
   }
   if ((int32_t)(now - batt_next_ms) < 0) return;
   batt_next_ms = now + BATT_PERIOD_MS;
-  bool was_low = batt_low();
+  bool was_low = batt_low(), was_none = batt_none();
   batt_mv = batt_measure_mv();
   int16_t diff = batt_mv - batt_sent_mv;
-  if (batt_sent_mv < 0 || diff >= BATT_REPORT_STEP_MV || diff <= -BATT_REPORT_STEP_MV || batt_low() != was_low) batt_report();
+  if (batt_sent_mv < 0 || diff >= BATT_REPORT_STEP_MV || diff <= -BATT_REPORT_STEP_MV || batt_low() != was_low || batt_none() != was_none)
+    batt_report();
 }
 #endif
 

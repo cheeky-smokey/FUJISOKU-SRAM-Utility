@@ -451,7 +451,9 @@ void proto_exec(char *line) {
     Serial.print(" battdet=");
     Serial.print(USE_BATT_DET);
     Serial.print(" battlow=");
-    Serial.println(BATT_LOW_MV);
+    Serial.print(BATT_LOW_MV);
+    Serial.print(" battnone=");
+    Serial.println(BATT_NONE_MV);
   } else if (strcmp(cmd, "status") == 0) {
     print_status();
   } else if (strcmp(cmd, "sdcheck") == 0) {

@@ -402,7 +402,7 @@ void analogReadResolution(int bits) { adc_bits = bits; }
 int analogRead(uint8_t pin) {
   if (pin != PIN_BATT_DET) return 0;
   long full = (1L << adc_bits) - 1;
-  long mv = card_present ? batt_mv_sim : 2500;  // カードが無いと浮いている (中間くらいの値)
+  long mv = card_present ? batt_mv_sim : 0;  // カードが無いと A2 は 1 MΩ で GND に引かれる
   return (int)((mv * full + 2500) / 5000);
 }
 

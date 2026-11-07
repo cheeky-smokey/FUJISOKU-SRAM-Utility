@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.6"
+#define FSU_VERSION "2.7"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
@@ -43,8 +43,9 @@
 #define USE_CARD_DET 1
 #endif
 
-// カードの電池電圧 (カードの F2 BATT-DET → A2)。
-//   1 にすると、電圧を Web アプリと LCD に出し、BATT_LOW_MV 以下で警告する。
+// カードの電池電圧 (カードの F2 BATT-DET → A2)。A2 と GND の間に 1 MΩ の抵抗をつける
+//   (つけないと、電池が無くてもカードの中の漏れ電流で 3〜4 V に見える)。
+//   1 にすると、電圧を Web アプリと LCD に出し、BATT_NONE_MV 以下は「電池なし」、BATT_LOW_MV 以下は「少ない」と警告する。
 #ifndef USE_BATT_DET
 #define USE_BATT_DET 1
 #endif
@@ -81,9 +82,14 @@
 #define CARD_DET_ACTIVE_LOW 1
 #endif
 
-// カードの電池の警告電圧 [mV]。これ以下で警告する
+// カードの電池の警告電圧 [mV]。これ以下で「少ない」と警告する
 #ifndef BATT_LOW_MV
 #define BATT_LOW_MV 1000
+#endif
+
+// これ以下なら「電池なし」とみなす [mV]。1 MΩ をつけた作者の基板では、電池が無いと約 0.24 V
+#ifndef BATT_NONE_MV
+#define BATT_NONE_MV 400
 #endif
 
 // A2 の測定範囲 [mV] (UNO R4 は 5V が基準)。テスターで測った 5V の値にすると電圧が正確になる
