@@ -2,7 +2,7 @@
 
 # FUJISOKU SRAM Utility
 
-**最新版 v2.6**（カードの検出と電池電圧の表示を追加）。リリース版は v2.5 で、Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
+**最新版 v2.6**（カードの検出と電池電圧の表示を追加）。Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
 
 Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 256KB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
 
@@ -85,4 +85,4 @@ test/                       PC 上でスケッチを動かすシミュレータ�
 
 ## 確かめたこと
 
-スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、64 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 24。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
+スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、64 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 24。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も v2.6 まで確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
