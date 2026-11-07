@@ -1,11 +1,11 @@
 // FUJISOKU SRAM Utility v2
 //
-// Silver Reed FUJISOKU SRAM カード (32KB) を、SPI SRAM / SD カード / PC (Web アプリ) と
+// Silver Reed FUJISOKU SRAM カード (32KB) を、PC (Web アプリ) / SD カード / SPI SRAM と
 // コピー・比較する Arduino UNO R4 用スケッチ。
 //
 // ファイル構成 (Arduino IDE ではタブとして開く)
 //   FUJISOKU_SRAM_COPY.ino  このファイル。ライブラリ、グローバル変数、setup / loop
-//   config.h                オプション部品 (USE_SD / USE_LCD / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
+//   config.h                オプション部品 (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
 //   hardware.ino            MCP23S17 / FUJISOKU カード / 62256 / SPI SRAM の 1 バイト読み書き
 //   storage.ino             SD カードの状態管理 (抜き差し対応、USE_SD のときだけ)
 //   operations.ino          コピー・比較・SD 保存/書き込み/照合などの処理
@@ -37,6 +37,9 @@ FsFile myFile;
 uint8_t sd_state = SD_STATE_UNKNOWN;  // storage.ino が更新する (USE_SD = 0 なら UNKNOWN のまま)
 uint32_t sd_checked_ms = 0;           // 最後に SD カードを確かめた時刻
 
+// SPI SRAM (オプション)。hardware.ino の spi_sram_init() が確かめる (USE_SPI_SRAM = 0 なら false のまま)
+bool spi_sram_present = false;
+
 // 処理の状態 (operations.ino / protocol.ino / lcd_ui.ino で共有)
 char op_msg[48];             // 終了行の説明 (LCD の結果画面にも出す)
 bool op_cancel = false;      // 中断要求 (PC からの '!')
@@ -66,8 +69,10 @@ void setup() {
   ui_begin();
 
   ui_splash_status("Bus init...");
-  mcp_init();       // バスは待機状態 (カードも 62256 も非選択) になる
-  spi_sram_init();  // SPI SRAM のモードを揃える
+  mcp_init();  // バスは待機状態 (カードも 62256 も非選択) になる
+#if USE_SPI_SRAM
+  spi_sram_init();  // SPI SRAM があるかを確かめ、モードを揃える (無くても止まらない)
+#endif
 
 #if USE_SD
   // SD カードが無くても止まらない (無ければ SD:NONE と表示するだけ)
@@ -82,6 +87,8 @@ void setup() {
   Serial.print(USE_SD ? "on" : "off");
   Serial.print(", 62256 ");
   Serial.print(USE_SRAM62256 ? "on" : "off");
+  Serial.print(", SPI SRAM ");
+  Serial.print(spi_sram_status());
   Serial.println("). Send '?' for help.");
 }
 

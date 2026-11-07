@@ -10,7 +10,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 | コマンド | 1 行 1 コマンド。改行は LF か CRLF。1 行 199 文字まで（超えると `ERR LINE`） |
 | コマンド名 | 大文字・小文字を区別しない |
 | 数値 | 10 進、または `0x` 付きの 16 進 |
-| 対象 | `f` = FUJISOKU カード、`s` = SPI SRAM、`p` = 62256（`USE_SRAM62256` が 1 のときだけ。0 なら `ERR ARG`） |
+| 対象 | `f` = FUJISOKU カード、`s` = SPI SRAM（`USE_SPI_SRAM` が 1 で、起動時に見つかったときだけ。見つからなければ `ERR NOSPI`、0 なら `ERR DISABLED`）、`p` = 62256（`USE_SRAM62256` が 1 のときだけ。0 なら `ERR DISABLED`） |
 | 本体からの行 | 改行は CRLF |
 | 中断 | 処理中に `!`（1 バイト、改行不要）を送る。待機中に届いた `!` は捨てる |
 
@@ -44,8 +44,8 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.4 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0`（既定の構成）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
-| `status` | `STATUS sd=- busy=0 spi=40 lcd=1`（`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`。`lcd` は LCD の有無） |
+| `hello` | `HELLO FSU 2.5 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok`（既定の構成）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `status` | `STATUS sd=- busy=0 spi=40 lcd=1`（`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`、`USE_SPI_SRAM` が 0 なら `-`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
 | `lcd on` / `lcd off` | 表示が変わるたびに `LCD` 行を送る / やめる（`lcd off` は `OK lcd off`）。USB が切れると自動でやめる |
@@ -79,7 +79,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 | `copy <x> <y>` | x → y のコピー（`copy f s` = カード → SPI SRAM、`copy s f` = SPI SRAM → カード、`copy f p` など） | `OK copy 32768 bytes` |
 | `cmp [<x> <y>]` | 比較。引数なしは SPI SRAM とカード（`cmp s f`） | `M 0100 3C 00` …、`OK cmp all 32768 bytes match` / `NG cmp mismatches=3 first=0x0100` |
 | `erase <f\|s\|p>` | すべて `FF` にする | `OK fill 32768 bytes = FF` |
-| `test`（`test s`） | SPI SRAM（/CS = D6）の自己診断。モードレジスタを読み、両端の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す） | `T mode=40`、`T readback=A0A1…AF bad=0`、`OK test SPI SRAM OK` / `NG test no response (check /CS D6) bad=64`（モードが `FF`）/ `NG test read/write failed bad=3` |
+| `test`（`test s`） | SPI SRAM（/CS = D6）の自己診断。SPI SRAM を探し直して（見つかっていなくても実行する）モードレジスタを読み、両端の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す） | `T mode=40`、`T readback=A0A1…AF bad=0`、`OK test SPI SRAM OK` / `NG test no response (check /CS D6) bad=64`（モードが `FF`）/ `NG test read/write failed bad=3` |
 | `test p` | 62256 でバスの配線試験（62256 の中身は消える） | `T 62256 data_bad=0x00 addr_bad=0x0`、`OK test D0-D7 OK A0-A14 OK` / `NG test data bad=0x04 addr bad=0x0020`（ビット = 疑わしい線） |
 | `sd save <f\|s\|p> [名前]` | カード（または SPI SRAM、62256）→ SD | `OK sd 32768 bytes -> game1.bin` |
 | `sd load <f\|s\|p> [名前] [v]` | SD → カード（など）。`v` を付けると書き込み後に照合 | `OK sd 32768 bytes <- game1.bin` |
@@ -129,16 +129,17 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 | `SDERR` | SD カードは応答するが読み書きに失敗した | カードを確かめる |
 | `NOFILE` | 指定したファイルが無い | `sd ls` で確かめる |
 | `BADSIZE` | ファイルが 32,768 バイトでない | |
-| `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` が 0 のときの SD コマンド） | `config.h` を確かめる |
+| `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` / `USE_SPI_SRAM` / `USE_SRAM62256` が 0 のときのコマンド・対象） | `config.h` を確かめる |
+| `NOSPI` | SPI SRAM が見つからない（`USE_SPI_SRAM` は 1） | 配線（/CS = D6・SCK・MISO・MOSI・電源）を確かめて `test` を実行する |
 
 ## 4. 1 文字コマンド（v1 互換）
 
 | 文字 | 同じ意味のコマンド |
 |---|---|
-| `R` / `C` | `copy f s` / `copy s f` |
+| `R` / `C` | `copy f s` / `copy s f`（`R` `C` `X` `E` `T` は SPI SRAM を使う。使えなければ `ERR NOSPI` / `ERR DISABLED`。`T` は見つからなくても実行する） |
 | `X` | `cmp` |
 | `B` / `L` / `V` | `sd save f` / `sd load f` / `sd verify f`（`fujisoku.bin`）。`USE_SD` が 0 なら `ERR DISABLED` |
-| `S` / `W` | `sd save s` / `sd load s`（同上） |
+| `S` / `W` | `sd save s` / `sd load s`（同上。SPI SRAM が使えなければ `ERR NOSPI` / `ERR DISABLED`） |
 | `T` | `test` |
 | `E` / `e` | `erase s` / `erase f` |
 | `?` / `h` | `help` |
@@ -151,7 +152,7 @@ v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は�
 
 ```
 > hello
-< HELLO FSU 2.4 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1
+< HELLO FSU 2.5 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok
 > sd save f game1
 < S Checking SD card
 < S Opening file

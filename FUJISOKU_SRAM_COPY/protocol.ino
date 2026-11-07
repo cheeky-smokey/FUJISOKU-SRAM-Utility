@@ -9,7 +9,8 @@
 //   wr <f|s|p> <addr> <hex...>       -> OK wr <addr> <n>
 //   fill <f|s|p> <addr> <len> <byte> -> OK fill <len>
 //     範囲: f = 0x00000-0x3FFFF (256 KB)、s = 0x0000-0xFFFF (64 KB)、p = 0x0000-0x7FFF (32 KB)
-//   copy <x> <y> / cmp [<x> <y>] / test [s|p] / erase <x>   (p は USE_SRAM62256 のときだけ)
+//   copy <x> <y> / cmp [<x> <y>] / test [s|p] / erase <x>
+//     s は USE_SPI_SRAM のとき (見つからなければ ERR NOSPI)、p は USE_SRAM62256 のときだけ。使わない設定なら ERR DISABLED
 //   sd save|load|verify <f|s|p> [name|-] [v] / sd ls / sd check
 //   lcd / lcd on / lcd off
 //   ui begin <total> <title> / ui prog <done> [phase] / ui end <ok|ng|err|cancel> [text]
@@ -41,15 +42,34 @@ static bool parse_num(const char *s, uint32_t *out) {
   return true;
 }
 
+// f / s / p を対象の番号にする (使えるかどうかは dev_ready() で確かめる)
 static bool parse_dev(const char *s, uint8_t *dev) {
   if (s == NULL || s[1] != '\0') return false;
   char c = (char)(s[0] | 0x20);
   if (c == 'f') *dev = DEV_FUJISOKU;
   else if (c == 's') *dev = DEV_SPI_SRAM;
-#if USE_SRAM62256
   else if (c == 'p') *dev = DEV_SRAM62256;
-#endif
   else return false;
+  return true;
+}
+
+// 対象が使えるか。使えなければエラー行を返して false
+//   使わない設定でビルドした → ERR DISABLED、SPI SRAM が見つからない → ERR NOSPI
+static bool dev_ready(uint8_t dev) {
+  if (dev == DEV_SRAM62256 && !USE_SRAM62256) {
+    reply_err("DISABLED", "62256 is not used (USE_SRAM62256 0)");
+    return false;
+  }
+  if (dev == DEV_SPI_SRAM) {
+    if (!USE_SPI_SRAM) {
+      reply_err("DISABLED", "SPI SRAM is not used (USE_SPI_SRAM 0)");
+      return false;
+    }
+    if (!spi_sram_present) {
+      reply_err("NOSPI", "SPI SRAM not found");
+      return false;
+    }
+  }
   return true;
 }
 
@@ -88,10 +108,14 @@ void print_status() {
 #endif
   Serial.print(" busy=");
   Serial.print(op_session ? 1 : 0);
-  Serial.print(" spi=");  // SPI SRAM のモードレジスタ (40 = 応答あり、FF = 応答なし)
+  Serial.print(" spi=");  // SPI SRAM のモードレジスタ (40 = 応答あり、FF = 応答なし、- = 使わない設定)
+#if USE_SPI_SRAM
   uint8_t mode = spi_sram_read_mode();
   if (mode < 0x10) Serial.print('0');
   Serial.print(mode, HEX);
+#else
+  Serial.print('-');
+#endif
   Serial.print(" lcd=");
   Serial.println(ui_lcd_present() ? 1 : 0);
 }
@@ -102,7 +126,8 @@ void print_help() {
   Serial.println("  B card->SD         L SD->card         V verify    S SPI SRAM->SD   W SD->SPI SRAM");
   Serial.println("  E erase SPI SRAM   e erase card       ! cancel");
   Serial.println("  hello status sdcheck rd wr fill copy cmp test erase sd ui lcd (see docs/protocol.md)");
-  Serial.print("  targets: f = card, s = SPI SRAM");
+  Serial.print("  targets: f = card");
+  Serial.print(USE_SPI_SRAM ? ", s = SPI SRAM" : "");
   Serial.println(USE_SRAM62256 ? ", p = 62256" : "");
 }
 
@@ -286,6 +311,8 @@ static bool proto_idle_or_busy() {
 // 従来の 1 文字コマンド
 static void proto_legacy(char c) {
   if (c != '?' && c != 'h' && !proto_idle_or_busy()) return;
+  // SPI SRAM を使うコマンド (T は SPI SRAM が見つからなくても配線の確認に使えるので、設定だけ確かめる)
+  if (strchr("RCXSWE", c) && !dev_ready(DEV_SPI_SRAM)) return;
   switch (c) {
     case 'R': op_copy(DEV_FUJISOKU, DEV_SPI_SRAM); break;
     case 'C': op_copy(DEV_SPI_SRAM, DEV_FUJISOKU); break;
@@ -303,7 +330,11 @@ static void proto_legacy(char c) {
     case 'L':
     case 'V': reply_no_sd(); break;
 #endif
+#if USE_SPI_SRAM
     case 'T': op_test_spi(); break;
+#else
+    case 'T': dev_ready(DEV_SPI_SRAM); break;  // ERR DISABLED
+#endif
     case 'E': op_erase(DEV_SPI_SRAM); break;
     case 'e': op_erase(DEV_FUJISOKU); break;
     case '?':
@@ -336,6 +367,7 @@ static void proto_sd(int argc, char **argv) {
     reply_err("ARG", "sd <save|load|verify> <f|s|p> [name|-] [v]");
     return;
   }
+  if (!dev_ready(dev)) return;
   if (argc >= 4 && strcmp(argv[3], "-") != 0) name = argv[3];
   bool verify_after = (argc >= 5 && argv[4][0] == 'v');
   if (!proto_idle_or_busy()) return;
@@ -385,7 +417,9 @@ void proto_exec(char *line) {
     Serial.print(" sram62256=");
     Serial.print(USE_SRAM62256);
     Serial.print(" sdcard=");
-    Serial.println(USE_SD);
+    Serial.print(USE_SD);
+    Serial.print(" spisram=");
+    Serial.println(spi_sram_status());  // ok / none (見つからない) / off (USE_SPI_SRAM = 0)
   } else if (strcmp(cmd, "status") == 0) {
     print_status();
   } else if (strcmp(cmd, "sdcheck") == 0) {
@@ -399,6 +433,8 @@ void proto_exec(char *line) {
   } else if (strcmp(cmd, "rd") == 0) {
     if (argc < 4 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1) || !parse_num(argv[3], &v2)) {
       reply_err("ARG", "rd <f|s|p> <addr> <len>");
+    } else if (!dev_ready(dev)) {
+      // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
       reply_err("BUSY", "busy");
     } else {
@@ -407,6 +443,8 @@ void proto_exec(char *line) {
   } else if (strcmp(cmd, "wr") == 0) {
     if (argc < 4 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1)) {
       reply_err("ARG", "wr <f|s|p> <addr> <hex>");
+    } else if (!dev_ready(dev)) {
+      // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
       reply_err("BUSY", "busy");
     } else {
@@ -415,6 +453,8 @@ void proto_exec(char *line) {
   } else if (strcmp(cmd, "fill") == 0) {
     if (argc < 5 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1) || !parse_num(argv[3], &v2) || !parse_num(argv[4], &v3) || v3 > 255) {
       reply_err("ARG", "fill <f|s|p> <addr> <len> <byte>");
+    } else if (!dev_ready(dev)) {
+      // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
       reply_err("BUSY", "busy");
     } else {
@@ -423,7 +463,7 @@ void proto_exec(char *line) {
   } else if (strcmp(cmd, "copy") == 0) {
     if (argc < 3 || !parse_dev(argv[1], &dev) || !parse_dev(argv[2], &dev2) || dev == dev2) {
       reply_err("ARG", "copy <f|s|p> <f|s|p>");
-    } else if (proto_idle_or_busy()) {
+    } else if (dev_ready(dev) && dev_ready(dev2) && proto_idle_or_busy()) {
       op_copy(dev, dev2);
     }
   } else if (strcmp(cmd, "cmp") == 0) {
@@ -432,26 +472,32 @@ void proto_exec(char *line) {
     dev2 = DEV_FUJISOKU;
     if (argc >= 2 && (argc < 3 || !parse_dev(argv[1], &dev) || !parse_dev(argv[2], &dev2) || dev == dev2)) {
       reply_err("ARG", "cmp [<f|s|p> <f|s|p>]");
-    } else if (proto_idle_or_busy()) {
+    } else if (dev_ready(dev) && dev_ready(dev2) && proto_idle_or_busy()) {
       op_compare(dev, dev2);
     }
   } else if (strcmp(cmd, "test") == 0) {
     // test / test s = SPI SRAM の自己診断、test p = 62256 でバスの配線試験 (p は USE_SRAM62256 のときだけ)
     dev = DEV_SPI_SRAM;
+    //   SPI SRAM が見つかっていなくても test s は実行する (配線の確認と、つなぎ直したあとの再検出のため)
     if (argc >= 2 && (!parse_dev(argv[1], &dev) || dev == DEV_FUJISOKU)) {
       reply_err("ARG", "test [s|p]");
-    } else if (proto_idle_or_busy()) {
+    } else if (dev == DEV_SRAM62256) {
 #if USE_SRAM62256
-      if (dev == DEV_SRAM62256) op_test_62256();
-      else op_test_spi();
+      if (proto_idle_or_busy()) op_test_62256();
 #else
-      op_test_spi();
+      dev_ready(dev);  // ERR DISABLED
+#endif
+    } else {
+#if USE_SPI_SRAM
+      if (proto_idle_or_busy()) op_test_spi();
+#else
+      dev_ready(dev);  // ERR DISABLED
 #endif
     }
   } else if (strcmp(cmd, "erase") == 0) {
     if (argc < 2 || !parse_dev(argv[1], &dev)) {
       reply_err("ARG", "erase <f|s|p>");
-    } else if (proto_idle_or_busy()) {
+    } else if (dev_ready(dev) && proto_idle_or_busy()) {
       op_erase(dev);
     }
   } else if (strcmp(cmd, "lcd") == 0) {

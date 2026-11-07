@@ -83,7 +83,7 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.4');
+  assert.equal(await page.textContent('#fwVer'), 'v2.5');
   assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
   assert.equal(await page.textContent('#ramState'), '使わない');
@@ -91,7 +91,7 @@ test('接続: バージョン・SD の状態・本体 LCD の表示が出る', a
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.4');
+  assert.equal(t[0], 'FUJISOKU SRAM   v2.5');
   assert.equal(t[1].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
   noErrors(page);
@@ -514,6 +514,35 @@ test('SD カードを使わない本体: SD のタブと案内を隠し、PC へ
   await page.click('#btnConnect');
   await page.waitForFunction(() => document.querySelector('#connState').textContent === '未接続');
   assert.equal(await page.isHidden('#t-sd'), false);
+  noErrors(page);
+  await app.close();
+});
+
+test('SPI SRAM: 使わない設定なら操作を隠し、見つからなければ自己診断だけ出す', async () => {
+  // USE_SPI_SRAM=0
+  let app = await connected({ bin: path.join(OUT, 'fsu_sim_nospi'), card: pattern(12) });
+  let { page } = app;
+  assert.equal(await page.textContent('#spiState'), '使わない');
+  await page.click('#t-tools');
+  assert.match(await page.textContent('#t-tools'), /消去・診断/);
+  for (const c of ['copy f s', 'copy s f', 'cmp', 'erase s', 'test']) assert.equal(await page.isVisible(`.action[data-cmd="${c}"]`), false, c);
+  assert.equal(await page.isVisible('.action[data-cmd="erase f"]'), true, 'カードの消去は使える');
+  await page.screenshot({ path: path.join(SHOTS, 'nospi.png'), clip: await page.locator('#p-tools').boundingBox() });
+  noErrors(page);
+  await app.close();
+
+  // USE_SPI_SRAM=1 だが見つからない
+  app = await connected({ fwArgs: ['--no-spi-sram'], card: pattern(13) });
+  ({ page } = app);
+  assert.equal(await page.textContent('#spiState'), '見つかりません');
+  await page.click('#t-tools');
+  assert.equal(await page.isVisible('#spiMissing'), true);
+  assert.equal(await page.isVisible('.action[data-cmd="copy f s"]'), false);
+  assert.equal(await page.isVisible('.action[data-cmd="test"]'), true);
+  await page.click('.action[data-cmd="test"]');
+  await page.waitForFunction(() => /自己診断/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
+  assert.match(await page.textContent('#resTools'), /応答がありません/);
+  assert.equal(await page.textContent('#spiState'), '見つかりません');
   noErrors(page);
   await app.close();
 });

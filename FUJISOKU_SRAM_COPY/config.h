@@ -7,12 +7,12 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.4"
+#define FSU_VERSION "2.5"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
-//   必須: MCP23S17 x 2、FUJISOKU カードのスロット、SPI SRAM (データの一時保管、/CS = D6)
-//   カードの吸い出し・書き込み・比較は Web アプリ (PC) でできるので、SD カードと LCD はなくてもよい
+//   必須: MCP23S17 x 2、FUJISOKU カードのスロット
+//   カードの吸い出し・書き込み・比較は Web アプリ (PC) でできるので、ほかの部品はなくてもよい
 // =====================================================================
 
 // SD カード (本体だけでの保存・照合・書き戻し)。既定は 0 (カードの保存は Web アプリで PC にできる)。
@@ -27,6 +27,13 @@
 //   1 のままでも、起動時に LCD が見つからなければ表示を飛ばして動く (Web アプリには同じ内容が出る)。
 #ifndef USE_LCD
 #define USE_LCD 1
+#endif
+
+// SPI SRAM 23LC512 (本体だけでのコピー・比較の一時置き場、/CS = D6)。
+//   1 のときは起動時に SPI SRAM があるかを確かめる。見つからなければ SPI SRAM を使う操作は ERR NOSPI を返す。
+//   0 にすると SPI SRAM のコードが入らず、対象 s と R C X E S W T は ERR DISABLED を返す。
+#ifndef USE_SPI_SRAM
+#define USE_SPI_SRAM 1
 #endif
 
 // 動作確認用の並列 SRAM 62256 (カードと同じバスにつなぐ)。
@@ -76,7 +83,7 @@
 #define SD_TMP_NAME "FSU_TMP.TMP"
 
 // 転送対象 (dev 引数)。コマンドでは f / s / p
-#define DEV_SPI_SRAM 0   // s: SPI SRAM (必須)
+#define DEV_SPI_SRAM 0   // s: SPI SRAM (USE_SPI_SRAM のときだけ)
 #define DEV_FUJISOKU 1   // f: FUJISOKU カード
 #define DEV_SRAM62256 2  // p: 並列 SRAM 62256 (USE_SRAM62256 のときだけ)
 
@@ -98,7 +105,7 @@
 //   D2、D8、D9、D10 は未使用
 // =====================================================================
 #define PIN_CS_SD 7        // SD カードの /CS。USE_SD = 0 でも High にしておく (モジュールが付いたままでも邪魔しない)
-#define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS
+#define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS。USE_SPI_SRAM = 0 でも High にしておく
 #define PIN_MCP_RESET 5    // MCP23S17 の /RESET (2 個共通)
 #define PIN_CS_MCP 4       // MCP23S17 の /CS (2 個共通。ハードウェアアドレスで区別する)
 #define PIN_MCP_INT 3      // MCP23S17 の INT (入力にしておくだけで使わない)

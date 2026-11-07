@@ -167,8 +167,9 @@ void write_sram62256(uint32_t address, uint8_t dat) {
 #endif
 
 // ---------------------------------------------------------------------
-// SPI SRAM 23LC512 (/CS = D6)
+// SPI SRAM 23LC512 (/CS = D6、オプション。USE_SPI_SRAM = 0 ならコンパイルしない)
 // ---------------------------------------------------------------------
+#if USE_SPI_SRAM
 static void spi_sram_begin(uint8_t cmd) {
   SPI.beginTransaction(fsu_spi_settings);
   digitalWrite(PIN_CS_SPI_SRAM, LOW);
@@ -206,10 +207,23 @@ uint8_t spi_sram_read_mode() {
   return mode;
 }
 
-// モードを電源投入時と同じシーケンシャルに揃える (リセットだけでは前の設定が残るため)。
-// 読み書きは 1 バイトずつ /CS を上げ下げするので、どのモードでも同じように動く。
-void spi_sram_init() {
+static void spi_sram_write_mode(uint8_t mode) {
   spi_sram_begin(SRAM23_WRMR);
-  SPI.transfer(SRAM23_MODE_SEQUENTIAL);
+  SPI.transfer(mode);
   spi_sram_end();
 }
+
+// SPI SRAM があるかを確かめ、モードを電源投入時と同じシーケンシャルに揃える。見つかれば true。
+//   モードをバイト (0x00)、シーケンシャル (0x40) の順に書き、そのたびに読み戻す。チップが無いと
+//   MISO は High / Low に張り付くか浮いているので、2 つとも読み戻せることはない。
+//   読み書きは 1 バイトずつ /CS を上げ下げするので、どのモードでも同じように動く
+//   (シーケンシャルに揃えるのは、Arduino だけのリセットで前の設定が残らないようにするため)。
+bool spi_sram_init() {
+  spi_sram_write_mode(SRAM23_MODE_BYTE);
+  bool ok = (spi_sram_read_mode() & SRAM23_MODE_MASK) == SRAM23_MODE_BYTE;
+  spi_sram_write_mode(SRAM23_MODE_SEQUENTIAL);
+  ok = ok && (spi_sram_read_mode() & SRAM23_MODE_MASK) == SRAM23_MODE_SEQUENTIAL;
+  spi_sram_present = ok;
+  return ok;
+}
+#endif  // USE_SPI_SRAM

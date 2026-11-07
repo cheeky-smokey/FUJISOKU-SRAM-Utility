@@ -25,4 +25,4 @@ check "既定 (SD なし、LCD あり。SdFat なし)" "${LCDLIB[@]}"
 check "SD・LCD あり" "${SDFAT[@]}" "${LCDLIB[@]}" -DUSE_SD=1
 check "SD・LCD・62256 あり" "${SDFAT[@]}" "${LCDLIB[@]}" -DUSE_SD=1 -DUSE_SRAM62256=1
 check "SD あり、LCD なし (LiquidCrystal I2C なし)" "${SDFAT[@]}" -DUSE_SD=1 -DUSE_LCD=0
-check "SD・LCD なし (外部ライブラリなし)" -DUSE_LCD=0
+check "SD・LCD・SPI SRAM なし (外部ライブラリなし)" -DUSE_LCD=0 -DUSE_SPI_SRAM=0

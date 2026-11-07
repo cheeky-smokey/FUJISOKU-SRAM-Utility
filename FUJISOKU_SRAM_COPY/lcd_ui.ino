@@ -6,7 +6,7 @@
 //
 //  待機画面                 進捗画面                 結果画面
 //  +--------------------+   +--------------------+   +--------------------+
-//  |FUJISOKU SRAM   v2.4|   |BACKUP         00:04|   |v BACKUP        DONE|
+//  |FUJISOKU SRAM   v2.5|   |BACKUP         00:04|   |v BACKUP        DONE|
 //  |SD:OK       PC:OK   |   |Reading card        |   |32768 bytes ->      |
 //  |Ready               |   |#######-------  47% |   |fujisoku.bin        |
 //  |Last:v BACKUP OK    |   |0x3B00/0x8000 3.2k/s|   |Time 00:10          |

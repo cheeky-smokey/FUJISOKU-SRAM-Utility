@@ -25,7 +25,7 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC
 | カードに書き込み | `.bin`（32KB〜256KB）をカードへ。32KB より大きいファイルは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。書き込む前の自動保存、変わった部分だけの書き込み、書き込み後の照合 |
 | 比較 | カードとファイル、またはファイル同士を比較。違いはメモリマップと 16 進表示に赤で出る |
 | SD カード | 本体の SD カードとの保存・照合・書き込み、ファイル一覧（SD を使う設定のときだけ表示） |
-| SPI SRAM・診断 | SPI SRAM とのコピー・比較・消去、SPI SRAM の自己診断。62256 を使う設定なら、62256 でのバス試験など |
+| SPI SRAM・診断 | SPI SRAM とのコピー・比較・消去、SPI SRAM の自己診断（SPI SRAM を使う設定のとき）、カードの消去。62256 を使う設定なら、62256 でのバス試験など |
 
 Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリアルコマンドは [docs/protocol.md](docs/protocol.md) にあります。従来の 1 文字コマンド（`B` `L` `V` `R` `C` `X` `S` `W` `T` `E` `e`）もそのまま使えます。
 
@@ -34,20 +34,21 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | 区分 | 部品 | `config.h` |
 |---|---|---|
 | 必須 | Arduino UNO R4、MCP23S17 × 2、FUJISOKU カードのスロット | - |
-| 必須 | **SPI SRAM**（23LC512 クラス、データの一時保管。/CS は D6） | - |
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
 | オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
+| オプション | SPI SRAM（23LC512 クラス。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 
-カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定は SD カードなし・LCD ありです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
+カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 
 ```c
 #define USE_SD 0          // SD カードをつないだら 1 (SdFat ライブラリが要る)
 #define USE_LCD 1         // LCD をつながないなら 0 (LiquidCrystal I2C ライブラリも不要になる)
+#define USE_SPI_SRAM 1    // SPI SRAM をつながないなら 0 (1 のままでも、見つからなければ飛ばす)
 #define USE_SRAM62256 0   // 62256 をつないだら 1
 ```
 
-`USE_LCD` が 1 のままでも、LCD が見つからなければ表示を飛ばして動きます。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
+`USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
 
 接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。
 
@@ -73,4 +74,4 @@ test/                       PC 上でスケッチを動かすシミュレータ�
 
 ## 確かめたこと
 
-スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、57 件の自動テスト（ファームウェア 28、表示 9、Web アプリ 20。SD・LCD・62256 のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機での動作確認はまだです。** 詳しくは [test/README.md](test/README.md) を参照してください。
+スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、60 件の自動テスト（ファームウェア 30、表示 9、Web アプリ 21。SD・LCD・SPI SRAM・62256 のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。

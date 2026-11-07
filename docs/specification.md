@@ -1,6 +1,6 @@
-# ソフトウェア仕様（スケッチ v2.4）
+# ソフトウェア仕様（スケッチ v2.5）
 
-対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.4）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
+対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.5）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
 
 ## 1. 概要
 
@@ -10,7 +10,7 @@ FUJISOKU SRAM カード（基本は 32KB、0x0000〜0x7FFF。PC からは 256KB 
 |---|---|
 | PC のファイル | Web アプリ（`rd` / `wr` で PC 側が処理し、本体は読み書きだけ）。**カードの吸い出し・書き込み・比較の基本はこれ** |
 | SD カードの `*.bin`（オプション） | 本体（`sd save` / `sd load` / `sd verify`、1 文字コマンド `B` `L` `V`） |
-| SPI SRAM（一時保管） | 本体（`copy` / `cmp` / `erase`、1 文字コマンド `R` `C` `X` `E` `e`） |
+| SPI SRAM（オプション、一時置き場） | 本体（`copy` / `cmp` / `erase`、1 文字コマンド `R` `C` `X` `E`） |
 | 62256（オプション、動作確認用） | 本体（対象 `p`、`test p` でバスの配線試験） |
 
 本体にボタンは無く、操作はすべて PC から行います。状態と進捗は 20×4 の画面に表示し、同じ内容を LCD（オプション）と Web アプリに出します。
@@ -35,18 +35,20 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 
 | 区分 | 部品 | 設定 |
 |---|---|---|
-| 必須 | MCP23S17 × 2、FUJISOKU カードのスロット、**SPI SRAM（データの一時保管）** | - |
+| 必須 | MCP23S17 × 2、FUJISOKU カードのスロット | - |
 | オプション | SD カード（本体だけでの保存・照合・書き戻し） | `USE_SD` |
 | オプション | 20×4 キャラクタ LCD（I2C） | `USE_LCD` |
+| オプション | SPI SRAM（本体だけでのコピー・比較の一時置き場） | `USE_SPI_SRAM` |
 | オプション | 62256 並列 SRAM（動作確認用） | `USE_SRAM62256` |
 
-カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定の構成は SD カードなし（`USE_SD` = 0）、LCD あり（見つからなければ表示を飛ばす）、62256 なしです。
+カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定の構成は SD カードなし（`USE_SD` = 0）、LCD と SPI SRAM はあり（どちらも起動時に探し、見つからなければ使わない）、62256 なしです。
 
 ### 3.2 `config.h` のオプション
 
 ```c
 #define USE_SD 0          // SD カード。1 で SD のコードを入れる (SdFat が要る)
 #define USE_LCD 1         // 20x4 キャラクタ LCD (I2C)。0 で LCD のコードとライブラリを外す
+#define USE_SPI_SRAM 1    // SPI SRAM。0 で SPI SRAM のコードを外す (1 でも見つからなければ使わない)
 #define USE_SRAM62256 0   // 動作確認用の 62256。1 で対象 p と test p が使える
 ```
 
@@ -54,15 +56,16 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 |---|---|---|
 | `USE_SD` | 本体だけでの SD 保存・照合・書き戻し（§7）。起動時にカードが無くても、合間に抜き差ししても動く | SD のコード（`storage.ino`、SD の処理、`SdFat` の読み込み）を入れない。`sd` `sdcheck` と `B` `L` `V` `S` `W` は `ERR DISABLED`。`status` は `sd=-`、待機画面は `SD:off` |
 | `USE_LCD` | 起動時に LCD を探し、見つかれば表示する（見つからなければ LCD には送らない） | LCD のコードを入れない。LiquidCrystal I2C と Wire を読み込まない |
-| `USE_SRAM62256` | 対象 `p`、`test p` が使える。`read_sram62256()` / `write_sram62256()` が入る | 62256 のコードを入れない。`p` を指定すると `ERR ARG` |
+| `USE_SPI_SRAM` | 起動時に SPI SRAM を探し（`spi_sram_init()`）、見つかれば対象 `s` と `R` `C` `X` `E` `S` `W` が使える。見つからなければそれらは `ERR NOSPI`。`test` は見つからなくても実行し、探し直す | SPI SRAM のコードを入れない。対象 `s` と `R` `C` `X` `E` `S` `W` `T` は `ERR DISABLED`。`status` は `spi=-` |
+| `USE_SRAM62256` | 対象 `p`、`test p` が使える。`read_sram62256()` / `write_sram62256()` が入る | 62256 のコードを入れない。`p` を指定すると `ERR DISABLED` |
 
-LCD の設定にかかわらず、本体は画面の内容を持ち続けるので、Web アプリには同じ画面が出ます。`hello` の応答（`lcd=20x4|none`、`sram62256=1|0`、`sdcard=1|0`）で、PC は構成を知ることができます。Web アプリは `sdcard=0` なら SD のタブを隠します。
+LCD の設定にかかわらず、本体は画面の内容を持ち続けるので、Web アプリには同じ画面が出ます。`hello` の応答（`lcd=20x4|none`、`sram62256=1|0`、`sdcard=1|0`、`spisram=ok|none|off`）で、PC は構成を知ることができます。Web アプリは `sdcard=0` なら SD のタブを隠し、`spisram` が `ok` でなければ SPI SRAM の操作を隠します（`none` のときは自己診断だけ出す）。
 
-3 つとも 0（SD・LCD なし、62256 なし）にすると、外部ライブラリなしでビルドできます。
+SD と LCD を 0 にすると、外部ライブラリなしでビルドできます。
 
 各設定は `#ifndef` で囲んであるので、ビルド時に `-DUSE_SD=0` のように外から変えることもできます（テストではこれを使っています）。
 
-D7（SD の /CS）は `USE_SD` が 0 でも出力・High にします。SD モジュールを付けたままでも、SPI の MISO を邪魔しません。
+D7（SD の /CS）と D6（SPI SRAM の /CS）は、使わない設定でも出力・High にします。モジュールを付けたままでも、SPI の MISO を邪魔しません。
 
 v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃止しました。
 
@@ -97,9 +100,9 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 2. /CS ピン（D4、D6、D7）を出力・High にしてから `SPI.begin()`、MCP23S17 の /RESET パルス（D5 を 1 ms Low）。
 3. `ui_begin()`: `USE_LCD` が 1 なら I2C で LCD を探し、見つかれば初期化して自作文字を登録する。起動画面を出す。
 4. `mcp_init()`: MCP23S17 を BANK=1・HAEN にして全チャネルを初期化し、`bus_idle()`。
-5. `spi_sram_init()`: SPI SRAM（/CS = D6）のモードを電源投入時と同じシーケンシャル（`0x40`）に揃える（[hardware.md §9.1](hardware.md#91-spi-sram必須データの一時保管)）。
+5. `spi_sram_init()`（`USE_SPI_SRAM` のときだけ）: SPI SRAM（/CS = D6）があるかを確かめ、モードを電源投入時と同じシーケンシャル（`0x40`）に揃える。無くても止まらない（[hardware.md §9.1](hardware.md#91-spi-sramオプション本体だけでの処理の一時置き場)）。
 6. `sd_mount()`（`USE_SD` のときだけ）: SD カードがあればマウント。無くても止まらない。
-7. 待機画面を出し、`FUJISOKU SRAM Utility 2.4 ready (LCD 20x4, SD off, 62256 off). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`）。
+7. 待機画面を出し、`FUJISOKU SRAM Utility 2.5 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定））。
 
 ### 5.2 `loop()`
 
@@ -118,10 +121,10 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | 対象 | 定義 | コマンドの文字 | 読み書き |
 |---|---|---|---|
 | FUJISOKU カード | `DEV_FUJISOKU` | `f` | `read_fujisoku()` / `write_fujisoku()` |
-| SPI SRAM | `DEV_SPI_SRAM` | `s` | `read_spi_sram_byte()` / `write_spi_sram_byte()`（/CS = D6） |
+| SPI SRAM | `DEV_SPI_SRAM` | `s` | `read_spi_sram_byte()` / `write_spi_sram_byte()`（/CS = D6。`USE_SPI_SRAM` で、見つかったときだけ） |
 | 62256 | `DEV_SRAM62256` | `p` | `read_sram62256()` / `write_sram62256()`（`USE_SRAM62256` のときだけ） |
 
-`dev_read()` / `dev_write()` / `dev_name()` が対象を振り分けます。
+`dev_read()` / `dev_write()` / `dev_name()` が対象を振り分けます。使えない対象（使わない設定、SPI SRAM が見つからない）は、コマンドを受けたときに `protocol.ino` の `dev_ready()` が `ERR DISABLED` / `ERR NOSPI` ではじきます。
 
 ### 6.2 処理の枠組み
 
@@ -150,7 +153,7 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | SD と照合 | `op_sd_verify(dev, name)` | VERIFY | 256 バイトずつ比べる |
 | SD の一覧 | `op_sd_list()` | SD FILES | ルートの `*.bin` を最大 32 件 |
 | SD の確認 | `op_sd_check()` | SD CHECK | マウントし直す |
-| SPI SRAM の自己診断 | `op_test_spi()` | SPI SRAM TEST | モードレジスタを読み（`T mode=40`。`FF` なら応答なし）、0x0000〜 と 0x7FF0〜 の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す）。違いが 0 なら OK |
+| SPI SRAM の自己診断 | `op_test_spi()` | SPI SRAM TEST | `USE_SPI_SRAM` のときだけ。SPI SRAM を探し直してモードレジスタを読み（`T mode=40`。`FF` なら応答なし）、0x0000〜 と 0x7FF0〜 の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す）。違いが 0 なら OK |
 | 62256 のバス試験 | `op_test_62256()` | 62256 TEST | データ線とアドレス線の H / L 固定・ショートを調べる（[hardware.md §9.2](hardware.md#92-62256-並列-sramオプション動作確認用)）。`USE_SRAM62256` のときだけ |
 
 v1 との違い:
@@ -224,12 +227,23 @@ v1 との違い:
 | 読み違い | Web アプリは既定で 2 回読んで比べ、違えば保存しない |
 | 書き込みの確かめ | `sd load ... v` と Web アプリの書き込みは、読み戻して照合する |
 | PC が途中で止まった | 本体は 8 秒で PC 主導の表示を終える。カードへの書き込みは 64 バイト単位なので、途中までは書かれている（Web アプリの自動保存から戻せる） |
-| 配線の不安 | 62256 があれば、カードを挿す前に `test p` でバスを確かめられる。SPI SRAM は `test` で確かめられる |
+| 配線の不安 | 62256 があれば、カードを挿す前に `test p` でバスを確かめられる。SPI SRAM は `test` で確かめられる（見つからないときも実行できる） |
 | 範囲外のアドレス | PC からの `rd` `wr` `fill` は、桁あふれも含めて対象の範囲（カード 256KB、SPI SRAM 64KB、62256 32KB）の外を断る |
 
 ## 12. 変更履歴
 
-### 12.1 v2.4（32KB より大きいカード）
+### 12.1 v2.5（SPI SRAM をオプションに）
+
+| 区分 | 内容 |
+|---|---|
+| オプション | `USE_SPI_SRAM`（既定 1）を追加。1 のときは起動時に SPI SRAM を探し、見つからなければ SPI SRAM を使う操作は `ERR NOSPI`。0 なら SPI SRAM のコードを入れず `ERR DISABLED` |
+| 検出 | `spi_sram_init()` がモードレジスタにバイト → シーケンシャルと書いて読み戻し、2 つとも合えば「あり」。自己診断（`test`）は見つからなくても実行し、探し直す |
+| 通信 | `hello` に `spisram=ok|none|off`、起動メッセージに `SPI SRAM ok|none|off`。`status` の `spi=` は使わない設定で `-` |
+| エラー | `ERR NOSPI` を追加。使わない設定の 62256（`p`）も `ERR ARG` から `ERR DISABLED` に変えた |
+| Web アプリ | 本体の欄に SPI SRAM の状態を表示。使わない設定なら SPI SRAM の操作を隠し、見つからなければ自己診断だけ出す。カードの消去はいつでも使える |
+| 実機 | Arduino UNO R4 と作者の基板で動作を確認済み。v2.5 の変更（SPI SRAM のオプション化）は、まだ実機では確かめていない |
+
+### 12.2 v2.4（32KB より大きいカード）
 
 | 区分 | 内容 |
 |---|---|
@@ -238,7 +252,7 @@ v1 との違い:
 | Web アプリ | 読み込む大きさを 32KB（既定）/ 64KB / 128KB / 256KB のボタンで選ぶ。32KB〜256KB のファイルを書き込める。32KB より大きいときは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。比較とメモリマップ・16 進表示も大きさに合わせる |
 | 上限 | 256KB（A0〜A17）。A18・A19 は MCP につながっていない |
 
-### 12.2 v2.3（コードレビューの結果）
+### 12.3 v2.3（コードレビューの結果）
 
 | 区分 | 内容 |
 |---|---|
@@ -254,13 +268,13 @@ v1 との違い:
 
 ## 13. 確かめたこと
 
-実機での確認はまだです。代わりに次のことを行いました（手順は [test/README.md](../test/README.md)）。
+実機（Arduino UNO R4 と作者の基板）での動作を確認済みです。あわせて、次の自動確認を行っています（手順は [test/README.md](../test/README.md)）。
 
 | 確認 | 内容 |
 |---|---|
-| ホストでのビルド | スケッチを Arduino IDE と同じ手順で 1 ファイルにまとめ、既定（SD なし）・SD あり・SD あり + `USE_LCD=0`・SD あり + `USE_SRAM62256=1` の 4 通りを `-Wall -Wextra` で警告なしにビルド |
-| 本物のライブラリでの型チェック | 本物の SdFat と LiquidCrystal I2C のヘッダに対して、5 通り（上の 4 通りと、SD・LCD とも 0）すべて警告・エラーなし。使わない部品のライブラリは渡さずに確認（既定は SdFat なし、SD・LCD とも 0 は外部ライブラリなし） |
-| シミュレータでの動作 | MCP23S17 ×2（BANK・HAEN・A2 の癖まで）、カード、62256、23LC512、SD カード（抜き差し・差し替え）、HD44780 LCD（あり・なし）を再現したシミュレータで、ファームウェア 28 件、表示 9 件、Web アプリ 20 件の自動テストがすべて成功 |
+| ホストでのビルド | スケッチを Arduino IDE と同じ手順で 1 ファイルにまとめ、既定（SD なし）・SD あり・SD あり + `USE_LCD=0`・SD あり + `USE_SRAM62256=1`・`USE_SPI_SRAM=0` の 5 通りを `-Wall -Wextra` で警告なしにビルド |
+| 本物のライブラリでの型チェック | 本物の SdFat と LiquidCrystal I2C のヘッダに対して、5 通り（既定、SD・LCD あり、+ 62256、SD あり・LCD なし、SD・LCD・SPI SRAM なし）すべて警告・エラーなし。使わない部品のライブラリは渡さずに確認（既定は SdFat なし、SD・LCD なしは外部ライブラリなし） |
+| シミュレータでの動作 | MCP23S17 ×2（BANK・HAEN・A2 の癖まで）、カード、62256、23LC512、SD カード（抜き差し・差し替え）、HD44780 LCD（あり・なし）を再現したシミュレータで、ファームウェア 30 件、表示 9 件、Web アプリ 21 件の自動テストがすべて成功 |
 | バスの使い方 | ファームウェアと表示のテストで、トランザクション外の SPI 転送、MCP の上限を超えるクロック、バス衝突、書き込み中のアドレス・データの変化、2 つ以上の /CS が同時に Low、LCD の CGRAM への誤書き込み、LCD が無いのに LCD へ送ること、が 0 件。`USE_SD=0` では SD カードへのアクセスが 0 件 |
 | 62256 のバス試験 | データ線・アドレス線を H / L に固定する故障を入れると、その線を言い当てることを確認 |
 

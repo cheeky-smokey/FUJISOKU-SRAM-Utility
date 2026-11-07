@@ -16,15 +16,19 @@ static char sd_fname[24];
 // ---------------------------------------------------------------------
 // 対象メモリの 1 バイト読み書き
 //   DEV_FUJISOKU  (f) : FUJISOKU メモリカード
-//   DEV_SPI_SRAM  (s) : SPI SRAM (データの一時保管、必須)
+//   DEV_SPI_SRAM  (s) : SPI SRAM (一時置き場、USE_SPI_SRAM のときだけ)
 //   DEV_SRAM62256 (p) : 並列 SRAM 62256 (動作確認用、USE_SRAM62256 のときだけ)
+// 使えない対象は呼ぶ前に protocol.ino の dev_ready() ではじく
 // ---------------------------------------------------------------------
 uint8_t dev_read(uint8_t dev, uint32_t address) {
   if (dev == DEV_FUJISOKU) return read_fujisoku(address);
 #if USE_SRAM62256
   if (dev == DEV_SRAM62256) return read_sram62256(address);
 #endif
-  return read_spi_sram_byte((uint16_t)address);
+#if USE_SPI_SRAM
+  if (dev == DEV_SPI_SRAM) return read_spi_sram_byte((uint16_t)address);
+#endif
+  return 0xFF;
 }
 
 void dev_write(uint8_t dev, uint32_t address, uint8_t dat) {
@@ -32,7 +36,18 @@ void dev_write(uint8_t dev, uint32_t address, uint8_t dat) {
 #if USE_SRAM62256
   else if (dev == DEV_SRAM62256) write_sram62256(address, dat);
 #endif
-  else write_spi_sram_byte((uint16_t)address, dat);
+#if USE_SPI_SRAM
+  else if (dev == DEV_SPI_SRAM) write_spi_sram_byte((uint16_t)address, dat);
+#endif
+}
+
+// SPI SRAM の状態: "ok" (使える) / "none" (見つからない) / "off" (USE_SPI_SRAM = 0)
+const char *spi_sram_status() {
+#if USE_SPI_SRAM
+  return spi_sram_present ? "ok" : "none";
+#else
+  return "off";
+#endif
 }
 
 // PC からの rd / wr / fill で使える大きさ
@@ -396,9 +411,11 @@ uint8_t op_sd_check() {
 }
 #endif  // USE_SD
 
+#if USE_SPI_SRAM
 // ---------------------------------------------------------------------
-// SPI SRAM 自己診断 (test / T)
-//   1. モードレジスタを読む (起動時にシーケンシャル 0x40 にしてある。0xFF なら応答なし)
+// SPI SRAM 自己診断 (test / T)。USE_SPI_SRAM のときだけ
+//   1. SPI SRAM があるかを確かめ直し (起動後につないだ場合も認識する)、モードレジスタを読む
+//      (シーケンシャル 0x40 になっていれば応答あり。0xFF なら応答なし)
 //   2. 両端の 16 バイト (0x0000-0x000F、0x7FF0-0x7FFF) に 2 種類の模様を書いて読み戻す。元の内容は戻す
 //      SPI SRAM のアドレスはシリアルで送るので、配線の確認は端の読み書きで足りる
 // ---------------------------------------------------------------------
@@ -418,6 +435,7 @@ uint8_t op_test_spi() {
 
   op_start("test", "SPI SRAM TEST", "SPI SRAM (/CS D6)", 2);
   op_phase("Mode register");
+  spi_sram_init();
   uint8_t mode = spi_sram_read_mode();
   Serial.print("T mode=");
   if (mode < 0x10) Serial.print('0');
@@ -455,6 +473,7 @@ uint8_t op_test_spi() {
   else snprintf(m, sizeof(m), "read/write failed bad=%u", bad);
   return op_finish(RES_NG, "", m);
 }
+#endif  // USE_SPI_SRAM
 
 #if USE_SRAM62256
 // ---------------------------------------------------------------------
