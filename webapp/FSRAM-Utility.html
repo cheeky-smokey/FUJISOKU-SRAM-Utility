@@ -193,7 +193,11 @@ button, input, select { font: inherit; color: inherit; }
 .source-card { padding: 16px; border-radius: 12px; background: var(--panel-2); min-height: 82px; display: flex; align-items: center; gap: 12px; }
 
 .field { display: grid; gap: 4px; margin-bottom: 14px; }
-.field label { font-size: 14px; color: var(--muted); }
+.field label, .field-label { font-size: 14px; color: var(--muted); }
+.field .seg { justify-self: start; margin-bottom: 0; flex-wrap: wrap; }
+.field-note { color: var(--muted); font-size: 13px; }
+.seg label:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+dialog .row { flex-wrap: wrap; }
 .field .row input { flex: 1; min-width: 160px; }
 input[type="text"] {
   border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 12px; background: var(--panel);
@@ -261,7 +265,7 @@ input[type="text"]:focus { border-color: var(--indigo); outline: none; }
 .cmdline { display: flex; gap: 10px; }
 .cmdline input { flex: 1; font-family: var(--mono); }
 
-dialog { border: 0; border-radius: 16px; padding: 24px; max-width: 460px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(10,12,40,.35); }
+dialog { border: 0; border-radius: 16px; padding: 24px; max-width: 560px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(10,12,40,.35); }
 dialog::backdrop { background: rgba(14,16,42,.5); }
 dialog h3 { margin: 0 0 8px; font-size: 18px; }
 dialog p { margin: 0 0 20px; color: var(--muted); }
@@ -331,7 +335,17 @@ dialog .row { justify-content: flex-end; }
     <!-- PC に保存 -->
     <section class="card panel" role="tabpanel" id="p-save" aria-labelledby="t-save">
       <h2>カードの内容を PC に保存</h2>
-      <p class="lead">本体に挿した FUJISOKU SRAM カード (32KB) を読み込み、.bin ファイルとして PC に保存します。</p>
+      <p class="lead">本体に挿した FUJISOKU SRAM カードを読み込み、.bin ファイルとして PC に保存します。ふつうのカードは 32KB です。</p>
+      <div class="field">
+        <span class="field-label" id="readSizeLabel">読み込む大きさ</span>
+        <div class="seg" role="radiogroup" aria-labelledby="readSizeLabel" id="segReadSize">
+          <label><input type="radio" name="readSize" value="32768" checked>32KB</label>
+          <label><input type="radio" name="readSize" value="65536">64KB</label>
+          <label><input type="radio" name="readSize" value="131072">128KB</label>
+          <label><input type="radio" name="readSize" value="262144">256KB</label>
+        </div>
+        <small class="field-note" id="readSizeNote">容量の大きいカードのときだけ変えます。32KB のカードを大きく読むと、同じ内容がくり返し読めます。</small>
+      </div>
       <div class="opts">
         <label class="check"><input type="checkbox" id="optTwice" checked><span>2 回読み込んで一致を確かめる<small>接触不良による読み違いに気づけます。時間は 2 倍かかります。</small></span></label>
       </div>
@@ -342,7 +356,7 @@ dialog .row { justify-content: flex-end; }
     <!-- カードに書き込み -->
     <section class="card panel" role="tabpanel" id="p-write" aria-labelledby="t-write" hidden>
       <h2>ファイルをカードに書き込む</h2>
-      <p class="lead">保存しておいた .bin ファイル (32,768 バイト) をカードに書き込みます。カードの今の内容は上書きされます。</p>
+      <p class="lead">保存しておいた .bin ファイル (32KB〜256KB) をカードに書き込みます。カードの今の内容は上書きされます。32KB より大きいファイルは、書き込む前に「先頭 32KB だけ」か「すべて」かを選びます。</p>
       <label class="drop" id="dropWrite">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
         <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span></span>
@@ -443,14 +457,14 @@ dialog .row { justify-content: flex-end; }
       <div id="viewBody" hidden>
         <div class="stats" id="viewStats"></div>
         <div class="punch">
-          <canvas id="map" height="300" aria-label="32KB のメモリマップ。1 つの穴が 64 バイト"></canvas>
+          <canvas id="map" height="300" aria-label="メモリマップ"></canvas>
           <div class="tip" id="tip" hidden></div>
         </div>
         <div class="legend">
           <span><i style="box-shadow: inset 0 0 0 2px var(--hole-empty)"></i>空き (すべて FF)</span>
           <span><i style="background: var(--indigo)"></i>データ (大きいほど多い)</span>
           <span><i style="background: var(--bad)"></i>違いがある</span>
-          <span>1 つの穴 = 64 バイト、1 行 = 2KB</span>
+          <span id="mapScale">1 つの穴 = 64 バイト、1 行 = 2KB</span>
         </div>
         <div class="hex-tools">
           <label for="hexGo">アドレス</label>
@@ -487,7 +501,7 @@ dialog .row { justify-content: flex-end; }
 <dialog id="dlg">
   <h3 id="dlgTitle"></h3>
   <p id="dlgBody"></p>
-  <div class="row"><button class="btn ghost" value="cancel" id="dlgNo">やめる</button><button class="btn danger" value="ok" id="dlgYes">実行する</button></div>
+  <div class="row"><button class="btn ghost" value="cancel" id="dlgNo">やめる</button><button class="btn" value="alt" id="dlgAlt" hidden></button><button class="btn danger" value="ok" id="dlgYes">実行する</button></div>
 </dialog>
 
 <script>
@@ -495,7 +509,8 @@ dialog .row { justify-content: flex-end; }
 // =====================================================================
 // 定数と小物
 // =====================================================================
-const SIZE = 0x8000;      // カードの大きさ (32KB)
+const SIZE = 0x8000;      // ふつうのカードの大きさ (32KB)。本体だけの処理 (SD・SPI SRAM) もこの大きさ
+const MAX_SIZE = 0x40000; // PC から読み書きできる最大 (A0-A17 = 256KB。v2.4 以降のスケッチ)
 const CHUNK = 64;         // wr 1 行のバイト数
 const RD_BLOCK = 2048;    // rd 1 回で読む量
 const $ = (s) => document.querySelector(s);
@@ -523,10 +538,22 @@ function crc32(u8) {
   for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
   return ((c ^ 0xffffffff) >>> 0).toString(16).toUpperCase().padStart(8, '0');
 }
+// 違うアドレスの一覧 (長さが違うときは短いほうまで比べる)
 function diffList(a, b) {
-  const out = [];
-  for (let i = 0; i < SIZE; i++) if (a[i] !== b[i]) out.push(i);
+  const out = [], n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) if (a[i] !== b[i]) out.push(i);
   return out;
+}
+const kb = (n) => (n % 1024 === 0 ? `${n / 1024}KB` : `${fmtN(n)} バイト`);
+// 大きく読んだ内容が、先頭 32KB (や 64KB) のくり返しなら、その大きさを返す (上位のアドレス線が無いカード)
+function repeatPeriod(u8) {
+  if (u8.every((b) => b === 0xff)) return 0;  // すべて空きなら判断しない
+  for (let p = SIZE; p < u8.length; p *= 2) {
+    let same = true;
+    for (let i = p; i < u8.length; i++) if (u8[i] !== u8[i - p]) { same = false; break; }
+    if (same) return p;
+  }
+  return 0;
 }
 function bytesToHex(u8) { let s = ''; for (const b of u8) s += hex2(b); return s; }
 
@@ -542,6 +569,7 @@ const ERR_TEXT = {
   SDLOST: ['処理の途中で SD カードが抜かれました', 'SD カードを挿し直してから、もう一度実行してください。保存の途中だった場合も、前のファイルはそのまま残っています。'],
   NOFILE: ['SD カードにファイルがありません', 'ファイル名を確かめるか、「一覧を更新」で SD カードの中身を見てください。'],
   BADSIZE: ['ファイルの大きさが違います', '32,768 バイトの .bin ファイルを使ってください。'],
+  TOOBIG: ['この本体のスケッチでは、その大きさを扱えません', 'スケッチを v2.4 以降にすると、256KB まで読み書きできます。'],
   SDERR: ['SD カードの読み書きに失敗しました', 'SD カードが壊れていないか、FAT32 / exFAT でフォーマットされているかを確かめてください。'],
   CANCEL: ['中断しました', ''],
   BUSY: ['本体が別の処理をしています', '終わるのを待ってから、もう一度実行してください。'],
@@ -718,7 +746,7 @@ class Device {
 // 画面の状態
 // =====================================================================
 const dev = new Device();
-const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, writeFile: null, fileA: null, fileB: null };
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
 let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
 
 function refreshButtons() {
@@ -730,6 +758,8 @@ function refreshButtons() {
   $('#btnConnect').disabled = state.busy || !('serial' in navigator);
   $('#btnConnect').textContent = state.connected ? '切断' : '本体に接続';
   $('#btnConnect').classList.toggle('ghost', state.connected);
+  for (const r of $$('input[name="readSize"]')) r.disabled = state.busy || +r.value > state.cardMax;
+  if (document.querySelector('input[name="readSize"]:checked').disabled) document.querySelector('input[name="readSize"][value="32768"]').checked = true;
 }
 function setConnected(on, ver) {
   state.connected = on;
@@ -741,6 +771,7 @@ function setConnected(on, ver) {
     lcdBytes = null; setSd(null); drawLcd();
     $('#lcdState').textContent = '—'; $('#ramState').textContent = '—'; $('#tools62256').hidden = true;
     state.sdcard = true; showSdUi(true); setSd(null);
+    state.cardMax = MAX_SIZE;
   }
   refreshButtons();
 }
@@ -865,11 +896,15 @@ async function connect() {
     state.lcd = (/lcd=(\S+)/.exec(hello) || [])[1] || 'none';
     state.ram62256 = /sram62256=1/.test(hello);
     state.sdcard = !/sdcard=0/.test(hello);  // 古いスケッチには sdcard= が無い (SD あり)
+    state.cardMax = +((/cardmax=(\d+)/.exec(hello) || [])[1] || SIZE);  // v2.3 までは 32KB だけ
     setConnected(true, 'v' + ver);
     $('#lcdState').textContent = state.lcd === 'none' ? 'なし (表示はここだけ)' : 'あり (20×4)';
     $('#ramState').textContent = state.ram62256 ? '使う' : '使わない';
     $('#tools62256').hidden = !state.ram62256;
     showSdUi(state.sdcard);
+    $('#readSizeNote').textContent = state.cardMax > SIZE
+      ? '容量の大きいカードのときだけ変えます。32KB のカードを大きく読むと、同じ内容がくり返し読めます。'
+      : 'この本体のスケッチは 32KB まで読めます (v2.4 以降で 256KB まで)。';
     const st = await dev.request('status');
     const m = /sd=(\d)/.exec(st.last);
     if (m && state.sdcard) setSd(m[1] === '1');
@@ -897,17 +932,19 @@ async function lcdBegin(total, title) { await dev.request(`ui begin ${total} ${t
 async function lcdProg(done, phase) { await dev.request(`ui prog ${done}${phase ? ' ' + token(phase) : ''}`); }
 async function lcdEnd(kind, text) { try { await dev.request(`ui end ${kind} ${token(text)}`); } catch (e) {} }
 
-// カードを 1 回読む。base/total は進捗表示用
-async function readPass(base, total, phase) {
-  const buf = new Uint8Array(SIZE);
-  for (let a = 0; a < SIZE; a += RD_BLOCK) {
+// カードの先頭から size バイトを 1 回読む。base は進捗表示の起点
+async function readPass(size, base, phase) {
+  if (size > state.cardMax) throw new DevError('TOOBIG');
+  const buf = new Uint8Array(size);
+  for (let a = 0; a < size; a += RD_BLOCK) {
     checkCancel();
+    const n = Math.min(RD_BLOCK, size - a);
     let got = 0;
-    const r = await dev.request(`rd f ${a} ${RD_BLOCK}`, {
+    const r = await dev.request(`rd f ${a} ${n}`, {
       timeout: 8000,
       onLine: (l) => {
         if (!l.startsWith('D ')) return;
-        const m = /^D ([0-9A-F]{4}) ([0-9A-F]+)$/i.exec(l);
+        const m = /^D ([0-9A-F]{4,5}) ([0-9A-F]+)$/i.exec(l);
         if (!m) return;
         const addr = parseInt(m[1], 16), hx = m[2];
         for (let i = 0; i < hx.length / 2; i++) buf[addr + i] = parseInt(hx.substr(i * 2, 2), 16);
@@ -916,20 +953,20 @@ async function readPass(base, total, phase) {
       },
     });
     if (r.last.startsWith('ERR')) throw errFromLine(r.last);
-    if (got !== RD_BLOCK) throw new DevError('FORMAT', `rd ${hex4(a)}: ${got} バイトしか届きませんでした`);
-    await lcdProg(base + a + RD_BLOCK, phase);
+    if (got !== n) throw new DevError('FORMAT', `rd ${hex4(a)}: ${got} バイトしか届きませんでした`);
+    await lcdProg(base + a + n, phase);
   }
   return buf;
 }
-async function readCard(passes, title) {
-  const total = SIZE * passes;
+async function readCard(passes, title, size = SIZE) {
+  const total = size * passes;
   prog.total = total;
   await lcdBegin(total, title);
   try {
-    const first = await (progPhase(passes > 1 ? 'カードを読み込み中 (1 回目)' : 'カードを読み込み中'), readPass(0, total, passes > 1 ? 'Reading card 1/2' : 'Reading card'));
+    const first = await (progPhase(passes > 1 ? 'カードを読み込み中 (1 回目)' : 'カードを読み込み中'), readPass(size, 0, passes > 1 ? 'Reading card 1/2' : 'Reading card'));
     if (passes > 1) {
       progPhase('カードを読み込み中 (2 回目)');
-      const second = await readPass(SIZE, total, 'Reading card 2/2');
+      const second = await readPass(size, size, 'Reading card 2/2');
       const d = diffList(first, second);
       if (d.length) {
         await lcdEnd('ng', `Read mismatch ${d.length}`);
@@ -953,7 +990,8 @@ function download(u8, name) {
 
 // ---- PC に保存 ----
 $('#btnSave').addEventListener('click', async () => {
-  const name = `fujisoku_${stamp()}.bin`;
+  const size = +document.querySelector('input[name="readSize"]:checked').value;
+  const name = `fujisoku_${stamp()}${size > SIZE ? '_' + kb(size) : ''}.bin`;
   let handle = null;
   if (window.showSaveFilePicker) {
     try {
@@ -964,7 +1002,7 @@ $('#btnSave').addEventListener('click', async () => {
     const passes = $('#optTwice').checked ? 2 : 1;
     let data;
     try {
-      data = await readCard(passes, 'Card to PC');
+      data = await readCard(passes, 'Card to PC', size);
     } catch (e) {
       if (e.code === 'READ2') setView({ title: '2 回の読み込みの違い', sub: '1 回目と 2 回目で読めた値が違う場所が赤で表示されます', a: e.first, b: e.second, aName: '1 回目', bName: '2 回目' });
       throw e;
@@ -981,21 +1019,25 @@ $('#btnSave').addEventListener('click', async () => {
     }
     await lcdEnd('ok', 'Saved to PC');
     setView({ title: 'カードの内容', sub: `${saved} として保存 (${new Date().toLocaleString('ja-JP')})`, a: data, aName: saved });
-    result('#resSave', 'ok', `${saved} を保存しました`, `32,768 バイト、CRC32 ${crc32(data)}${passes > 1 ? '。2 回の読み込みは一致しました' : ''}`);
+    const rep = size > SIZE ? repeatPeriod(data) : 0;
+    const note = rep ? `。後半は先頭 ${kb(rep)} と同じ内容のくり返しです。カードの容量は ${kb(rep)} と思われます (上位のアドレス線が無いカードでは、同じ内容がくり返し読めます)` : '';
+    result('#resSave', 'ok', `${saved} を保存しました`, `${fmtN(size)} バイト (${kb(size)})、CRC32 ${crc32(data)}${passes > 1 ? '。2 回の読み込みは一致しました' : ''}${note}`);
   });
 });
 
 // ---- ファイル選択 (ドロップ / クリック) ----
+// 使えるファイル: 32KB (32,768 バイト) から 256KB (262,144 バイト) まで
 async function readFileBin(file) {
   const u8 = new Uint8Array(await file.arrayBuffer());
-  return { name: file.name, data: u8, ok: u8.length === SIZE };
+  return { name: file.name, data: u8, ok: u8.length >= SIZE && u8.length <= MAX_SIZE };
 }
+const SIZE_RULE = '32,768〜262,144 バイト (32KB〜256KB) のファイルを選んでください';
 function showFileInDrop(drop, f) {
   drop.classList.toggle('bad', !f.ok);
   drop.querySelector('.name').textContent = f.name;
   drop.querySelector('.meta').textContent = f.ok
-    ? `${fmtN(f.data.length)} バイト  CRC32 ${crc32(f.data)}`
-    : `${fmtN(f.data.length)} バイト — 32,768 バイトのファイルを選んでください`;
+    ? `${fmtN(f.data.length)} バイト (${kb(f.data.length)})  CRC32 ${crc32(f.data)}`
+    : `${fmtN(f.data.length)} バイト — ${SIZE_RULE}`;
 }
 function setupDrop(dropId, inputId, onFile) {
   const drop = $(dropId), input = $(inputId);
@@ -1020,19 +1062,29 @@ $$('input[name="srcA"]').forEach((r) => r.addEventListener('change', () => {
 $('#fileView').addEventListener('change', async (ev) => {
   const file = ev.target.files[0]; if (!file) return;
   const f = await readFileBin(file);
-  if (!f.ok) { $('#viewSub').textContent = `${f.name} は ${fmtN(f.data.length)} バイトです。32,768 バイトのファイルを開いてください。`; return; }
+  if (!f.ok) { $('#viewSub').textContent = `${f.name} は ${fmtN(f.data.length)} バイトです。${SIZE_RULE}。`; return; }
   setView({ title: 'ファイルの中身', sub: f.name, a: f.data, aName: f.name });
 });
 
 // 確認ダイアログ
 function confirmDlg(title, body, yes = '実行する') {
+  return choiceDlg(title, body, { yes }).then((v) => v === 'yes');
+}
+// 選択肢のあるダイアログ。戻り値: 'yes' / 'alt' / null (やめる)
+//   opts.yes: 危険側のボタン (#dlgYes)、opts.alt: もう 1 つの選択肢 (#dlgAlt)、opts.yesDisabled: yes を押せなくする
+function choiceDlg(title, body, opts = {}) {
   return new Promise((resolve) => {
     const d = $('#dlg');
-    $('#dlgTitle').textContent = title; $('#dlgBody').textContent = body; $('#dlgYes').textContent = yes;
+    $('#dlgTitle').textContent = title; $('#dlgBody').textContent = body;
+    $('#dlgYes').textContent = opts.yes || '実行する';
+    $('#dlgYes').disabled = !!opts.yesDisabled;
+    $('#dlgAlt').hidden = !opts.alt;
+    $('#dlgAlt').textContent = opts.alt || '';
     const done = (v) => { d.close(); resolve(v); };
-    $('#dlgYes').onclick = () => done(true);
-    $('#dlgNo').onclick = () => done(false);
-    d.oncancel = () => resolve(false);
+    $('#dlgYes').onclick = () => done('yes');
+    $('#dlgAlt').onclick = () => done('alt');
+    $('#dlgNo').onclick = () => done(null);
+    d.oncancel = () => resolve(null);
     d.showModal();
     $('#dlgNo').focus();
   });
@@ -1041,39 +1093,59 @@ function confirmDlg(title, body, yes = '実行する') {
 // ---- カードに書き込み ----
 $('#btnWrite').addEventListener('click', async () => {
   const f = state.writeFile; if (!f) return;
-  const ok = await confirmDlg('カードの内容を上書きします', `${f.name} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
-  if (!ok) return;
+  let len = f.data.length;
+  if (len > SIZE) {
+    // 32KB より大きいファイル: 先頭 32KB だけか、すべてかを選ぶ
+    const canAll = len <= state.cardMax;
+    const choice = await choiceDlg('32KB より大きいファイルです',
+      `${f.name} は ${fmtN(len)} バイト (${kb(len)}) です。ふつうのカードは 32KB で、それより上のアドレス線がつながっていません。` +
+      `そのようなカードに 32KB を超えて書くと、0x8000 以降のデータが先頭から上書きされます。カードの容量が ${kb(len)} 以上あるときだけ「すべて」を選んでください。` +
+      (canAll ? '' : '(この本体のスケッチは 32KB までしか書けません。v2.4 以降で 256KB まで書けます。)') +
+      'どちらでも、カードの今の内容は上書きされます。',
+      { alt: '先頭 32KB だけ書き込む', yes: `すべて書き込む (${kb(len)})`, yesDisabled: !canAll });
+    if (!choice) return;
+    if (choice === 'alt') len = SIZE;
+  } else {
+    const ok = await confirmDlg('カードの内容を上書きします', `${f.name} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
+    if (!ok) return;
+  }
+  const data = f.data.subarray(0, len);
   await task('カードに書き込み', '#resWrite', async () => {
     const backup = $('#optBackup').checked, verify = $('#optVerify').checked;
     let before = null, backupName = '';
     if (backup) {
-      before = await readCard(1, 'Backup');
-      backupName = `backup_${stamp()}.bin`;
+      before = await readCard(1, 'Backup', len);
+      backupName = `backup_${stamp()}${len > SIZE ? '_' + kb(len) : ''}.bin`;
       download(before, backupName);
       await lcdEnd('ok', 'Backup saved');
     }
     const addrs = [];
-    for (let a = 0; a < SIZE; a += CHUNK) {
-      if (before) { let same = true; for (let i = 0; i < CHUNK; i++) if (before[a + i] !== f.data[a + i]) { same = false; break; } if (same) continue; }
+    for (let a = 0; a < len; a += CHUNK) {
+      const end = Math.min(a + CHUNK, len);
+      if (before) { let same = true; for (let i = a; i < end; i++) if (before[i] !== data[i]) { same = false; break; } if (same) continue; }
       addrs.push(a);
     }
-    const total = addrs.length * CHUNK + (verify ? SIZE : 0) || 1;
+    const chunkLen = (a) => Math.min(CHUNK, len - a);
+    const writeBytes = addrs.reduce((n, a) => n + chunkLen(a), 0);
+    const total = writeBytes + (verify ? len : 0) || 1;
     progStart('カードに書き込み', total);
-    progPhase(addrs.length === SIZE / CHUNK ? 'カードに書き込み中' : `変わった部分を書き込み中 (${fmtN(addrs.length * CHUNK)} バイト)`);
+    progPhase(writeBytes === len ? 'カードに書き込み中' : `変わった部分を書き込み中 (${fmtN(writeBytes)} バイト)`);
     await lcdBegin(total, 'PC to Card');
     let readBack = null;
     try {
+      let done = 0;
       for (let i = 0; i < addrs.length; i++) {
         checkCancel();
         const a = addrs[i];
-        const r = await dev.request(`wr f ${a} ${bytesToHex(f.data.subarray(a, a + CHUNK))}`, { timeout: 5000 });
+        const r = await dev.request(`wr f ${a} ${bytesToHex(data.subarray(a, a + chunkLen(a)))}`, { timeout: 5000 });
         if (!r.last.startsWith('OK')) throw errFromLine(r.last);
-        progSet((i + 1) * CHUNK);
-        if (i % 16 === 15 || i === addrs.length - 1) await lcdProg((i + 1) * CHUNK, 'Writing card');
+        done += chunkLen(a);
+        progSet(done);
+        if (i % 16 === 15 || i === addrs.length - 1) await lcdProg(done, 'Writing card');
       }
       if (verify) {
         progPhase('読み戻して照合中');
-        readBack = await readPass(addrs.length * CHUNK, total, 'Verifying');
+        readBack = await readPass(len, writeBytes, 'Verifying');
       }
     } catch (e) {
       await lcdEnd(e.code === 'CANCEL' ? 'cancel' : 'err', e.code === 'CANCEL' ? 'Canceled' : 'Write failed');
@@ -1081,19 +1153,21 @@ $('#btnWrite').addEventListener('click', async () => {
       throw e;
     }
     const bk = backup ? `。書き込む前の内容は ${backupName} に保存しました` : '';
+    const part = len < f.data.length ? `先頭 ${fmtN(len)} バイト (${kb(len)}) を書き込みました (ファイルは ${fmtN(f.data.length)} バイト)。` : '';
     if (readBack) {
-      const d = diffList(f.data, readBack);
-      setView({ title: '書き込みの照合', sub: `${f.name} とカード`, a: readBack, b: f.data, aName: 'カード', bName: f.name });
+      const d = diffList(data, readBack);
+      setView({ title: '書き込みの照合', sub: `${f.name} とカード`, a: readBack, b: data, aName: 'カード', bName: f.name });
       if (d.length) {
         await lcdEnd('ng', `Verify NG ${d.length}`);
-        result('#resWrite', 'ng', `書き込みましたが、${fmtN(d.length)} バイトが一致しません`, `最初の違いは ${hex4(d[0])} です。カードの接触や書き込み禁止スイッチを確かめてください${bk}。`);
+        const small = len > SIZE ? 'カードの容量が書き込んだ大きさより小さく、先頭が上書きされた可能性もあります。' : '';
+        result('#resWrite', 'ng', `書き込みましたが、${fmtN(d.length)} バイトが一致しません`, `${part}最初の違いは ${hex4(d[0])} です。${small}カードの接触や書き込み禁止スイッチを確かめてください${bk}。`);
         return;
       }
       await lcdEnd('ok', 'Written & verified');
-      result('#resWrite', 'ok', `${f.name} を書き込み、照合しました`, `32,768 バイトすべて一致${bk}。`);
+      result('#resWrite', 'ok', `${f.name} を書き込み、照合しました`, `${part}${fmtN(len)} バイトすべて一致${bk}。`);
     } else {
       await lcdEnd('ok', 'Written');
-      result('#resWrite', 'ok', `${f.name} を書き込みました`, `照合はしていません${bk}。`);
+      result('#resWrite', 'ok', `${f.name} を書き込みました`, `${part}照合はしていません${bk}。`);
     }
   });
 });
@@ -1105,14 +1179,18 @@ $('#btnCompare').addEventListener('click', async () => {
   const run = async () => {
     let a, aName;
     if (srcA === 'card') {
-      a = await readCard(1, 'Compare');
+      // カードはファイル B と同じ大きさだけ読む
+      a = await readCard(1, 'Compare', B.data.length);
       aName = 'カード';
     } else { a = state.fileA.data; aName = state.fileA.name; }
     const d = diffList(a, B.data);
+    const n = Math.min(a.length, B.data.length);
+    const sizeNote = a.length !== B.data.length ? `大きさが違います (${aName} ${fmtN(a.length)} バイト、${B.name} ${fmtN(B.data.length)} バイト)。先頭 ${fmtN(n)} バイトを比べました。` : '';
     if (srcA === 'card') await lcdEnd(d.length ? 'ng' : 'ok', d.length ? `${d.length} bytes differ` : 'All match');
     setView({ title: '比較', sub: `${aName} と ${B.name}`, a, b: B.data, aName, bName: B.name });
-    if (d.length === 0) result('#resCompare', 'ok', 'すべて一致しました', `${aName} と ${B.name} は 32,768 バイトすべて同じです。`);
-    else result('#resCompare', 'ng', `${fmtN(d.length)} バイトが一致しません`, `最初の違いは ${hex4(d[0])}、最後の違いは ${hex4(d[d.length - 1])} です。下のメモリマップで赤い穴を選ぶと、その場所の値を確かめられます。`);
+    if (d.length === 0 && !sizeNote) result('#resCompare', 'ok', 'すべて一致しました', `${aName} と ${B.name} は ${fmtN(n)} バイトすべて同じです。`);
+    else if (d.length === 0) result('#resCompare', 'ng', `先頭 ${fmtN(n)} バイトは一致しましたが、大きさが違います`, sizeNote);
+    else result('#resCompare', 'ng', `${fmtN(d.length)} バイトが一致しません`, `${sizeNote}最初の違いは ${hex4(d[0])}、最後の違いは ${hex4(d[d.length - 1])} です。下のメモリマップで赤い穴を選ぶと、その場所の値を確かめられます。`);
   };
   if (srcA === 'card') await task('カードとファイルを比較', '#resCompare', run);
   else { clearResult('#resCompare'); await run(); }
@@ -1244,34 +1322,44 @@ $('#cmdForm').addEventListener('submit', async (e) => {
 // =====================================================================
 // メモリマップ (パンチカード) と 16 進表示
 // =====================================================================
-const COLS = 32, ROWS = 16, CELL = 64;
-const cellOf = (addr) => Math.floor(addr / CELL);
+// 穴は 32 列 x 16 行まで。1 つの穴の大きさは中身の大きさで変わる (32KB = 64 バイト、64KB = 128 バイト、… 256KB = 512 バイト)
+const COLS = 32, MAX_ROWS = 16, ROW_H = 22;
+const cellOf = (addr) => Math.floor(addr / view.cell);
 function setView(v) {
   view = v;
+  view.size = v.a.length;
+  view.cell = 64;
+  while (view.cell * COLS * MAX_ROWS < view.size) view.cell *= 2;
+  view.rows = Math.ceil(view.size / (view.cell * COLS));
+  view.adw = view.size > 0x10000 ? 5 : 4;  // アドレスの桁数
   view.diffs = v.b ? diffList(v.a, v.b) : [];
   view.diffSet = new Set(view.diffs);
   view.sel = null;
   view.diffPos = -1;
-  const cells = new Array(COLS * ROWS);
+  const cells = new Array(Math.ceil(view.size / view.cell));
   for (let c = 0; c < cells.length; c++) {
     let used = 0, zero = true, diff = 0;
-    for (let i = c * CELL; i < (c + 1) * CELL; i++) {
+    const end = Math.min((c + 1) * view.cell, view.size);
+    for (let i = c * view.cell; i < end; i++) {
       const x = v.a[i];
       if (x !== 0xff) used++;
       if (x !== 0) zero = false;
       if (view.diffSet.has(i)) diff++;
     }
-    cells[c] = { used, zero, diff };
+    cells[c] = { used, zero, diff, n: end - c * view.cell };
   }
   view.cells = cells;
+  $('#mapScale').textContent = `1 つの穴 = ${fmtN(view.cell)} バイト、1 行 = ${kb(view.cell * COLS)}`;
+  $('#map').setAttribute('aria-label', `${kb(view.size)} のメモリマップ。1 つの穴が ${view.cell} バイト`);
+  $('#hexSpacer').style.height = Math.ceil(view.size / 16) * ROW_H + 'px';
   $('#viewTitle').textContent = v.title;
   $('#viewSub').textContent = v.sub || '';
   $('#viewBody').hidden = false;
   $('#btnDownloadView').disabled = false;
   let used = 0, firstUsed = -1, lastUsed = -1;
-  for (let i = 0; i < SIZE; i++) if (v.a[i] !== 0xff) { used++; if (firstUsed < 0) firstUsed = i; lastUsed = i; }
+  for (let i = 0; i < view.size; i++) if (v.a[i] !== 0xff) { used++; if (firstUsed < 0) firstUsed = i; lastUsed = i; }
   const st = [
-    ['大きさ', '32,768 バイト'],
+    ['大きさ', `${fmtN(view.size)} バイト (${kb(view.size)})`],
     ['データのあるバイト', fmtN(used)],
     ['範囲', used ? `${hex4(firstUsed)} – ${hex4(lastUsed)}` : 'なし (すべて FF)'],
     ['CRC32', crc32(v.a)],
@@ -1293,7 +1381,7 @@ function drawMap() {
   const W = cv.clientWidth || 640;
   const gutter = 52, top = 18;
   const cell = (W - gutter) / COLS;
-  const H = Math.round(top + ROWS * cell + 4);
+  const H = Math.round(top + view.rows * cell + 4);
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
   const ctx = cv.getContext('2d');
@@ -1303,10 +1391,10 @@ function drawMap() {
   ctx.font = `11px ${cssVar('--mono')}`;
   ctx.fillStyle = muted;
   ctx.textBaseline = 'middle';
-  for (let c = 0; c < COLS; c += 8) ctx.fillText('+' + (c * CELL).toString(16).toUpperCase().padStart(3, '0'), gutter + c * cell + 2, 8);
-  for (let r = 0; r < ROWS; r++) ctx.fillText((r * COLS * CELL).toString(16).toUpperCase().padStart(4, '0'), 2, top + r * cell + cell / 2);
+  for (let c = 0; c < COLS; c += 8) ctx.fillText('+' + (c * view.cell).toString(16).toUpperCase().padStart(3, '0'), gutter + c * cell + 2, 8);
+  for (let r = 0; r < view.rows; r++) ctx.fillText((r * COLS * view.cell).toString(16).toUpperCase().padStart(view.adw, '0'), 2, top + r * cell + cell / 2);
   const R = cell * 0.36;
-  for (let i = 0; i < COLS * ROWS; i++) {
+  for (let i = 0; i < view.cells.length; i++) {
     const c = view.cells[i];
     const cx = gutter + (i % COLS) * cell + cell / 2, cy = top + Math.floor(i / COLS) * cell + cell / 2;
     ctx.beginPath();
@@ -1317,7 +1405,7 @@ function drawMap() {
     } else if (c.zero) {
       ctx.fillStyle = muted; ctx.arc(cx, cy, R * 0.32, 0, Math.PI * 2); ctx.fill();
     } else {
-      ctx.fillStyle = ink; ctx.arc(cx, cy, R * (0.45 + 0.55 * Math.sqrt(c.used / CELL)), 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ink; ctx.arc(cx, cy, R * (0.45 + 0.55 * Math.sqrt(c.used / c.n)), 0, Math.PI * 2); ctx.fill();
     }
     if (view.sel === i) { ctx.strokeStyle = yarn; ctx.lineWidth = 2.5; ctx.strokeRect(cx - cell / 2 + 1.5, cy - cell / 2 + 1.5, cell - 3, cell - 3); }
   }
@@ -1328,14 +1416,15 @@ function mapHit(e) {
   const r = $('#map').getBoundingClientRect();
   const x = e.clientX - r.left - mapGeom.gutter, y = e.clientY - r.top - mapGeom.top;
   const col = Math.floor(x / mapGeom.cell), row = Math.floor(y / mapGeom.cell);
-  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return -1;
-  return row * COLS + col;
+  const i = row * COLS + col;
+  if (col < 0 || col >= COLS || row < 0 || i >= view.cells.length) return -1;
+  return i;
 }
 $('#map').addEventListener('mousemove', (e) => {
   const i = mapHit(e), tip = $('#tip');
   if (i < 0) { tip.hidden = true; return; }
   const c = view.cells[i];
-  const lines = [`${hex4(i * CELL)} – ${hex4(i * CELL + CELL - 1)}`, c.used ? `データ ${c.used} / 64 バイト` : '空き (すべて FF)'];
+  const lines = [`${hex4(i * view.cell)} – ${hex4(i * view.cell + c.n - 1)}`, c.used ? `データ ${fmtN(c.used)} / ${fmtN(c.n)} バイト` : '空き (すべて FF)'];
   if (c.diff) lines.push(`違い ${c.diff} バイト`);
   tip.innerHTML = lines.map(esc).join('<br>');
   const pr = $('.punch').getBoundingClientRect();
@@ -1343,30 +1432,31 @@ $('#map').addEventListener('mousemove', (e) => {
   tip.hidden = false;
 });
 $('#map').addEventListener('mouseleave', () => { $('#tip').hidden = true; });
-$('#map').addEventListener('click', (e) => { const i = mapHit(e); if (i >= 0) gotoAddr(i * CELL); });
+$('#map').addEventListener('click', (e) => { const i = mapHit(e); if (i >= 0) gotoAddr(i * view.cell); });
 window.addEventListener('resize', () => { drawMap(); drawLcd(); });
 
-const ROW_H = 22, HEX_ROWS = SIZE / 16;
-$('#hexSpacer').style.height = HEX_ROWS * ROW_H + 'px';
 function renderHex() {
   if (!view) return;
   const box = $('#hex');
+  const hexRows = Math.ceil(view.size / 16);
   const first = Math.max(0, Math.floor(box.scrollTop / ROW_H) - 4);
   const n = Math.ceil(box.clientHeight / ROW_H) + 8;
-  const selLo = view.sel !== null ? view.sel * CELL : -1, selHi = view.sel !== null ? selLo + CELL : -1;
+  const selLo = view.sel !== null ? view.sel * view.cell : -1, selHi = view.sel !== null ? selLo + view.cell : -1;
   let html = '';
-  for (let r = first; r < Math.min(HEX_ROWS, first + n); r++) {
+  for (let r = first; r < Math.min(hexRows, first + n); r++) {
     const base = r * 16;
     let hx = '', as = '';
     for (let i = 0; i < 16; i++) {
-      const a = base + i, b = view.a[a];
+      const a = base + i;
+      if (a >= view.size) break;
+      const b = view.a[a];
       const cls = view.diffSet.has(a) ? 'd' : b === 0xff ? 'f' : '';
       const sel = a >= selLo && a < selHi ? ' s' : '';
       const title = view.diffSet.has(a) ? ` title="${esc(view.bName)}: ${hex2(view.b[a])}"` : '';
       hx += `<span class="${cls}${sel}"${title}>${hex2(b)}</span>` + (i < 15 ? ' ' : '');
       as += b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '.';
     }
-    html += `<div class="hr"><span class="ad">${hex4(base).slice(2)}</span><span class="hx">${hx}</span><span class="as">${esc(as)}</span></div>`;
+    html += `<div class="hr"><span class="ad">${base.toString(16).toUpperCase().padStart(view.adw, '0')}</span><span class="hx">${hx}</span><span class="as">${esc(as)}</span></div>`;
   }
   const rows = $('#hexRows');
   rows.style.top = (first * ROW_H + ROW_H) + 'px';
@@ -1375,7 +1465,7 @@ function renderHex() {
 $('#hex').addEventListener('scroll', renderHex, { passive: true });
 function gotoAddr(addr) {
   if (!view) return;
-  addr = Math.max(0, Math.min(SIZE - 1, addr));
+  addr = Math.max(0, Math.min(view.size - 1, addr));
   view.sel = cellOf(addr);
   const box = $('#hex');
   box.scrollTop = Math.max(0, Math.floor(addr / 16) * ROW_H - box.clientHeight / 3);

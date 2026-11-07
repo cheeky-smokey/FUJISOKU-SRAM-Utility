@@ -35,6 +35,13 @@ void dev_write(uint8_t dev, uint32_t address, uint8_t dat) {
   else write_spi_sram_byte((uint16_t)address, dat);
 }
 
+// PC からの rd / wr / fill で使える大きさ
+uint32_t dev_size(uint8_t dev) {
+  if (dev == DEV_FUJISOKU) return CARD_MAX_SIZE;
+  if (dev == DEV_SRAM62256) return SRAM62256_SIZE;
+  return SPI_SRAM_SIZE;
+}
+
 const char *dev_name(uint8_t dev) {
   if (dev == DEV_FUJISOKU) return "Card";
   if (dev == DEV_SRAM62256) return "62256";

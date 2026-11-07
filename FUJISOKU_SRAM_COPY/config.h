@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.3"
+#define FSU_VERSION "2.4"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
@@ -64,10 +64,13 @@
 // =====================================================================
 // データ量・識別子
 // =====================================================================
-#define CARD_SIZE 0x8000UL  // 扱う範囲 0x0000-0x7FFF (32 KB)
-#define CHUNK_BYTES 64      // PC とのやりとりの 1 行あたりのバイト数
-#define BLOCK_BYTES 256     // SD / コピー処理の 1 ブロック
-#define ERASE_VALUE 0xFF    // 消去で書く値
+#define CARD_SIZE 0x8000UL       // 本体だけの処理 (コピー・比較・消去・SD) が扱う範囲 0x0000-0x7FFF (32 KB)
+#define CARD_MAX_SIZE 0x40000UL  // PC からの rd / wr / fill でカードに使える範囲 (A0-A17 = 256 KB)
+#define SPI_SRAM_SIZE 0x10000UL  // SPI SRAM 23LC512 (64 KB)
+#define SRAM62256_SIZE 0x8000UL  // 62256 (32 KB)
+#define CHUNK_BYTES 64           // PC とのやりとりの 1 行あたりのバイト数
+#define BLOCK_BYTES 256          // SD / コピー処理の 1 ブロック
+#define ERASE_VALUE 0xFF         // 消去で書く値
 
 // バックアップ中に使う一時ファイル名 (成功したら本来の名前に付け替える)
 #define SD_TMP_NAME "FSU_TMP.TMP"
@@ -141,7 +144,7 @@
 //   B3  /WE (カードと 62256 で共通)
 //   B4  カードの /CE1
 //   B5  未使用 (どこにもつながない。High のまま)
-//   B6  A16、B7 A17 (アドレスの上位。0x0000-0x7FFF では常に 0)
+//   B6  A16、B7 A17 (アドレスの上位。0x0000-0xFFFF では 0)
 #define CTRL_CS2 0x01
 #define CTRL_CARD_nOE 0x02
 #define CTRL_62256_nOE 0x04
@@ -164,7 +167,7 @@
 #define CTRL_62256_RELEASE CTRL_IDLE
 
 // =====================================================================
-// SPI SRAM 23LC512 (64 KB、/CS = D6)。使うのは 0x0000-0x7FFF
+// SPI SRAM 23LC512 (64 KB、/CS = D6)。本体だけの処理で使うのは 0x0000-0x7FFF
 // =====================================================================
 #define SRAM23_READ 0x03   // 読み出し: 03 アドレス上位 下位 → データ
 #define SRAM23_WRITE 0x02  // 書き込み: 02 アドレス上位 下位 データ

@@ -3,7 +3,8 @@
 // スケッチ (FUJISOKU_SRAM_COPY/*.ino) をそのままホストでビルドして動かすための土台。
 //   - 仮想時計 (delay は時間を進めるだけ。SPI 1 バイトごとにも進む)
 //   - MCP23S17 ×8 (IOCON の BANK/HAEN、BANK0/1 のレジスタ配置、A2 ピンの癖まで再現)
-//   - FUJISOKU カード (32KB) / 並列 62256 / SPI SRAM 23LC512 を、物理的な配線から再現
+//   - FUJISOKU カード (既定 32KB、--card-kb で 64/128/256) / 並列 62256 / SPI SRAM 23LC512 を、物理的な配線から再現
+//       カードの容量より上のアドレス線はつながっていない扱い (32KB のカードでは 0x8000 が 0x0000 と同じ場所)
 //       ch7 GPIOB: B0 = CS2 (= 62256 の nCS)、B1 = nOE、B2 = 62256 の nOE、B3 = nWE、B4 = nCS1、B5 = 未使用
 //       SPI SRAM の /CS は Arduino の D6
 //   - SD カード (ホストのディレクトリ。抜き差し・世代管理・SPI の停止まで再現)
@@ -46,6 +47,7 @@ struct Diag {
 
 static bool spi_sram_present = true;  // false: SPI SRAM が無い (MISO は High のまま)
 static bool card_present = true;
+static uint32_t card_size = 0x8000;  // カードの容量 (--card-kb)。上のアドレス線は無視される
 static int glitch_addr = -1;
 // バス線の故障 (H / L 固定) の再現: mask のビットが val に固定される
 static uint16_t addr_stuck_mask = 0, addr_stuck_val = 0;
@@ -117,23 +119,24 @@ static uint8_t mcp_pins_basic(int ch, int port, uint8_t ext, uint8_t ext_mask) {
 
 // ch7 の制御ビットとデータバス、ch6 のアドレス
 struct Sig {
-  uint16_t addr;
+  uint32_t addr;  // A0-A17 (ch6 GPA / GPB と ch7 GPB6 / GPB7)
   uint8_t data;  // MCP が出している (または浮いている) データ
   bool card_sel, card_oe, card_we, ram_sel, ram_oe, ram_we;
 };
 
-static uint8_t card_mem[0x8000];
+static uint8_t card_mem[0x40000];
 static uint8_t ram62[0x8000];
 
 static Sig sig_eval() {
   Sig s;
   uint8_t aL = mcp_pins_basic(6, 0, 0, 0);
   uint8_t aH = mcp_pins_basic(6, 1, 0, 0);
-  s.addr = (uint16_t)(aL | ((aH & 0x7F) << 8));
-  s.addr = (uint16_t)((s.addr & ~addr_stuck_mask) | (addr_stuck_val & addr_stuck_mask));
+  s.addr = (uint32_t)(aL | (aH << 8));
+  s.addr = (s.addr & ~(uint32_t)addr_stuck_mask) | (addr_stuck_val & addr_stuck_mask);
   s.data = mcp_pins_basic(7, 0, 0, 0);
   s.data = (uint8_t)((s.data & ~data_stuck_mask) | (data_stuck_val & data_stuck_mask));
   uint8_t b = mcp_pins_basic(7, 1, 0, 0);
+  s.addr |= (uint32_t)((b >> 6) & 3) << 16;  // B6 = A16、B7 = A17
   auto bit = [&](int n) { return (b >> n) & 1; };
   // B0 = CS2(カード) / nCS(62256) 共用、B1 = nOE(カード)、B2 = nOE(62256)、B3 = nWE 共用、B4 = nCS1(カード)、B5 = 未使用
   s.card_sel = (bit(4) == 0) && (bit(0) == 1);
@@ -157,8 +160,8 @@ static uint8_t data_bus_read() {
   uint8_t memv = 0xFF;
   if (s.card_sel && s.card_oe && !s.card_we && card_present) {
     drv = true;
-    memv = card_mem[s.addr & 0x7FFF];
-    if (glitch_addr == (int)(s.addr & 0x7FFF)) {
+    memv = card_mem[s.addr & (card_size - 1)];
+    if (glitch_addr == (int)(s.addr & (card_size - 1))) {
       memv ^= 0x01;
       glitch_addr = -1;
     }
@@ -269,7 +272,7 @@ static void mcp_reg_write(int ch, int port, int reg, uint8_t v) {
       diag.addr_change_in_write++;
       if (getenv("FSU_SIM_DEBUG")) fprintf(stderr, "[sim] addr change during write: ch%d port%d reg%d v=%02X addr %04X -> %04X t=%lu\n", ch, port, reg, v, before.addr, after.addr, millis());
     }
-    if (wb && !wa && card_present) card_mem[before.addr & 0x7FFF] = before.data;
+    if (wb && !wa && card_present) card_mem[before.addr & (card_size - 1)] = before.data;
     bool rb = before.ram_sel && before.ram_we;
     bool ra = after.ram_sel && after.ram_we;
     if (rb && ra && before.addr != after.addr) diag.addr_change_in_write++;
@@ -916,9 +919,9 @@ static void ctl_exec(const std::string &line) {
     }
     reply("lcd " + t);
   } else if (c == "card" && a.size() >= 3) {
-    if (a[1] == "load") reply(load_file(a[2], card_mem, sizeof(card_mem)) ? "ok" : "err load");
-    else if (a[1] == "dump") reply(save_file(a[2], card_mem, sizeof(card_mem)) ? "ok" : "err dump");
-    else if (a[1] == "fill") { memset(card_mem, (int)strtol(a[2].c_str(), nullptr, 16), sizeof(card_mem)); reply("ok"); }
+    if (a[1] == "load") reply(load_file(a[2], card_mem, card_size) ? "ok" : "err load");
+    else if (a[1] == "dump") reply(save_file(a[2], card_mem, card_size) ? "ok" : "err dump");
+    else if (a[1] == "fill") { memset(card_mem, (int)strtol(a[2].c_str(), nullptr, 16), card_size); reply("ok"); }
     else reply("err card");
   } else if (c == "spi" && a.size() >= 3) {
     if (a[1] == "load") reply(load_file(a[2], sram23.mem, 0x8000) ? "ok" : "err load");
@@ -959,7 +962,7 @@ static void ctl_exec(const std::string &line) {
     // poke card|spi ADDR VALUE (16 進)
     unsigned ad = (unsigned)strtoul(a[2].c_str(), nullptr, 16);
     unsigned v = (unsigned)strtoul(a[3].c_str(), nullptr, 16);
-    if (a[1] == "card" && ad < 0x8000) card_mem[ad] = (uint8_t)v;
+    if (a[1] == "card" && ad < card_size) card_mem[ad] = (uint8_t)v;
     else if (a[1] == "spi" && ad < 0x10000) sram23.mem[ad] = (uint8_t)v;
     reply("ok");
   } else if (c == "advance" && a.size() >= 2) {
@@ -1039,6 +1042,14 @@ int main(int argc, char **argv) {
     else if (a == "--no-lcd") lcd_hw_present = false;
     else if (a == "--no-spi-sram") spi_sram_present = false;
     else if (a == "--no-card") card_present = false;
+    else if (a == "--card-kb" && i + 1 < argc) {
+      long kb = atol(argv[++i]);
+      if (kb != 32 && kb != 64 && kb != 128 && kb != 256) {
+        fprintf(stderr, "--card-kb must be 32, 64, 128 or 256\n");
+        return 2;
+      }
+      card_size = (uint32_t)kb * 1024;
+    }
     else {
       fprintf(stderr, "unknown option %s\n", a.c_str());
       return 2;

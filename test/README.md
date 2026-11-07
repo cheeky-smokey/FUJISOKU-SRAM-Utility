@@ -7,7 +7,7 @@
 必要なもの: Linux / macOS の `g++`（C++17）、`python3`（Pillow）、Node.js 18 以降、Playwright（Web アプリのテストのみ。`npm i -g playwright && npx playwright install chromium`）、`git`（本物のライブラリの取得用）。
 
 ```sh
-test/run_all.sh                  # すべて (4 構成のビルド → 型チェック → 53 件のテスト)
+test/run_all.sh                  # すべて (4 構成のビルド → 型チェック → 57 件のテスト)
 test/build.sh fsu_sim -DUSE_SD=1                          # シミュレータだけビルド (SD・LCD あり。テストの大半はこれ)
 test/build.sh fsu_sim_nolcd -DUSE_SD=1 -DUSE_LCD=0        # LCD のコードなし
 test/build.sh fsu_sim_62256 -DUSE_SD=1 -DUSE_SRAM62256=1  # 62256 あり
@@ -36,7 +36,7 @@ test/realhdr/       本物のライブラリのヘッダで型チェックする
 | 時計 | 仮想時計。`delay()` と SPI の 1 バイトごとに進む。`--realtime` で待機中は実時間に合わせる |
 | SPI | UNO R4 と同じく `endTransaction()` は何もせず、`end()` で止まり、`beginTransaction()` が未初期化なら `begin()` する |
 | MCP23S17 × 8 | IOCON の BANK / HAEN、BANK0 / BANK1 のレジスタ配置、HAEN 無効時は A2 だけで応答する癖 |
-| FUJISOKU カード | ch6 / ch7 のピンから物理的な配線どおりに信号を作り、/WE の立ち上がりで書き込む SRAM |
+| FUJISOKU カード | ch6 / ch7 のピンから物理的な配線どおりに信号を作り、/WE の立ち上がりで書き込む SRAM。A0〜A17。容量は既定 32KB で `--card-kb 64\|128\|256` で変えられ、容量より上のアドレス線はつながっていない扱い（32KB のカードでは 0x8000 が 0x0000 と同じ場所） |
 | 62256 | B0 = /CS、B2 = /OE、/WE 共用 |
 | SPI SRAM（23LC512） | READ / WRITE / RDMR / WRMR、バイト / ページ / シーケンシャルモード（電源投入時はシーケンシャル）。/CS は D6。`--no-spi-sram` でつながっていない状態（MISO が High のまま）にできる |
 | SD カード | ホストのディレクトリ。抜く・挿す・差し替え（世代が変わると古い接続は使えない）、カードが無いときの 2 秒待ち、`SD.end()` で SPI が止まること |

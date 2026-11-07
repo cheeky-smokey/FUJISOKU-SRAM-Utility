@@ -8,6 +8,7 @@
 //   rd <f|s|p> <addr> <len>          -> D <addr(hex)> <hex...> ... , OK rd <len>
 //   wr <f|s|p> <addr> <hex...>       -> OK wr <addr> <n>
 //   fill <f|s|p> <addr> <len> <byte> -> OK fill <len>
+//     範囲: f = 0x00000-0x3FFFF (256 KB)、s = 0x0000-0xFFFF (64 KB)、p = 0x0000-0x7FFF (32 KB)
 //   copy <x> <y> / cmp [<x> <y>] / test [s|p] / erase <x>   (p は USE_SRAM62256 のときだけ)
 //   sd save|load|verify <f|s|p> [name|-] [v] / sd ls / sd check
 //   lcd / lcd on / lcd off
@@ -52,9 +53,10 @@ static bool parse_dev(const char *s, uint8_t *dev) {
   return true;
 }
 
-// addr から len バイトが 0x0000-0x7FFF に収まるか (len = 0 は不可。addr + len の桁あふれも防ぐ)
-static bool range_ok(uint32_t addr, uint32_t len) {
-  return len > 0 && addr < CARD_SIZE && len <= CARD_SIZE - addr;
+// addr から len バイトがその対象の範囲 (dev_size) に収まるか (len = 0 は不可。addr + len の桁あふれも防ぐ)
+static bool range_ok(uint8_t dev, uint32_t addr, uint32_t len) {
+  uint32_t size = dev_size(dev);
+  return len > 0 && addr < size && len <= size - addr;
 }
 
 static int hex_val(char c) {
@@ -119,7 +121,7 @@ static bool proto_cancel_taken() {
 
 static void cmd_rd(uint8_t dev, uint32_t addr, uint32_t len) {
   char line[24 + CHUNK_BYTES * 2];
-  if (!range_ok(addr, len)) {
+  if (!range_ok(dev, addr, len)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -157,7 +159,7 @@ static void cmd_wr(uint8_t dev, uint32_t addr, const char *hex) {
     return;
   }
   uint32_t n = hl / 2;
-  if (!range_ok(addr, n)) {
+  if (!range_ok(dev, addr, n)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -183,7 +185,7 @@ static void cmd_wr(uint8_t dev, uint32_t addr, const char *hex) {
 }
 
 static void cmd_fill(uint8_t dev, uint32_t addr, uint32_t len, uint8_t value) {
-  if (!range_ok(addr, len)) {
+  if (!range_ok(dev, addr, len)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -373,7 +375,9 @@ void proto_exec(char *line) {
 
   if (strcmp(cmd, "hello") == 0) {
     Serial.print("HELLO FSU " FSU_VERSION " size=");
-    Serial.print((unsigned long)CARD_SIZE);
+    Serial.print((unsigned long)CARD_SIZE);  // 本体だけの処理が扱う大きさ
+    Serial.print(" cardmax=");
+    Serial.print((unsigned long)CARD_MAX_SIZE);  // PC から rd / wr できるカードの大きさ
     Serial.print(" chunk=");
     Serial.print(CHUNK_BYTES);
     Serial.print(" lcd=");

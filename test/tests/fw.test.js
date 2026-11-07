@@ -30,9 +30,9 @@ const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
 test('起動: SD があれば READY、バスの不正利用なし', async () => {
   const fw = await boot();
   assert.ok(fw.lines.includes('E SD 1'));
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3 ready (LCD 20x4, SD on, 62256 off)')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.4 ready (LCD 20x4, SD on, 62256 off)')));
   const r = await fw.cmd('hello');
-  assert.match(r.last, /^HELLO FSU 2\.3 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1$/);
+  assert.match(r.last, /^HELLO FSU 2\.4 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1$/);
   await expectClean(fw);
   await fw.close();
 });
@@ -52,7 +52,7 @@ test('wr / rd / fill でカードを読み書きできる', async () => {
   assert.equal(card[0xff], 0xff);
   assert.equal(card[0x104], 0xff);
   // 範囲外・不正な引数
-  assert.match((await fw.cmd('rd f 0x7fff 2')).last, /^ERR RANGE/);
+  assert.match((await fw.cmd('rd f 0x3ffff 2')).last, /^ERR RANGE/);
   assert.match((await fw.cmd('wr f 0 ZZ')).last, /^ERR ARG/);
   assert.match((await fw.cmd('wr f 0 ABC')).last, /^ERR ARG/);
   assert.match((await fw.cmd('bogus')).last, /^ERR CMD/);
@@ -117,12 +117,38 @@ test('SPI SRAM 自己診断: 合格のときは中身を元に戻し、SPI SRAM 
   await fw.close();
 });
 
-test('rd / wr / fill: アドレスと長さの桁あふれを範囲外として断る', async () => {
+test('rd / wr / fill: 対象ごとの範囲 (カード 256KB、SPI SRAM 64KB) と、桁あふれを範囲外として断る', async () => {
   const fw = await boot();
-  for (const c of ['rd f 0xFFFFFFF0 0x20', 'rd s 0x7FFF 2', 'wr f 0xFFFFFFFF 0011', 'fill f 0xFFFFFF00 0x200 0', 'rd f 0x8000 1']) {
+  for (const c of ['rd f 0xFFFFFFF0 0x20', 'rd s 0xFFFF 2', 'wr f 0xFFFFFFFF 0011', 'fill f 0xFFFFFF00 0x200 0', 'rd f 0x40000 1', 'rd f 0x3FFFF 2', 'wr s 0x10000 00']) {
     assert.equal((await fw.cmd(c)).last, 'ERR RANGE out of range', c);
   }
-  assert.equal((await fw.cmd('rd f 0x7FFF 1')).last, 'OK rd 1');
+  assert.equal((await fw.cmd('rd f 0x3FFFF 1')).last, 'OK rd 1');
+  assert.equal((await fw.cmd('rd s 0xFFFF 1')).last, 'OK rd 1');
+  await fw.close();
+});
+
+test('カードの 32KB より上 (A15-A17): 256KB のカードでは別の場所、32KB のカードでは先頭と重なる', async () => {
+  // 256KB のカード: A15 / A16 / A17 がそれぞれ別の場所を指す
+  let fw = await boot({ args: ['--card-kb', '256'] });
+  await fw.ctl('card fill ff');
+  const spots = { 0x00000: '01', 0x08000: '02', 0x10000: '03', 0x20000: '04', 0x3ffc0: '05' };
+  for (const [a, v] of Object.entries(spots)) assert.match((await fw.cmd(`wr f ${a} ${v}`)).last, /^OK wr /);
+  for (const [a, v] of Object.entries(spots)) {
+    const r = await fw.cmd(`rd f ${a} 1`);
+    const want = 'D ' + Number(a).toString(16).toUpperCase().padStart(4, '0') + ' ' + v;
+    assert.ok(r.lines.includes(want), `${want} / ${r.lines.join('|')}`);
+  }
+  const dump = await fw.cardDump();
+  assert.equal(dump.length, 0x40000);
+  for (const [a, v] of Object.entries(spots)) assert.equal(dump[Number(a)], parseInt(v, 16));
+  await expectClean(fw);
+  await fw.close();
+
+  // 32KB のカード: 上位のアドレス線がつながっていないので、0x8000 に書くと 0x0000 が変わる
+  fw = await boot();
+  await fw.ctl('card fill ff');
+  await fw.cmd('wr f 0x8000 5A');
+  assert.ok((await fw.cmd('rd f 0 1')).lines.includes('D 0000 5A'));
   await fw.close();
 });
 
@@ -294,13 +320,11 @@ test('旧 1 文字コマンドと CRLF', async () => {
   const fw = await boot();
   fw.send('?\r\n');
   await fw.advance(50);
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.4')));
   const r = await fw.cmd('e');
   assert.match(r.last, /^OK fill/);
   assert.ok((await fw.cardDump()).every((b) => b === 0xff));
-  fw.send('Z\n');
-  await fw.advance(50);
-  assert.ok(fw.lines.some((l) => /^ERR CMD/.test(l)));
+  assert.match((await fw.cmd('Z')).last, /^ERR CMD/);
   await fw.close();
 });
 
@@ -379,7 +403,7 @@ const lcdText = (line) => {
 
 test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
   const fw = await boot({ args: ['--no-lcd'] });
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3 ready (LCD none')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.4 ready (LCD none')));
   assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1$/);
   assert.match((await fw.cmd('status')).last, /lcd=0$/);
   assert.match((await fw.cmd('B')).last, /^OK sd/);
@@ -420,6 +444,7 @@ test('62256 オプション (USE_SRAM62256=1): 読み書き・コピー・比較
   await fw.cardLoad(pat);
   assert.match((await fw.cmd('wr p 0x10 A1B2C3')).last, /^OK wr/);
   assert.equal((await fw.cmd('rd p 0x10 3')).lines[0], 'D 0010 A1B2C3');
+  assert.equal((await fw.cmd('rd p 0x8000 1')).last, 'ERR RANGE out of range', '62256 は 32KB まで');
   assert.match((await fw.cmd('copy f p')).last, /^OK copy/);
   const f = path.join(fw.tmp, 'r62.bin');
   await fw.ctl('ram62 dump ' + f);

@@ -120,7 +120,7 @@ void mcp_init() {
 static uint8_t bus_select(uint32_t address, uint8_t sel) {
   mcp_write(MCP_CH_ADDR, MCP_GPIO_A, (uint8_t)address);         // A0-A7
   mcp_write(MCP_CH_ADDR, MCP_GPIO_B, (uint8_t)(address >> 8));  // A8-A15
-  uint8_t ctrl = sel | (uint8_t)((address >> 10) & (CTRL_A16 | CTRL_A17));  // A16 → B6、A17 → B7
+  uint8_t ctrl = sel | (uint8_t)((address >> 10) & (CTRL_A16 | CTRL_A17));  // A16 → B6、A17 → B7 (A15 は ch6 GPB7)
   ctrl_write(ctrl);
   return ctrl;
 }
@@ -145,7 +145,8 @@ static void bus_write_byte(uint32_t address, uint8_t dat, uint8_t sel, uint8_t r
   ctrl_write(release);
 }
 
-// FUJISOKU カード (A0-A17 で最大 256 KB。このスケッチが扱うのは 0x0000-0x7FFF)
+// FUJISOKU カード (A0-A17 で最大 256 KB。本体だけの処理は 0x0000-0x7FFF、PC からは CARD_MAX_SIZE まで)
+// 上位のアドレス線がつながっていないカード (32 KB など) では、0x8000 以降は先頭と同じ場所になる
 uint8_t read_fujisoku(uint32_t address) {
   return bus_read_byte(address, CTRL_CARD_SELECT, CTRL_CARD_nOE, CTRL_CARD_RELEASE);
 }
