@@ -28,7 +28,7 @@
   <rect x="770" y="60" width="210" height="96" rx="6" fill="#e9f0ff" stroke="#1846c4" stroke-width="1.5" stroke-dasharray="5,3"/>
   <text x="780" y="80" font-weight="bold" fill="#111111">LCD 20 x 4 (optional)</text>
   <text x="780" y="98" font-size="11" fill="#333333">HD44780 + PCF8574 backpack</text>
-  <text x="780" y="114" font-size="11" fill="#333333">I2C address 0x27 (or 0x3F)</text>
+  <text x="780" y="114" font-size="11" fill="#333333">I2C address 0x27 (default)</text>
   <text x="780" y="130" font-size="11" fill="#333333">5 V, GND, SDA, SCL</text>
   <text x="780" y="146" font-size="10" fill="#555555">USE_LCD; auto-detected at boot</text>
   <path d="M730,97 H766" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arr)"/>
@@ -111,7 +111,7 @@
   <text x="80" y="426" font-size="11" fill="#333333">chip select / signal flow</text>
   <rect x="32" y="436" width="38" height="14" rx="3" fill="#f3f4f6" stroke="#555555" stroke-dasharray="5,3"/>
   <text x="80" y="447" font-size="11" fill="#333333">optional part</text>
-  <text x="32" y="474" font-size="11" fill="#333333">D3 = MCP INT (input, not used)</text>
+  <text x="32" y="474" font-size="11" fill="#333333">D3: not connected (MCP INT unused)</text>
   <text x="32" y="488" font-size="11" fill="#333333">D2, D8, D9, D10: free (TFT removed in v2)</text>
 
   <!-- parallel bus -->
@@ -139,5 +139,5 @@
   <text x="690" y="644" font-size="11" fill="#333333">test SRAM: USE_SRAM62256 = 1, target p</text>
   <text x="690" y="660" font-size="10" fill="#555555">"test p" checks D0-D7 and A0-A14</text>
 
-  <text x="20" y="690" font-size="11" fill="#555555">Sources: note.com/cheekysmokey (card pin-out, MCP wiring, slot repair articles) and FUJISOKU_SRAM_COPY/config.h. Supply voltage and level shifting are not covered here.</text>
+  <text x="20" y="690" font-size="11" fill="#555555">Sources: note.com/cheekysmokey (card pin-out, MCP wiring, slot repair articles) and FUJISOKU_SRAM_COPY/config.h. Single 5 V supply; all parts are 5 V, no level shifting.</text>
 </svg>

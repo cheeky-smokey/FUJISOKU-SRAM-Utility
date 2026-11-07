@@ -46,7 +46,7 @@
 // 設定
 // =====================================================================
 
-// LCD の I2C アドレス (PCF8574 バックパック)。基板によって 0x27 または 0x3F が多い
+// LCD の I2C アドレス (PCF8574 バックパック)。作者の基板は 0x27。ほかのバックパックでは 0x3F のこともある
 #ifndef LCD_I2C_ADDR
 #define LCD_I2C_ADDR 0x27
 #endif
@@ -108,7 +108,7 @@
 #define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS。USE_SPI_SRAM = 0 でも High にしておく
 #define PIN_MCP_RESET 5    // MCP23S17 の /RESET (2 個共通)
 #define PIN_CS_MCP 4       // MCP23S17 の /CS (2 個共通。ハードウェアアドレスで区別する)
-#define PIN_MCP_INT 3      // MCP23S17 の INT (入力にしておくだけで使わない)
+#define PIN_MCP_INT 3      // 未接続 (MCP23S17 の INT は使わない。入力にしておくだけ)
 
 // =====================================================================
 // MCP23S17 (GPIO エキスパンダ)

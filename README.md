@@ -36,7 +36,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | 必須 | Arduino UNO R4、MCP23S17 × 2、FUJISOKU カードのスロット | - |
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
 | オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
-| オプション | SPI SRAM（23LC512 クラス。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
+| オプション | SPI SRAM（23LC512。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
@@ -49,6 +49,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 ```
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
+
+電源は 5 V で、部品はすべて 5 V 系なのでレベル変換は要りません。
 
 接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。メモリカードスロットの作り方と参考写真（秋月電子の 2.54 mm ⇔ 1.27 mm 変換基板を使ったもの）は、同じ文書の [§12](docs/hardware.md#12-スロット記事より) にあります。
 
