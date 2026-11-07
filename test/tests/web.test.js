@@ -584,6 +584,48 @@ test('カード検出・電池を使わない本体 (USE_CARD_DET=0, USE_BATT_DE
   await app.close();
 });
 
+test('ファイル欄: × で外せる。別のファイルや同じファイルを選び直せる', async () => {
+  const app = await connected({ card: pattern(21) });
+  const { page } = app;
+  // ファイルを選び、欄の表示が変わるまで待つ (読み込みは非同期)
+  const pick = async (input, drop, name, buf) => {
+    await fileInput(page, input, name, buf);
+    await page.waitForFunction(([d, n]) => document.querySelector(d + ' .name').textContent === n, [drop, name]);
+  };
+  await page.click('#t-write');
+  assert.equal(await page.isVisible('#dropWrite .drop-clear'), false, '選ぶ前は × を出さない');
+  await pick('#fileWrite', '#dropWrite', 'one.bin', pattern(22));
+  assert.match(await page.textContent('#dropWrite .name'), /one\.bin/);
+  assert.equal(await page.isDisabled('#btnWrite'), false);
+  assert.equal(await page.isVisible('#dropWrite .hint'), true);
+  // 別のファイルに替える
+  await pick('#fileWrite', '#dropWrite', 'two.bin', pattern(23));
+  assert.match(await page.textContent('#dropWrite .name'), /two\.bin/);
+  await page.screenshot({ path: path.join(SHOTS, 'drop-selected.png'), clip: await page.locator('#dropWrite').boundingBox() });
+  // × で外す: ファイル選択の画面は開かず、元の表示に戻る
+  let chooser = false;
+  page.once('filechooser', () => { chooser = true; });
+  await page.click('#dropWrite .drop-clear');
+  await page.waitForTimeout(200);
+  assert.equal(chooser, false, '× でファイル選択が開いた');
+  assert.equal(await page.textContent('#dropWrite .name'), '.bin ファイルを選ぶ');
+  assert.equal(await page.isDisabled('#btnWrite'), true);
+  assert.equal(await page.isVisible('#dropWrite .drop-clear'), false);
+  // 同じファイルをもう一度選べる
+  await pick('#fileWrite', '#dropWrite', 'two.bin', pattern(23));
+  assert.match(await page.textContent('#dropWrite .name'), /two\.bin/);
+  assert.equal(await page.isDisabled('#btnWrite'), false);
+  // 比較の欄も同じ
+  await page.click('#t-compare');
+  await pick('#fileB', '#dropB', 'b.bin', pattern(24));
+  assert.equal(await page.isDisabled('#btnCompare'), false);
+  await page.click('#dropB .drop-clear');
+  assert.equal(await page.isDisabled('#btnCompare'), true);
+  assert.equal(await page.textContent('#dropB .name'), 'ファイル B を選ぶ');
+  noErrors(page);
+  await app.close();
+});
+
 test('見た目: ダーク表示とスマートフォン幅', async () => {
   const card = pattern(13);
   let app = await connected({ card, colorScheme: 'dark' });

@@ -173,6 +173,13 @@ button, input, select { font: inherit; color: inherit; }
 .drop .name { font-weight: 700; word-break: break-all; }
 .drop .meta { font-size: 13px; color: var(--muted); font-family: var(--mono); }
 .drop.bad { border-color: var(--bad); }
+.drop .hint { font-size: 12.5px; color: var(--muted); }
+.drop-clear {
+  margin-left: auto; flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent;
+  color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.drop-clear:hover, .drop-clear:focus-visible { background: var(--line); color: var(--ink); }
+.drop-clear:disabled { opacity: .4; cursor: not-allowed; }
 
 .result { margin-top: 18px; padding: 14px 16px; border-radius: 10px; display: flex; gap: 12px; align-items: flex-start; }
 .result:empty { display: none; }
@@ -371,8 +378,9 @@ dialog .row { justify-content: flex-end; }
       <p class="lead">保存しておいた .bin ファイル (32KB〜256KB) をカードに書き込みます。カードの今の内容は上書きされます。32KB より大きいファイルは、書き込む前に「先頭 32KB だけ」か「すべて」かを選びます。</p>
       <label class="drop" id="dropWrite">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
-        <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span></span>
+        <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span><br><span class="hint" hidden>クリックかドロップで別のファイルに替えられます。× で外します</span></span>
         <input type="file" accept=".bin,application/octet-stream" hidden id="fileWrite">
+        <button type="button" class="drop-clear" hidden aria-label="選んだファイルを外す" title="選んだファイルを外す">×</button>
       </label>
       <div class="opts">
         <label class="check"><input type="checkbox" id="optBackup" checked><span>書き込む前に、今のカードの内容を PC に保存する<small>backup_日時.bin としてダウンロードされます。変わった部分だけを書き込むので速くなります。</small></span></label>
@@ -396,8 +404,9 @@ dialog .row { justify-content: flex-end; }
           <div class="source-card" id="srcCard">本体に挿したカードを読み込みます</div>
           <label class="drop" id="dropA" hidden>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
-            <span><span class="name">ファイル A を選ぶ</span><br><span class="meta">ドロップまたはクリック</span></span>
+            <span><span class="name">ファイル A を選ぶ</span><br><span class="meta">ドロップまたはクリック</span><br><span class="hint" hidden>クリックかドロップで替えられます。× で外します</span></span>
             <input type="file" accept=".bin,application/octet-stream" hidden id="fileA">
+            <button type="button" class="drop-clear" hidden aria-label="選んだファイルを外す" title="選んだファイルを外す">×</button>
           </label>
         </div>
         <div class="side">
@@ -405,8 +414,9 @@ dialog .row { justify-content: flex-end; }
           <div class="seg"><label><input type="radio" checked disabled>ファイル</label></div>
           <label class="drop" id="dropB">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
-            <span><span class="name">ファイル B を選ぶ</span><br><span class="meta">ドロップまたはクリック</span></span>
+            <span><span class="name">ファイル B を選ぶ</span><br><span class="meta">ドロップまたはクリック</span><br><span class="hint" hidden>クリックかドロップで替えられます。× で外します</span></span>
             <input type="file" accept=".bin,application/octet-stream" hidden id="fileB">
+            <button type="button" class="drop-clear" hidden aria-label="選んだファイルを外す" title="選んだファイルを外す">×</button>
           </label>
         </div>
       </div>
@@ -773,6 +783,7 @@ function refreshButtons() {
   const srcA = document.querySelector('input[name="srcA"]:checked').value;
   $('#btnCompare').disabled = state.busy || !state.fileB || (srcA === 'card' ? !state.connected : !state.fileA);
   $('#btnConnect').disabled = state.busy || !('serial' in navigator);
+  for (const el of $$('.drop-clear')) el.disabled = state.busy;  // 処理中はファイルを外せない
   $('#btnConnect').textContent = state.connected ? '切断' : '本体に接続';
   $('#btnConnect').classList.toggle('ghost', state.connected);
   for (const r of $$('input[name="readSize"]')) r.disabled = state.busy || +r.value > state.cardMax;
@@ -1101,25 +1112,45 @@ const SIZE_RULE = '32,768〜262,144 バイト (32KB〜256KB) のファイルを�
 function showFileInDrop(drop, f) {
   drop.classList.toggle('bad', !f.ok);
   drop.querySelector('.name').textContent = f.name;
-  drop.querySelector('.meta').textContent = f.ok
+  drop.querySelector('.meta').textContent = (f.ok
     ? `${fmtN(f.data.length)} バイト (${kb(f.data.length)})  CRC32 ${crc32(f.data)}`
-    : `${fmtN(f.data.length)} バイト — ${SIZE_RULE}`;
+    : `${fmtN(f.data.length)} バイト — ${SIZE_RULE}`);
+  drop.querySelector('.hint').hidden = false;
 }
+// ドロップ / クリックでファイルを選ぶ欄。onFile(f) は選んだとき、onFile(null) は × で外したときに呼ぶ
 function setupDrop(dropId, inputId, onFile) {
-  const drop = $(dropId), input = $(inputId);
-  const take = async (file) => { if (!file) return; const f = await readFileBin(file); showFileInDrop(drop, f); onFile(f); refreshButtons(); };
+  const drop = $(dropId), input = $(inputId), clear = drop.querySelector('.drop-clear');
+  const first = { name: drop.querySelector('.name').textContent, meta: drop.querySelector('.meta').textContent };
+  const take = async (file) => {
+    if (!file) return;
+    const f = await readFileBin(file);
+    input.value = '';  // 同じファイルを選び直しても change が届くように空にしておく
+    showFileInDrop(drop, f);
+    clear.hidden = false;
+    onFile(f); refreshButtons();
+  };
+  clear.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();  // ラベルのクリック (ファイル選択) にしない
+    input.value = '';
+    drop.classList.remove('bad');
+    drop.querySelector('.name').textContent = first.name;
+    drop.querySelector('.meta').textContent = first.meta;
+    drop.querySelector('.hint').hidden = true;
+    clear.hidden = true;
+    onFile(null); refreshButtons();
+  });
   input.addEventListener('change', () => take(input.files[0]));
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); take(e.dataTransfer.files[0]); });
 }
 setupDrop('#dropWrite', '#fileWrite', (f) => {
-  state.writeFile = f.ok ? f : null;
+  state.writeFile = f && f.ok ? f : null;
   clearResult('#resWrite');
-  if (f.ok) setView({ title: '書き込むファイル', sub: f.name, a: f.data, aName: f.name });
+  if (f && f.ok) setView({ title: '書き込むファイル', sub: f.name, a: f.data, aName: f.name });
 });
-setupDrop('#dropA', '#fileA', (f) => { state.fileA = f.ok ? f : null; });
-setupDrop('#dropB', '#fileB', (f) => { state.fileB = f.ok ? f : null; });
+setupDrop('#dropA', '#fileA', (f) => { state.fileA = f && f.ok ? f : null; });
+setupDrop('#dropB', '#fileB', (f) => { state.fileB = f && f.ok ? f : null; });
 $$('input[name="srcA"]').forEach((r) => r.addEventListener('change', () => {
   const file = document.querySelector('input[name="srcA"]:checked').value === 'file';
   $('#dropA').hidden = !file; $('#srcCard').hidden = file;
