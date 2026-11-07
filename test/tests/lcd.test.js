@@ -33,11 +33,12 @@ const parse = (text) => text.split('|');
 const width = (row) => row.replace(/\{\d\}/g, '#').length;
 // 進捗バー 15 文字を「塗った列数」(0-75) に直す
 function barUnits(row) {
-  const cells = row.match(/\{\d\}/g).slice(0, 15);
+  const cells = row.match(/\{\d\}|./g).slice(0, 15);  // 自作文字 {n} も 1 文字として数える
   let u = 0;
   for (const c of cells) {
-    const n = Number(c[1]);
-    if (n <= 4) u += n + 1; // {0}..{4} = 1..5 列
+    const m = /^\{(\d)\}$/.exec(c);
+    if (m && Number(m[1]) <= 4) u += Number(m[1]) + 1;  // {0}..{4} = 1..5 列
+    else assert.equal(c, '_', `バーの空き部分は '_': ${row}`);
   }
   return u;
 }
@@ -51,7 +52,7 @@ async function expectCleanLcd(fw) {
 test('待機画面: 名前・カードと電池・SD/PC の状態・直前の結果', async () => {
   const fw = await boot();
   const r = await rows(fw, 'idle');
-  assert.deepEqual(r, ['FUJISOKU SRAM   v2.7', 'Card:OK   Bat:3.00V ', 'SD:OK      PC:OK    ', 'Last:---            ']);
+  assert.deepEqual(r, ['FUJISOKU SRAM   v2.7', 'Card:OK   Bat:3.00V ', 'SD:OK      PC:OK    ', 'Last:---           {5}']);
   await expectCleanLcd(fw);
 });
 
@@ -91,7 +92,7 @@ test('処理中: 処理名・経過時間・段階・進捗バー・アドレス
   const u = barUnits(r[2]);
   assert.ok(u >= 36 && u <= 38, 'バーは半分: ' + u);
   // アドレスと速度の行は 0.5 秒ごとの更新なので少し遅れる
-  const m = r[3].match(/^0x([0-9A-F]{4})\/0x8000 +[\d.]+k\/s$/);
+  const m = r[3].match(/^0x([0-9A-F]{4})\/8000 +[\d.]+k\/s\{5\}$/);
   assert.ok(m, r[3]);
   assert.ok(parseInt(m[1], 16) >= 0x3000 && parseInt(m[1], 16) <= 0x4100, r[3]);
   for (const row of r) assert.equal(width(row), 20);
@@ -118,7 +119,7 @@ test('結果画面: 完了・不一致・SD なし・SD 抜け・中断・ファ
   let r = await rows(fw, 'result_ok');
   assert.equal(r[0], '{6} BACKUP        DONE');
   assert.deepEqual(r.slice(1, 3), ['32768 bytes ->      ', 'fujisoku.bin        ']);
-  assert.match(r[3], /^Time \d\d:\d\d {10}$/);
+  assert.match(r[3], /^Time \d\d:\d\d {9}\{5\}$/);
 
   await fw.ctl('poke card 100 00');
   await fw.cmd('V');
@@ -130,7 +131,7 @@ test('結果画面: 完了・不一致・SD なし・SD 抜け・中断・ファ
   await fw.cmd('sd load f short');
   r = await rows(fw, 'result_badsize');
   assert.match(r[0], /^\{7\} RESTORE +BAD FILE$/);
-  assert.match(r[3], /\[BADSIZE\]/);
+  assert.match(r[3], /^Time \d\d:\d\d BADSIZE +\{5\}$/);
 
   await fw.cmd('sd verify f nothing');
   assert.match((await rows(fw))[0], /NO FILE$/);
@@ -151,7 +152,7 @@ test('結果画面: 完了・不一致・SD なし・SD 抜け・中断・ファ
   r = await rows(fw, 'result_nosd');
   assert.match(r[0], /^\{7\} VERIFY +NO SD$/);
   assert.deepEqual(r.slice(1, 3), ['Insert an SD card   ', 'and try again       ']);
-  assert.match(r[3], /\[NOSD\]/);
+  assert.match(r[3], /^Time \d\d:\d\d NOSD +\{5\}$/);
   for (const row of r) assert.equal(width(row), 20);
   await expectCleanLcd(fw);
 });
@@ -164,7 +165,7 @@ test('結果画面は 15 秒後に待機画面へ戻り、結果は Last: に残
   await fw.advance(11000);
   const r = await rows(fw, 'idle_last');
   assert.equal(r[0], 'FUJISOKU SRAM   v2.7');
-  assert.equal(r[3], 'Last:{6} BACKUP OK    ');
+  assert.equal(r[3], 'Last:{6} BACKUP OK   {5}');
 });
 
 test('PC 主導の表示 (ui begin / prog / end)。PC が止まったら PC LOST', async () => {
@@ -176,7 +177,7 @@ test('PC 主導の表示 (ui begin / prog / end)。PC が止まったら PC LOST
   assert.match(r[0], /^Card to PC {5}\d\d:\d\d$/);
   assert.equal(r[1], 'Reading card        ');
   assert.ok(r[2].endsWith('  37%'));
-  assert.match(r[3], /^0x3000\/0x8000/);
+  assert.match(r[3], /^0x3000\/8000/);
   await fw.cmd('ui end ok Saved_to_PC');
   r = await rows(fw, 'pc_done');
   assert.match(r[0], /^\{6\} Card to PC +DONE$/);

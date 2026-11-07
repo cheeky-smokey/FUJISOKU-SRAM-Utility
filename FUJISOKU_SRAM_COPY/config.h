@@ -82,9 +82,10 @@
 #define CARD_DET_ACTIVE_LOW 1
 #endif
 
-// カードの電池の警告電圧 [mV]。これ以下で「少ない」と警告する
+// カードの電池の警告電圧 [mV]。これ以下で「少ない」(Low battery) と警告する
+//   作者の基板 (A2 に 1 MΩ) では新品の電池が 2.75 V と表示される。コイン型のリチウム電池は 2 V 前後が交換の目安
 #ifndef BATT_LOW_MV
-#define BATT_LOW_MV 1000
+#define BATT_LOW_MV 2000
 #endif
 
 // これ以下なら「電池なし」とみなす [mV]。1 MΩ をつけた作者の基板では、電池が無いと約 0.24 V

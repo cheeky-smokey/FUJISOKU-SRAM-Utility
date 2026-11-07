@@ -6,14 +6,16 @@
 //
 //  待機画面                 進捗画面                 結果画面
 //  +--------------------+   +--------------------+   +--------------------+
-//  |FUJISOKU SRAM   v2.6|   |BACKUP         00:04|   |v BACKUP        DONE|
-//  |Card:OK   Bat:2.95V |   |Reading card        |   |32768 bytes ->      |
-//  |SD:OK       PC:OK   |   |#######-------  47% |   |fujisoku.bin        |
-//  |Last:v BACKUP OK    |   |0x3B00/0x8000 3.2k/s|   |Time 00:10          |
+//  |FUJISOKU SRAM   v2.7|   |BACKUP         00:04|   |v BACKUP        DONE|
+//  |Card:OK   Bat:2.75V |   |Reading card        |   |32768 bytes ->      |
+//  |SD:OK       PC:OK   |   |#######_______  47% |   |fujisoku.bin        |
+//  |Last:v BACKUP OK   c|   |0x3B00/8000  3.2k/sc|   |Time 00:10         c|
 //  +--------------------+   +--------------------+   +--------------------+
+//                    c = 右下の署名 (c)。どの画面でも 4 行目の 20 文字目に出す
 //
 // - 待機画面の 2 行目はカードの有無と電池電圧。電池が BATT_LOW_MV 以下なら電圧の後ろに '!' を付け、
-//   4 行目を "! Card battery low !" (電池なしは "! No card battery !") にする (Last の代わり)
+//   4 行目を "! Card battery low" (電池なしは "! No card battery") にする (Last の代わり)
+// - 4 行目に書く文字は 19 文字まで (20 文字目は署名)
 //
 // - 進捗バーは CGRAM の自作文字で 1 文字を 5 段階に分け、15 文字 = 75 段階で表示する
 // - I2C の LCD は 1 文字の転送に約 1ms かかるため、前回の表示と違う文字だけを書き換える
@@ -28,7 +30,8 @@
 
 // 自作文字の文字コード。0x08-0x0F は CGRAM 0-7 と同じ文字になる (文字列に 0 を入れずに済む)
 #define CH_BAR(k) ((char)(0x08 + (k)-1))  // k = 1..5 列ぶん塗ったバー
-#define CH_RAIL ((char)0x0D)              // バーの空き部分
+#define CH_RAIL '_'                       // バーの空き部分 (文字 ROM の下線。自作文字の下の線と同じ高さ)
+#define CH_COPY ((char)0x0D)              // 署名の (c)
 #define CH_OK ((char)0x0E)                // チェック
 #define CH_NG ((char)0x0F)                // バツ
 
@@ -56,10 +59,12 @@ static uint32_t lcd_push_ms = 0;
 // ---------------------------------------------------------------------
 
 // r 行目を s で置き換える (20 文字に満たない分は空白)。変わった文字だけ送る
+// 1 行を書く。4 行目の 20 文字目はいつも署名の (c) にする
 static void lcd_row(uint8_t r, const char *s) {
   char line[LCD_COLS];
   size_t n = strlen(s);
   for (uint8_t c = 0; c < LCD_COLS; c++) line[c] = (c < n) ? s[c] : ' ';
+  if (r == LCD_ROWS - 1) line[LCD_COLS - 1] = CH_COPY;
   int8_t cur = -1;  // カーソルの位置 (-1 = 不明)
   for (uint8_t c = 0; c < LCD_COLS; c++) {
     if (line[c] == lcd_shadow[r][c]) continue;
@@ -137,9 +142,8 @@ static void lcd_make_glyphs() {
     g[6] = 0x1F;  // 下の線はつねに引く (空き部分の線とつながる)
     lcd.createChar(k - 1, g);
   }
-  for (uint8_t r = 0; r < 8; r++) g[r] = 0;
-  g[6] = 0x1F;
-  lcd.createChar(5, g);  // 空き部分
+  uint8_t copy[8] = { 0x0E, 0x11, 0x17, 0x19, 0x17, 0x11, 0x0E, 0x00 };  // (c)
+  lcd.createChar(5, copy);
   uint8_t ok[8] = { 0x00, 0x01, 0x03, 0x16, 0x1C, 0x08, 0x00, 0x00 };
   lcd.createChar(6, ok);
   uint8_t ng[8] = { 0x00, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x00, 0x00 };
@@ -207,9 +211,9 @@ static void draw_idle_status() {
 
   // 4 行目: 電池の警告、なければ最後の結果
   if (batt_none()) {
-    lcd_row(3, "! No card battery !");
+    lcd_row(3, "! No card battery");
   } else if (batt_low()) {
-    lcd_row(3, "! Card battery low !");
+    lcd_row(3, "! Card battery low");
   } else if (ui_last_res == 255) {
     lcd_row(3, "Last:---");
   } else {
@@ -258,13 +262,15 @@ static void draw_progress_info(uint32_t now) {
     uint32_t el = now - ui_t0;
     if (el >= 1000) {
       uint32_t bps = (uint32_t)((uint64_t)done * 1000 / el);
-      if (bps >= 1000) snprintf(rate, sizeof(rate), "%lu.%luk/s", (unsigned long)(bps / 1000), (unsigned long)(bps % 1000 / 100));
+      if (bps >= 10000) snprintf(rate, sizeof(rate), "%luk/s", (unsigned long)(bps / 1000));
+      else if (bps >= 1000) snprintf(rate, sizeof(rate), "%lu.%luk/s", (unsigned long)(bps / 1000), (unsigned long)(bps % 1000 / 100));
       else snprintf(rate, sizeof(rate), "%luB/s", (unsigned long)bps);
     }
-    char addr[16];
-    snprintf(addr, sizeof(addr), "0x%04lX/0x%04lX", (unsigned long)(done & 0xFFFF), (unsigned long)(ui_total & 0xFFFF));
-    if (ui_total > 0xFFFF) snprintf(addr, sizeof(addr), "%lu/%lu", (unsigned long)(done / 1024), (unsigned long)(ui_total / 1024));
-    snprintf(line, sizeof(line), "%-13.13s%7s", addr, rate);
+    // 19 文字に収める (20 文字目は署名): "0x3B00/8000" + 速さ
+    char addr[24];
+    snprintf(addr, sizeof(addr), "0x%04lX/%04lX", (unsigned long)(done & 0xFFFF), (unsigned long)(ui_total & 0xFFFF));
+    if (ui_total > 0xFFFF) snprintf(addr, sizeof(addr), "%lu/%luK", (unsigned long)(done / 1024), (unsigned long)(ui_total / 1024));
+    snprintf(line, sizeof(line), "%-12.12s%7s", addr, rate);
   } else {
     snprintf(line, sizeof(line), "%lu/%lu", (unsigned long)done, (unsigned long)ui_total);
   }
@@ -360,7 +366,7 @@ void ui_progress_end(uint8_t res, const char *code, const char *msg) {
 
   // 待機画面の「Last:」用
   const char *word = res == RES_OK ? "OK" : (res == RES_NG ? "NG" : (res == RES_CANCEL ? "STOP" : "ERR"));
-  int lw = LCD_COLS - 5 - 2 - 1 - (int)strlen(word);  // "Last:" + アイコンと空白 + 空白 + 結果
+  int lw = LCD_COLS - 1 - 5 - 2 - 1 - (int)strlen(word);  // 署名 + "Last:" + アイコンと空白 + 空白 + 結果
   snprintf(ui_last_text, sizeof(ui_last_text), "%c %.*s %s", res_icon(res), lw, ui_title, word);
   ui_last_res = res;
 
@@ -374,7 +380,7 @@ void ui_progress_end(uint8_t res, const char *code, const char *msg) {
   lcd_row(2, l2);
   fmt_time(t, sizeof(t), now - ui_t0);
   if (res == RES_OK || code[0] == '\0' || strcmp(code, "PC") == 0) snprintf(line, sizeof(line), "Time %s", t);
-  else snprintf(line, sizeof(line), "Time %s [%.8s]", t, code);
+  else snprintf(line, sizeof(line), "Time %s %.8s", t, code);  // 19 文字まで (20 文字目は署名)
   lcd_row(3, line);
   ui_screen = SCREEN_RESULT;
   ui_result_ms = now;
