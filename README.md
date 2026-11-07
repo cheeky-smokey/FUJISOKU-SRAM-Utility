@@ -2,7 +2,7 @@
 
 # FUJISOKU SRAM Utility
 
-**リリース版 v2.5**（Arduino UNO R4 と作者の基板で動作確認済み）。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
+**最新版 v2.6**（カードの検出と電池電圧の表示を追加）。リリース版は v2.5 で、Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
 
 Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 256KB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
 
@@ -29,6 +29,8 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC
 | 比較 | カードとファイル、またはファイル同士を比較。違いはメモリマップと 16 進表示に赤で出る |
 | SD カード | 本体の SD カードとの保存・照合・書き込み、ファイル一覧（SD を使う設定のときだけ表示） |
 | SPI SRAM・診断 | SPI SRAM とのコピー・比較・消去、SPI SRAM の自己診断（SPI SRAM を使う設定のとき）、カードの消去。62256 を使う設定なら、62256 でのバス試験など |
+
+「カードに書き込み」「比較」のファイル欄は、クリックかドロップで選び直せ、右の × で外せます。
 
 Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリアルコマンドは [docs/protocol.md](docs/protocol.md) にあります。従来の 1 文字コマンド（`B` `L` `V` `R` `C` `X` `S` `W` `T` `E` `e`）もそのまま使えます。
 
