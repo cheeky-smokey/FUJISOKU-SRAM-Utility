@@ -50,7 +50,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
 
-接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。
+接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。メモリカードスロットの作り方と参考写真（秋月電子の 2.54 mm ⇔ 1.27 mm 変換基板を使ったもの）は、同じ文書の [§12](docs/hardware.md#12-スロット記事より) にあります。
 
 ![ハードウェア接続図](docs/images/hardware-connection.svg)
 
