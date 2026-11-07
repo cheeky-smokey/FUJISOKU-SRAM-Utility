@@ -35,8 +35,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 |---|---|---|
 | 必須 | Arduino UNO R4、MCP23S17 × 2、FUJISOKU カードのスロット | - |
 | 必須 | **SPI SRAM**（23LC512 クラス、データの一時保管。/CS は D6） | - |
-| オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
+| オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定は SD カードなし・LCD ありです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
