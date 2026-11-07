@@ -6,6 +6,7 @@
 // ファイル構成 (Arduino IDE ではタブとして開く)
 //   FUJISOKU_SRAM_COPY.ino  このファイル。ライブラリ、グローバル変数、setup / loop
 //   config.h                オプション部品 (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
+//   card.ino                カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A0)
 //   hardware.ino            MCP23S17 / FUJISOKU カード / 62256 / SPI SRAM の 1 バイト読み書き
 //   storage.ino             SD カードの状態管理 (抜き差し対応、USE_SD のときだけ)
 //   operations.ino          コピー・比較・SD 保存/書き込み/照合などの処理
@@ -40,6 +41,12 @@ uint32_t sd_checked_ms = 0;           // 最後に SD カードを確かめた�
 // SPI SRAM (オプション)。hardware.ino の spi_sram_init() が確かめる (USE_SPI_SRAM = 0 なら false のまま)
 bool spi_sram_present = false;
 
+// カードと電池 (card.ino が更新する)
+bool card_inserted = true;   // カードが入っている (USE_CARD_DET = 0 ならいつも true)
+int16_t batt_mv = -1;        // カードの電池電圧 [mV]。-1 = 測っていない (カードなし、USE_BATT_DET = 0)
+bool op_needs_card = false;  // 今のコマンドがカードを使う (処理中に抜かれたら止めるため)
+bool op_card_lost = false;   // 処理中にカードが抜かれた
+
 // 処理の状態 (operations.ino / protocol.ino / lcd_ui.ino で共有)
 char op_msg[48];             // 終了行の説明 (LCD の結果画面にも出す)
 bool op_cancel = false;      // 中断要求 (PC からの '!')
@@ -73,6 +80,7 @@ void setup() {
 #if USE_SPI_SRAM
   spi_sram_init();  // SPI SRAM があるかを確かめ、モードを揃える (無くても止まらない)
 #endif
+  card_begin();  // カードの有無と電池電圧
 
 #if USE_SD
   // SD カードが無くても止まらない (無ければ SD:NONE と表示するだけ)
@@ -89,12 +97,15 @@ void setup() {
   Serial.print(USE_SRAM62256 ? "on" : "off");
   Serial.print(", SPI SRAM ");
   Serial.print(spi_sram_status());
+  Serial.print(", card ");
+  Serial.print(USE_CARD_DET ? (card_inserted ? "in" : "none") : "-");
   Serial.println("). Send '?' for help.");
 }
 
 void loop() {
   proto_poll();     // PC からのコマンド
   ui_poll();        // 表示の更新 (SD / USB の状態、結果画面から待機画面への切り替え)
+  card_poll();      // カードの抜き差し (E CARD) と電池電圧 (E BATT)
 #if USE_SD
   sd_idle_check();  // SD カードが抜かれていないかの確認 (1.5 秒ごと)
 #endif

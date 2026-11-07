@@ -9,6 +9,7 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC
 - **PC から操作**: ブラウザの Web アプリで、カードを PC に保存・PC のファイルをカードに書き込み・比較。
 - **表示**: 状態・処理の段階・進捗バー・結果を 20 文字 × 4 行で表示。同じ画面が Web アプリにも出るので、LCD はオプションです。
 - **SD カード（オプション）**: 本体だけでカード ⇄ SD のバックアップ・照合・書き戻し。SD カードは処理の合間に抜き差しでき、最初から入っていなくても止まりません。
+- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.00 V 以下で警告します。
 - **62256（オプション）**: 動作確認用の SRAM で、カードを使わずにバスの配線を試験できます。
 
 ![Web アプリ](docs/images/webapp.png)
@@ -40,6 +41,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | SPI SRAM（23LC512。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
+| 配線 | カードの検出（カードの F37 /CARD DET → D2） | `USE_CARD_DET`（既定 1） |
+| 配線 | 電池電圧（カードの F2 BATT-DET → A0） | `USE_BATT_DET`（既定 1） |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 
@@ -48,6 +51,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 #define USE_LCD 1         // LCD をつながないなら 0 (LiquidCrystal I2C ライブラリも不要になる)
 #define USE_SPI_SRAM 1    // SPI SRAM をつながないなら 0 (1 のままでも、見つからなければ飛ばす)
 #define USE_SRAM62256 0   // 62256 をつないだら 1
+#define USE_CARD_DET 1    // D2 にカードの検出を配線していないなら 0
+#define USE_BATT_DET 1    // A0 にカードの電池電圧を配線していないなら 0
 ```
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
@@ -78,4 +83,4 @@ test/                       PC 上でスケッチを動かすシミュレータ�
 
 ## 確かめたこと
 
-スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、60 件の自動テスト（ファームウェア 30、表示 9、Web アプリ 21。SD・LCD・SPI SRAM・62256 のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
+スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、63 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 23。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。

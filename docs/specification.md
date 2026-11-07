@@ -1,6 +1,6 @@
-# ソフトウェア仕様（スケッチ v2.5）
+# ソフトウェア仕様（スケッチ v2.6）
 
-対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.5）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
+対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.6）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
 
 ## 1. 概要
 
@@ -22,6 +22,7 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | ファイル | 内容 |
 |---|---|
 | `FUJISOKU_SRAM_COPY.ino` | ライブラリの読み込み（LCD はオプションに応じて）、グローバル変数、`setup()`、`loop()` |
+| `card.ino` | カードの抜き差し（/CARD DET = D2、`E CARD`）と電池電圧（BATT-DET = A0、`E BATT`）。処理中にカードが抜かれたかの確認 |
 | `config.h` | **オプション部品の選択**（§3）、設定値、ピン（`PIN_*`）、MCP23S17 のレジスタ（`MCP_*`）、制御線のビットと状態（`CTRL_*`）、SPI SRAM のコマンド（`SRAM23_*`） |
 | `hardware.ino` | MCP23S17 のレジスタ読み書き（`mcp_read()` / `mcp_write()`）、`mcp_init()` / `bus_idle()`、バスの向きの管理、カード・62256・SPI SRAM の 1 バイト読み書き、`spi_sram_init()` / `spi_sram_read_mode()` |
 | `storage.ino` | SD カードの状態管理（マウント、生存確認、抜けの検出）、ファイル名の組み立て、一覧。`USE_SD` のときだけ |
@@ -40,6 +41,8 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | オプション | 20×4 キャラクタ LCD（I2C） | `USE_LCD` |
 | オプション | SPI SRAM（本体だけでのコピー・比較の一時置き場） | `USE_SPI_SRAM` |
 | オプション | 62256 並列 SRAM（動作確認用） | `USE_SRAM62256` |
+| 配線 | カードの検出（F37 /CARD DET → D2） | `USE_CARD_DET` |
+| 配線 | カードの電池電圧（F2 BATT-DET → A0） | `USE_BATT_DET` |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定の構成は SD カードなし（`USE_SD` = 0）、LCD と SPI SRAM はあり（どちらも起動時に探し、見つからなければ使わない）、62256 なしです。
 
@@ -50,6 +53,8 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 #define USE_LCD 1         // 20x4 キャラクタ LCD (I2C)。0 で LCD のコードとライブラリを外す
 #define USE_SPI_SRAM 1    // SPI SRAM。0 で SPI SRAM のコードを外す (1 でも見つからなければ使わない)
 #define USE_SRAM62256 0   // 動作確認用の 62256。1 で対象 p と test p が使える
+#define USE_CARD_DET 1    // カードの検出 (D2)。配線しない基板では 0
+#define USE_BATT_DET 1    // カードの電池電圧 (A0)。配線しない基板では 0
 ```
 
 | 設定 | 1 のとき | 0 のとき |
@@ -58,6 +63,8 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | `USE_LCD` | 起動時に LCD を探し、見つかれば表示する（見つからなければ LCD には送らない） | LCD のコードを入れない。LiquidCrystal I2C と Wire を読み込まない |
 | `USE_SPI_SRAM` | 起動時に SPI SRAM を探し（`spi_sram_init()`）、見つかれば対象 `s` と `R` `C` `X` `E` `S` `W` が使える。見つからなければそれらは `ERR NOSPI`。`test` は見つからなくても実行し、探し直す | SPI SRAM のコードを入れない。対象 `s` と `R` `C` `X` `E` `S` `W` `T` は `ERR DISABLED`。`status` は `spi=-` |
 | `USE_SRAM62256` | 対象 `p`、`test p` が使える。`read_sram62256()` / `write_sram62256()` が入る | 62256 のコードを入れない。`p` を指定すると `ERR DISABLED` |
+| `USE_CARD_DET` | D2 でカードの有無を見る。無ければカードを使う操作は `ERR NOCARD`、処理中に抜かれたら止める（§6.4） | いつもカードが入っているものとして扱う。`status` は `card=-` |
+| `USE_BATT_DET` | A0 で電池電圧を測り、LCD と Web アプリに出す。`BATT_LOW_MV` 以下で警告（§6.4） | 測らない。`status` は `batt=-` |
 
 LCD の設定にかかわらず、本体は画面の内容を持ち続けるので、Web アプリには同じ画面が出ます。`hello` の応答（`lcd=20x4|none`、`sram62256=1|0`、`sdcard=1|0`、`spisram=ok|none|off`）で、PC は構成を知ることができます。Web アプリは `sdcard=0` なら SD のタブを隠し、`spisram` が `ok` でなければ SPI SRAM の操作を隠します（`none` のときは自己診断だけ出す）。
 
@@ -84,6 +91,10 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | `USE_SD` | `0` | §3.2 |
 | `USE_LCD` | `1` | §3.2 |
 | `USE_SRAM62256` | `0` | §3.2 |
+| `USE_CARD_DET` / `USE_BATT_DET` | `1` / `1` | §3.2 |
+| `CARD_DET_ACTIVE_LOW` | `1` | /CARD DET はカードが入ると Low（逆の基板では 0） |
+| `BATT_LOW_MV` | `1000` | 電池の警告電圧 [mV]。これ以下で警告 |
+| `BATT_ADC_FULL_MV` | `5000` | A0 の測定範囲 [mV]（UNO R4 の 5 V）。5 V ピンの実測値にすると電圧が正確になる |
 | `LCD_I2C_ADDR` | `0x27` | LCD バックパックの I2C アドレス（`0x3F` の基板もある） |
 | `RESULT_HOLD_MS` | `15000` | 結果画面を出しておく時間 |
 | `SPI_BUS_HZ` | `4000000` | MCP23S17 / SPI SRAM の SPI クロック |
@@ -101,17 +112,19 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 3. `ui_begin()`: `USE_LCD` が 1 なら I2C で LCD を探し、見つかれば初期化して自作文字を登録する。起動画面を出す。
 4. `mcp_init()`: MCP23S17 を BANK=1・HAEN にして全チャネルを初期化し、`bus_idle()`。
 5. `spi_sram_init()`（`USE_SPI_SRAM` のときだけ）: SPI SRAM（/CS = D6）があるかを確かめ、モードを電源投入時と同じシーケンシャル（`0x40`）に揃える。無くても止まらない（[hardware.md §9.1](hardware.md#91-spi-sramオプション本体だけでの処理の一時置き場)）。
-6. `sd_mount()`（`USE_SD` のときだけ）: SD カードがあればマウント。無くても止まらない。
-7. 待機画面を出し、`FUJISOKU SRAM Utility 2.5 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定））。
+6. `card_begin()`: D2 を内蔵プルアップの入力にしてカードの有無を読み、カードがあれば A0 で電池電圧を測る。
+7. `sd_mount()`（`USE_SD` のときだけ）: SD カードがあればマウント。無くても止まらない。
+8. 待機画面を出し、`FUJISOKU SRAM Utility 2.6 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok, card in). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定）、カードは `in` / `none` / `-`（検出しない設定））。
 
 ### 5.2 `loop()`
 
-`delay()` は使わず、次の 3 つを繰り返します。
+`delay()` は使わず、次の 4 つを繰り返します。
 
 | 関数 | 内容 |
 |---|---|
 | `proto_poll()` | シリアルから 1 行ずつ取り込んでコマンドを実行。PC 主導の表示が 8 秒止まったら表示を戻す |
-| `ui_poll()` | 待機画面の SD / PC 表示の更新（0.2 秒ごと）、結果画面から待機画面への切り替え、`lcd on` のときの画面送信 |
+| `ui_poll()` | 待機画面のカード・電池・SD・PC 表示の更新（0.2 秒ごと）、結果画面から待機画面への切り替え、`lcd on` のときの画面送信 |
+| `card_poll()` | カードの抜き差し（50 ms のチャタリング除去、`E CARD 1/0`）と電池電圧（0.5 秒ごと、50 mV 以上の変化か警告の境目で `E BATT <mV>`） |
 | `sd_idle_check()` | （`USE_SD` のときだけ）SD が使える状態なら 1.5 秒ごとに応答を確かめ、抜かれたら `E SD 0` |
 
 ## 6. 処理（`operations.ino`）
@@ -124,7 +137,7 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | SPI SRAM | `DEV_SPI_SRAM` | `s` | `read_spi_sram_byte()` / `write_spi_sram_byte()`（/CS = D6。`USE_SPI_SRAM` で、見つかったときだけ） |
 | 62256 | `DEV_SRAM62256` | `p` | `read_sram62256()` / `write_sram62256()`（`USE_SRAM62256` のときだけ） |
 
-`dev_read()` / `dev_write()` / `dev_name()` が対象を振り分けます。使えない対象（使わない設定、SPI SRAM が見つからない）は、コマンドを受けたときに `protocol.ino` の `dev_ready()` が `ERR DISABLED` / `ERR NOSPI` ではじきます。
+`dev_read()` / `dev_write()` / `dev_name()` が対象を振り分けます。使えない対象（使わない設定、SPI SRAM が見つからない、カードが入っていない）は、コマンドを受けたときに `protocol.ino` の `dev_ready()` が `ERR DISABLED` / `ERR NOSPI` / `ERR NOCARD` ではじきます。
 
 ### 6.2 処理の枠組み
 
@@ -161,6 +174,17 @@ v1 との違い:
 - SD から書き込むとき、ファイルの大きさを確かめます（32,768 バイトでなければ書かない）。
 - v1 の毎秒のメニュー表示、TFT の描画、使われていなかったコードは削除しました。
 
+### 6.4 カードの抜き差しと電池電圧（`card.ino`）
+
+| 項目 | 内容 |
+|---|---|
+| カードの有無 | D2（/CARD DET、内蔵プルアップ）。`CARD_DET_ACTIVE_LOW` が 1 なら Low = カードあり。50 ms 同じ値が続いたら `card_inserted` を変え、`E CARD 1` / `E CARD 0` を送る |
+| カードが無いとき | `dev_ready()` が、カードを使うコマンドに `ERR NOCARD No card in the slot` を返す（`rd f` `wr f` `fill f` `copy` `cmp` `erase f` `sd save/load/verify f`、`R` `C` `X` `B` `L` `V` `e`） |
+| 処理中に抜かれたら | カードを使うコマンドでは `op_needs_card` を立てる。`op_poll_cancel()` が 3 回続けて「無い」と読んだら中断し、`ERR NOCARD Card removed at 0x....`（PC 主導の `rd` / `wr` / `fill` は `ERR NOCARD Card removed`）。バスは待機状態に戻す |
+| 電池電圧 | A0（BATT-DET）。12 ビットで 8 回測って平均し、`BATT_ADC_FULL_MV`（5000 mV）を満点として mV にする。0.5 秒ごと。カードが無いときは測らない（`batt_mv` = -1）。挿してから 0.1 秒後に測り直す |
+| 知らせ方 | 前に送った値から 50 mV 以上変わったとき、または警告の境目をまたいだときに `E BATT <mV>`。`status` の `batt=` はいつでも最新の値 |
+| 警告 | `batt_mv` が `BATT_LOW_MV`（1000 mV）以下。LCD は電圧の後ろに `!`、4 行目に `! Card battery low !`。Web アプリは画面の上に警告を出す |
+
 ## 7. SD カードの扱い（`storage.ino`、オプション）
 
 この章は `USE_SD` が 1 のときの動作です。0 のときは §3.2 のとおり SD のコードがなく、`sd_state` は `SD_STATE_UNKNOWN` のままです。
@@ -185,7 +209,7 @@ v1 との違い:
 
 | 画面 | 1 行目 | 2 行目 | 3 行目 | 4 行目 |
 |---|---|---|---|---|
-| 待機 | `FUJISOKU SRAM   v2.4` | `SD:OK / NONE / off`、`PC:OK / --` | `Ready` または `Waiting for PC (USB)` | `Last:` 直前の結果 |
+| 待機 | `FUJISOKU SRAM   v2.6` | `Card:OK / NONE` と電池電圧（例 `Bat:2.95V`。1.00 V 以下は後ろに `!`） | `SD:OK / NONE / off`、`PC:OK / --` | `Last:` 直前の結果。電池が 1.00 V 以下なら `! Card battery low !` |
 | 処理中 | 題名と経過時間 | 段階 | 進捗バー（15 文字）と % | アドレス / 合計と速度 |
 | 結果 | 記号、題名、見出し（`DONE` `MISMATCH` `NO SD` `SD LOST` `CANCELED` など） | 説明（2 行に折り返し） | | 所要時間とエラーコード |
 
@@ -227,12 +251,24 @@ v1 との違い:
 | 読み違い | Web アプリは既定で 2 回読んで比べ、違えば保存しない |
 | 書き込みの確かめ | `sd load ... v` と Web アプリの書き込みは、読み戻して照合する |
 | PC が途中で止まった | 本体は 8 秒で PC 主導の表示を終える。カードへの書き込みは 64 バイト単位なので、途中までは書かれている（Web アプリの自動保存から戻せる） |
+| カードの挿し忘れ | /CARD DET で検出し、カードが無ければカードを使う操作を止める（空の `FF` を「保存できた」と思い込まない）。処理中に抜かれても止める |
+| 電池切れ | 電池電圧を表示し、1.00 V 以下で警告。中身が消える前に保存できる |
 | 配線の不安 | 62256 があれば、カードを挿す前に `test p` でバスを確かめられる。SPI SRAM は `test` で確かめられる（見つからないときも実行できる） |
 | 範囲外のアドレス | PC からの `rd` `wr` `fill` は、桁あふれも含めて対象の範囲（カード 256KB、SPI SRAM 64KB、62256 32KB）の外を断る |
 
 ## 12. 変更履歴
 
-### 12.1 v2.5（SPI SRAM をオプションに。リリース版）
+### 12.1 v2.6（カードの検出と電池電圧）
+
+| 区分 | 内容 |
+|---|---|
+| 配線 | カードの /CARD DET（F37）を D2、BATT-DET（F2）を A0 に直接つなぐ |
+| カードの検出 | `USE_CARD_DET`（既定 1）。カードが無いとカードを使う操作は `ERR NOCARD`。処理中に抜かれたら止めて `ERR NOCARD Card removed at 0x....`。抜き差しは `E CARD 1/0` |
+| 電池電圧 | `USE_BATT_DET`（既定 1）。0.5 秒ごとに測り、`E BATT <mV>` で知らせる。1.00 V（`BATT_LOW_MV`）以下で LCD と Web アプリに警告 |
+| 通信 | `hello` に `carddet` `battdet` `battlow`、`status` に `card` `batt` を追加 |
+| 表示 | LCD の待機画面の 2 行目をカードと電池に、3 行目を SD・PC にした。Web アプリの「本体」欄にカードと電池、電池が少ないときは画面の上に警告 |
+
+### 12.2 v2.5（SPI SRAM をオプションに。リリース版）
 
 | 区分 | 内容 |
 |---|---|
@@ -244,7 +280,7 @@ v1 との違い:
 | 実機 | Arduino UNO R4 と作者の基板で動作を確認済み（SPI SRAM のオプション化を含む） |
 | 公開 | v2.5 をベータ版からリリース版にした（2026-11-07） |
 
-### 12.2 v2.4（32KB より大きいカード）
+### 12.3 v2.4（32KB より大きいカード）
 
 | 区分 | 内容 |
 |---|---|
@@ -253,7 +289,7 @@ v1 との違い:
 | Web アプリ | 読み込む大きさを 32KB（既定）/ 64KB / 128KB / 256KB のボタンで選ぶ。32KB〜256KB のファイルを書き込める。32KB より大きいときは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。比較とメモリマップ・16 進表示も大きさに合わせる |
 | 上限 | 256KB（A0〜A17）。A18・A19 は MCP につながっていない |
 
-### 12.3 v2.3（コードレビューの結果）
+### 12.4 v2.3（コードレビューの結果）
 
 | 区分 | 内容 |
 |---|---|
@@ -273,9 +309,9 @@ v1 との違い:
 
 | 確認 | 内容 |
 |---|---|
-| ホストでのビルド | スケッチを Arduino IDE と同じ手順で 1 ファイルにまとめ、既定（SD なし）・SD あり・SD あり + `USE_LCD=0`・SD あり + `USE_SRAM62256=1`・`USE_SPI_SRAM=0` の 5 通りを `-Wall -Wextra` で警告なしにビルド |
-| 本物のライブラリでの型チェック | 本物の SdFat と LiquidCrystal I2C のヘッダに対して、5 通り（既定、SD・LCD あり、+ 62256、SD あり・LCD なし、SD・LCD・SPI SRAM なし）すべて警告・エラーなし。使わない部品のライブラリは渡さずに確認（既定は SdFat なし、SD・LCD なしは外部ライブラリなし） |
-| シミュレータでの動作 | MCP23S17 ×2（BANK・HAEN・A2 の癖まで）、カード、62256、23LC512、SD カード（抜き差し・差し替え）、HD44780 LCD（あり・なし）を再現したシミュレータで、ファームウェア 30 件、表示 9 件、Web アプリ 21 件の自動テストがすべて成功 |
+| ホストでのビルド | スケッチを Arduino IDE と同じ手順で 1 ファイルにまとめ、既定（SD なし）・SD あり・SD あり + `USE_LCD=0`・SD あり + `USE_SRAM62256=1`・`USE_SPI_SRAM=0`（カード検出・電池も 0）の 5 通りを `-Wall -Wextra` で警告なしにビルド |
+| 本物のライブラリでの型チェック | 本物の SdFat と LiquidCrystal I2C のヘッダに対して、5 通り（既定、SD・LCD あり、+ 62256、SD あり・LCD なし、最小構成（SD・LCD・SPI SRAM・カード検出・電池なし））すべて警告・エラーなし。使わない部品のライブラリは渡さずに確認（既定は SdFat なし、SD・LCD なしは外部ライブラリなし） |
+| シミュレータでの動作 | MCP23S17 ×2（BANK・HAEN・A2 の癖まで）、カード、62256、23LC512、SD カード（抜き差し・差し替え）、HD44780 LCD（あり・なし）を再現したシミュレータで、ファームウェア 31 件、表示 9 件、Web アプリ 23 件の自動テストがすべて成功 |
 | バスの使い方 | ファームウェアと表示のテストで、トランザクション外の SPI 転送、MCP の上限を超えるクロック、バス衝突、書き込み中のアドレス・データの変化、2 つ以上の /CS が同時に Low、LCD の CGRAM への誤書き込み、LCD が無いのに LCD へ送ること、が 0 件。`USE_SD=0` では SD カードへのアクセスが 0 件 |
 | 62256 のバス試験 | データ線・アドレス線を H / L に固定する故障を入れると、その線を言い当てることを確認 |
 

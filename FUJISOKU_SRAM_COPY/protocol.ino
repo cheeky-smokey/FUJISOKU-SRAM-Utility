@@ -54,8 +54,15 @@ static bool parse_dev(const char *s, uint8_t *dev) {
 }
 
 // 対象が使えるか。使えなければエラー行を返して false
-//   使わない設定でビルドした → ERR DISABLED、SPI SRAM が見つからない → ERR NOSPI
+//   使わない設定でビルドした → ERR DISABLED、SPI SRAM が見つからない → ERR NOSPI、カードが無い → ERR NOCARD
 static bool dev_ready(uint8_t dev) {
+  if (dev == DEV_FUJISOKU) {
+    if (!card_now()) {
+      reply_err("NOCARD", "No card in the slot");
+      return false;
+    }
+    op_needs_card = true;  // 処理中に抜かれたら止める
+  }
   if (dev == DEV_SRAM62256 && !USE_SRAM62256) {
     reply_err("DISABLED", "62256 is not used (USE_SRAM62256 0)");
     return false;
@@ -117,7 +124,13 @@ void print_status() {
   Serial.print('-');
 #endif
   Serial.print(" lcd=");
-  Serial.println(ui_lcd_present() ? 1 : 0);
+  Serial.print(ui_lcd_present() ? 1 : 0);
+  Serial.print(" card=");  // カードの有無 (1 / 0、- = 検出しない設定)
+  if (USE_CARD_DET) Serial.print(card_inserted ? 1 : 0);
+  else Serial.print('-');
+  Serial.print(" batt=");  // 電池電圧 [mV] (- = 測っていない)
+  if (batt_mv >= 0) Serial.println(batt_mv);
+  else Serial.println('-');
 }
 
 void print_help() {
@@ -144,6 +157,13 @@ static bool proto_cancel_taken() {
   return false;
 }
 
+// rd / wr / fill を途中で止めたときの返事 (カードが抜かれたなら ERR NOCARD)
+static void reply_cancel() {
+  if (op_card_lost) reply_err("NOCARD", "Card removed");
+  else reply_err("CANCEL", "cancelled");
+  op_card_lost = false;
+}
+
 static void cmd_rd(uint8_t dev, uint32_t addr, uint32_t len) {
   char line[24 + CHUNK_BYTES * 2];
   if (!range_ok(dev, addr, len)) {
@@ -168,7 +188,7 @@ static void cmd_rd(uint8_t dev, uint32_t addr, uint32_t len) {
     op_poll_cancel();
     if (proto_cancel_taken()) {
       bus_idle();
-      reply_err("CANCEL", "cancelled");
+      reply_cancel();
       return;
     }
   }
@@ -198,7 +218,7 @@ static void cmd_wr(uint8_t dev, uint32_t addr, const char *hex) {
     blockbuf[i] = (uint8_t)(h * 16 + l);
   }
   if (proto_cancel_taken()) {
-    reply_err("CANCEL", "cancelled");
+    reply_cancel();
     return;
   }
   for (uint32_t i = 0; i < n; i++) dev_write(dev, addr + i, blockbuf[i]);
@@ -221,7 +241,7 @@ static void cmd_fill(uint8_t dev, uint32_t addr, uint32_t len, uint8_t value) {
       op_poll_cancel();
       if (proto_cancel_taken()) {
         bus_idle();
-        reply_err("CANCEL", "cancelled");
+        reply_cancel();
         return;
       }
     }
@@ -311,8 +331,12 @@ static bool proto_idle_or_busy() {
 // 従来の 1 文字コマンド
 static void proto_legacy(char c) {
   if (c != '?' && c != 'h' && !proto_idle_or_busy()) return;
+  op_needs_card = false;
+  op_card_lost = false;
   // SPI SRAM を使うコマンド (T は SPI SRAM が見つからなくても配線の確認に使えるので、設定だけ確かめる)
   if (strchr("RCXSWE", c) && !dev_ready(DEV_SPI_SRAM)) return;
+  // カードを使うコマンド
+  if (strchr("RCXBLVe", c) && !dev_ready(DEV_FUJISOKU)) return;
   switch (c) {
     case 'R': op_copy(DEV_FUJISOKU, DEV_SPI_SRAM); break;
     case 'C': op_copy(DEV_SPI_SRAM, DEV_FUJISOKU); break;
@@ -385,6 +409,8 @@ void proto_exec(char *line) {
   uint32_t v1 = 0, v2 = 0, v3 = 0;
 
   if (op_session == 2) op_session_ms = millis();
+  op_needs_card = false;
+  op_card_lost = false;
 
   // 1 文字だけの行 = 従来コマンド
   if (line[0] != '\0' && line[1] == '\0') {
@@ -419,7 +445,13 @@ void proto_exec(char *line) {
     Serial.print(" sdcard=");
     Serial.print(USE_SD);
     Serial.print(" spisram=");
-    Serial.println(spi_sram_status());  // ok / none (見つからない) / off (USE_SPI_SRAM = 0)
+    Serial.print(spi_sram_status());  // ok / none (見つからない) / off (USE_SPI_SRAM = 0)
+    Serial.print(" carddet=");
+    Serial.print(USE_CARD_DET);
+    Serial.print(" battdet=");
+    Serial.print(USE_BATT_DET);
+    Serial.print(" battlow=");
+    Serial.println(BATT_LOW_MV);
   } else if (strcmp(cmd, "status") == 0) {
     print_status();
   } else if (strcmp(cmd, "sdcheck") == 0) {

@@ -74,10 +74,15 @@ static const char *op_sub(const char *a, const char *arrow, const char *b) {
 // 処理の開始・進捗・終了
 // ---------------------------------------------------------------------
 
-// 中断の確認 (PC からの '!')。処理中に届いたその他の入力は捨てる
+// 中断の確認 (PC からの '!')。処理中に届いたその他の入力は捨てる。
+// カードを使う処理の途中でカードが抜かれたときも中断にする (op_card_lost が立つ)
 bool op_poll_cancel() {
   while (Serial.available() > 0) {
     if (Serial.read() == '!') op_cancel = true;
+  }
+  if (op_needs_card && card_check_lost()) {
+    op_cancel = true;
+    op_card_lost = true;
   }
   return op_cancel;
 }
@@ -144,12 +149,18 @@ uint8_t op_finish(uint8_t res, const char *code, const char *msg) {
   ui_progress_end(res, code, op_msg);
   op_session = 0;
   op_cancel = false;
+  op_needs_card = false;
+  op_card_lost = false;
   return res;
 }
 
-// 中断で終わる
+// 中断で終わる (カードが抜かれたときは ERR NOCARD)
 uint8_t op_cancelled(uint32_t done) {
   char m[40];
+  if (op_card_lost) {
+    snprintf(m, sizeof(m), "Card removed at 0x%04lX", (unsigned long)done);
+    return op_finish(RES_ERR, "NOCARD", m);
+  }
   snprintf(m, sizeof(m), "Stopped at 0x%04lX", (unsigned long)done);
   return op_finish(RES_CANCEL, "CANCEL", m);
 }

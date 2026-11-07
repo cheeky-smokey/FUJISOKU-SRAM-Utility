@@ -18,6 +18,8 @@
 #define INPUT 0
 #define OUTPUT 1
 #define INPUT_PULLUP 2
+// UNO R4 の variant (pins_arduino.h) と同じ: アナログピンはデジタル番号 14-19
+static const uint8_t A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
 #define MSBFIRST 1
 #define LSBFIRST 0
 #define SPI_MODE0 0
@@ -67,6 +69,8 @@ void delayMicroseconds(unsigned int us);
 void pinMode(uint8_t pin, uint8_t mode);
 void digitalWrite(uint8_t pin, uint8_t val);
 int digitalRead(uint8_t pin);
+int analogRead(uint8_t pin);          // UNO R4 (ArduinoCore-renesas) と同じ形
+void analogReadResolution(int bits);
 long map(long x, long in_min, long in_max, long out_min, long out_max);
 
 class SerialClass : public Stream {

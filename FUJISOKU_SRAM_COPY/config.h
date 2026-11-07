@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.5"
+#define FSU_VERSION "2.6"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
@@ -36,6 +36,19 @@
 #define USE_SPI_SRAM 1
 #endif
 
+// カードの検出 (カードの F37 /CARD DET → D2)。
+//   1 にすると、カードが入っていないときはカードを使う操作が ERR NOCARD を返し、処理中に抜かれたら止める。
+//   0 にすると、いつも入っているものとして扱う (D2 を配線していない基板)。
+#ifndef USE_CARD_DET
+#define USE_CARD_DET 1
+#endif
+
+// カードの電池電圧 (カードの F2 BATT-DET → A0)。
+//   1 にすると、電圧を Web アプリと LCD に出し、BATT_LOW_MV 以下で警告する。
+#ifndef USE_BATT_DET
+#define USE_BATT_DET 1
+#endif
+
 // 動作確認用の並列 SRAM 62256 (カードと同じバスにつなぐ)。
 //   1 にすると、コマンドの対象 p として読み書き・コピー・比較・バスの配線試験 (test p) に使える。
 #ifndef USE_SRAM62256
@@ -61,6 +74,21 @@
 // MCP23S17 と SPI SRAM を操作するときの SPI クロック [Hz] (MCP23S17 の上限は 10 MHz)
 #ifndef SPI_BUS_HZ
 #define SPI_BUS_HZ 4000000
+#endif
+
+// /CARD DET の向き: 1 = カードが入ると Low (D2 は内蔵プルアップ)
+#ifndef CARD_DET_ACTIVE_LOW
+#define CARD_DET_ACTIVE_LOW 1
+#endif
+
+// カードの電池の警告電圧 [mV]。これ以下で警告する
+#ifndef BATT_LOW_MV
+#define BATT_LOW_MV 1000
+#endif
+
+// A0 の測定範囲 [mV] (UNO R4 は 5V が基準)。テスターで測った 5V の値にすると電圧が正確になる
+#ifndef BATT_ADC_FULL_MV
+#define BATT_ADC_FULL_MV 5000
 #endif
 
 // SD カードの生存確認の間隔 [ms] (カードが READY のときだけ行う)
@@ -102,13 +130,15 @@
 // Arduino のピン
 //   SPI: D13 SCK / D12 MISO / D11 MOSI (MCP23S17、SPI SRAM、SD カードで共有)
 //   I2C: A4 SDA / A5 SCL (LCD)
-//   D2、D8、D9、D10 は未使用
+//   D0、D1、D8、D9、D10、A1-A3 は未使用
 // =====================================================================
 #define PIN_CS_SD 7        // SD カードの /CS。USE_SD = 0 でも High にしておく (モジュールが付いたままでも邪魔しない)
 #define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS。USE_SPI_SRAM = 0 でも High にしておく
 #define PIN_MCP_RESET 5    // MCP23S17 の /RESET (2 個共通)
 #define PIN_CS_MCP 4       // MCP23S17 の /CS (2 個共通。ハードウェアアドレスで区別する)
 #define PIN_MCP_INT 3      // 未接続 (MCP23S17 の INT は使わない。入力にしておくだけ)
+#define PIN_CARD_DET 2     // カードの /CARD DET (F37)。内蔵プルアップの入力
+#define PIN_BATT_DET A0    // カードの BATT-DET (F2)。アナログ入力
 
 // =====================================================================
 // MCP23S17 (GPIO エキスパンダ)

@@ -6,11 +6,14 @@
 //
 //  待機画面                 進捗画面                 結果画面
 //  +--------------------+   +--------------------+   +--------------------+
-//  |FUJISOKU SRAM   v2.5|   |BACKUP         00:04|   |v BACKUP        DONE|
-//  |SD:OK       PC:OK   |   |Reading card        |   |32768 bytes ->      |
-//  |Ready               |   |#######-------  47% |   |fujisoku.bin        |
+//  |FUJISOKU SRAM   v2.6|   |BACKUP         00:04|   |v BACKUP        DONE|
+//  |Card:OK   Bat:2.95V |   |Reading card        |   |32768 bytes ->      |
+//  |SD:OK       PC:OK   |   |#######-------  47% |   |fujisoku.bin        |
 //  |Last:v BACKUP OK    |   |0x3B00/0x8000 3.2k/s|   |Time 00:10          |
 //  +--------------------+   +--------------------+   +--------------------+
+//
+// - 待機画面の 2 行目はカードの有無と電池電圧。電池が BATT_LOW_MV 以下なら電圧の後ろに '!' を付け、
+//   4 行目を "! Card battery low !" にする (Last の代わり)
 //
 // - 進捗バーは CGRAM の自作文字で 1 文字を 5 段階に分け、15 文字 = 75 段階で表示する
 // - I2C の LCD は 1 文字の転送に約 1ms かかるため、前回の表示と違う文字だけを書き換える
@@ -176,17 +179,39 @@ void ui_splash_status(const char *text) {
   lcd_row(3, text);
 }
 
+// 待機画面の 2-4 行目 (カード・電池、SD・PC、最後の結果か電池の警告)。0.2 秒ごとに描き直す
 static void draw_idle_status() {
   char line[40];
   bool usb = (bool)Serial;
+
+  // 2 行目: カードと電池
+  const char *card = USE_CARD_DET ? (card_inserted ? "OK" : "NONE") : "--";
+  if (batt_mv >= 0) {
+    snprintf(line, sizeof(line), "Card:%-5sBat:%u.%02uV%s", card, (unsigned)(batt_mv / 1000), (unsigned)(batt_mv % 1000 / 10),
+             batt_low() ? "!" : "");
+  } else {
+    snprintf(line, sizeof(line), "Card:%s", card);
+  }
+  lcd_row(1, line);
+
+  // 3 行目: SD カードと PC
 #if USE_SD
   const char *sd = sd_state == SD_STATE_READY ? "OK" : (sd_state == SD_STATE_ABSENT ? "NONE" : "--");
 #else
   const char *sd = "off";  // SD カードを使わない設定
 #endif
   snprintf(line, sizeof(line), "SD:%-8sPC:%s", sd, usb ? "OK" : "--");
-  lcd_row(1, line);
-  lcd_row(2, usb ? "Ready" : "Waiting for PC (USB)");
+  lcd_row(2, line);
+
+  // 4 行目: 電池の警告、なければ最後の結果
+  if (batt_low()) {
+    lcd_row(3, "! Card battery low !");
+  } else if (ui_last_res == 255) {
+    lcd_row(3, "Last:---");
+  } else {
+    snprintf(line, sizeof(line), "Last:%s", ui_last_text);
+    lcd_row(3, line);
+  }
 }
 
 static void draw_idle() {
@@ -194,12 +219,6 @@ static void draw_idle() {
   snprintf(line, sizeof(line), "%-15s%5s", "FUJISOKU SRAM", "v" FSU_VERSION);
   lcd_row(0, line);
   draw_idle_status();
-  if (ui_last_res == 255) {
-    lcd_row(3, "Last:---");
-  } else {
-    snprintf(line, sizeof(line), "Last:%s", ui_last_text);
-    lcd_row(3, line);
-  }
   ui_screen = SCREEN_IDLE;
 }
 
@@ -377,6 +396,6 @@ void ui_poll() {
   }
   if (ui_screen == SCREEN_IDLE && now - ui_idle_ms >= 200) {
     ui_idle_ms = now;
-    draw_idle_status();  // SD の抜き差しや USB の接続を反映 (変わった文字だけ送る)
+    draw_idle_status();  // カード・SD の抜き差し、電池、USB の接続を反映 (変わった文字だけ送る)
   }
 }

@@ -31,6 +31,8 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 | `S <段階>` | 処理の段階が変わった（例: `S Reading card`） |
 | `P <済み> <合計>` | 進捗（0.1 秒ごと、最後は必ず合計） |
 | `E SD 0` / `E SD 1` | SD カードが使えなくなった / 使えるようになった |
+| `E CARD 0` / `E CARD 1` | メモリカードが抜かれた / 挿された（`USE_CARD_DET` のとき、v2.6 から） |
+| `E BATT <mV>` | カードの電池電圧（`USE_BATT_DET` のとき。50 mV 以上変わったときと、警告の境目をまたいだとき） |
 | `E UI timeout` | PC 主導の表示（§2.4）で PC から 8 秒連絡がなく、表示を戻した |
 | `LCD <16進 160 桁>` | LCD の表示（`lcd on` のとき、変わるたびに送られる） |
 
@@ -44,8 +46,8 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.5 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok`（既定の構成）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
-| `status` | `STATUS sd=- busy=0 spi=40 lcd=1`（`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`、`USE_SPI_SRAM` が 0 なら `-`。`lcd` は LCD の有無） |
+| `hello` | `HELLO FSU 2.6 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1000`（既定の構成）。`carddet` / `battdet` はカードの検出・電池電圧を使うか（`USE_CARD_DET` / `USE_BATT_DET`）、`battlow` は電池の警告電圧 [mV]（v2.6 から）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `status` | `STATUS sd=- busy=0 spi=40 lcd=1 card=1 batt=2950`（`card` はカードの有無（`1` / `0`、検出しない設定なら `-`）、`batt` は電池電圧 [mV]（測っていなければ `-`）。`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`、`USE_SPI_SRAM` が 0 なら `-`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
 | `lcd on` / `lcd off` | 表示が変わるたびに `LCD` 行を送る / やめる（`lcd off` は `OK lcd off`）。USB が切れると自動でやめる |
@@ -107,7 +109,7 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 
 | 操作 | 送るコマンド |
 |---|---|
-| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sram62256=` `sdcard=` `cardmax=` で構成を知り、`sdcard=0` なら SD のタブを隠し、`cardmax` より大きい読み込みのボタンは押せなくする）→ `status` → `lcd on` |
+| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sram62256=` `sdcard=` `cardmax=` `carddet=` `battdet=` `battlow=` で構成を知り、`sdcard=0` なら SD のタブを隠し、`cardmax` より大きい読み込みのボタンは押せなくする）→ `status`（`card=` `batt=` でカードと電池を表示）→ `lcd on`。以後は `E CARD` / `E BATT` で表示を更新 |
 | PC に保存 | `ui begin <大きさ×2> Card_to_PC` → `rd f <a> 2048` と `ui prog` を（大きさ ÷ 2048）回 × 2 周（32KB なら 16 回）→ 2 周の結果を比べる → `ui end ok Saved_to_PC` |
 | カードに書き込み | （32KB より大きいファイルは、先頭 32KB だけかすべてかを PC 側で選ぶ）→（書き込む前の保存: 書き込む大きさの読み込みを 1 周）→ `ui begin <合計> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `rd` で読み戻して照合 → `ui end ok ...` |
 | 比較（カード） | `ui begin <ファイルの大きさ> Compare` → `rd` をファイルの大きさまで → PC 側で比較 → `ui end ok\|ng ...` |
@@ -131,6 +133,7 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 | `BADSIZE` | ファイルが 32,768 バイトでない | |
 | `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` / `USE_SPI_SRAM` / `USE_SRAM62256` が 0 のときのコマンド・対象） | `config.h` を確かめる |
 | `NOSPI` | SPI SRAM が見つからない（`USE_SPI_SRAM` は 1） | 配線（/CS = D6・SCK・MISO・MOSI・電源）を確かめて `test` を実行する |
+| `NOCARD` | メモリカードが入っていない（`No card in the slot`）、または処理の途中で抜かれた（`Card removed at 0x....`）。カードを使うコマンドだけ | カードを挿してやり直す |
 
 ## 4. 1 文字コマンド（v1 互換）
 
@@ -152,7 +155,7 @@ v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は�
 
 ```
 > hello
-< HELLO FSU 2.5 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok
+< HELLO FSU 2.6 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000
 > sd save f game1
 < S Checking SD card
 < S Opening file

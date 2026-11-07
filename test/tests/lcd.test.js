@@ -48,10 +48,10 @@ async function expectCleanLcd(fw) {
   for (const k of ['no_txn', 'spi_dead', 'over_clock', 'bus_conflict', 'lcd_absent_writes']) assert.equal(d[k], 0, k);
 }
 
-test('待機画面: 名前・SD/PC の状態・直前の結果', async () => {
+test('待機画面: 名前・カードと電池・SD/PC の状態・直前の結果', async () => {
   const fw = await boot();
   const r = await rows(fw, 'idle');
-  assert.deepEqual(r, ['FUJISOKU SRAM   v2.5', 'SD:OK      PC:OK    ', 'Ready               ', 'Last:---            ']);
+  assert.deepEqual(r, ['FUJISOKU SRAM   v2.6', 'Card:OK   Bat:3.00V ', 'SD:OK      PC:OK    ', 'Last:---            ']);
   await expectCleanLcd(fw);
 });
 
@@ -59,16 +59,19 @@ test('SD の抜き差しと USB の接続が待機画面にすぐ出る', async 
   const fw = await boot();
   await fw.ctl('sd remove');
   await fw.advance(2000);
-  assert.equal((await rows(fw, 'idle_nosd'))[1], 'SD:NONE    PC:OK    ');
+  assert.equal((await rows(fw, 'idle_nosd'))[2], 'SD:NONE    PC:OK    ');
   await fw.ctl('sd insert');
   await fw.cmd('sdcheck');
   await fw.advance(16000);
-  assert.equal((await rows(fw))[1], 'SD:OK      PC:OK    ');
+  assert.equal((await rows(fw))[2], 'SD:OK      PC:OK    ');
   await fw.ctl('usb 0');
   await fw.advance(300);
   const r = await rows(fw, 'idle_nousb');
-  assert.equal(r[1], 'SD:OK      PC:--    ');
-  assert.equal(r[2], 'Waiting for PC (USB)');
+  assert.equal(r[2], 'SD:OK      PC:--    ');
+  // カードを抜くと Card:NONE、電圧は消える
+  await fw.ctl('cardpresent 0');
+  await fw.advance(300);
+  assert.equal((await rows(fw, 'idle_nocard'))[1], 'Card:NONE           ');
   await expectCleanLcd(fw);
 });
 
@@ -160,7 +163,7 @@ test('結果画面は 15 秒後に待機画面へ戻り、結果は Last: に残
   assert.match((await rows(fw))[0], /DONE$/);
   await fw.advance(11000);
   const r = await rows(fw, 'idle_last');
-  assert.equal(r[0], 'FUJISOKU SRAM   v2.5');
+  assert.equal(r[0], 'FUJISOKU SRAM   v2.6');
   assert.equal(r[3], 'Last:{6} BACKUP OK    ');
 });
 

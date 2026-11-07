@@ -126,6 +126,10 @@ button, input, select { font: inherit; color: inherit; }
 .pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--hole-empty); }
 .pill.ok::before { background: var(--ok); }
 .pill.bad::before { background: var(--bad); }
+.pill.warn { color: var(--bad); font-weight: 600; }
+.pill.warn::before { background: var(--bad); }
+.alert { display: grid; gap: 4px; padding: 12px 16px; margin-bottom: 14px; border-radius: 12px; background: color-mix(in srgb, var(--bad) 12%, var(--panel)); box-shadow: inset 4px 0 0 var(--bad); color: var(--ink); font-size: 14px; }
+.alert strong { color: var(--bad); font-size: 15px; }
 .device .btn { margin-top: 14px; width: 100%; }
 .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
 
@@ -301,6 +305,8 @@ dialog .row { justify-content: flex-end; }
       <h2 id="devTitle">本体</h2>
       <div class="lcd-wrap"><canvas id="lcd" width="760" height="190" aria-label="本体の表示 (LCD と同じ内容)"></canvas></div>
       <dl class="facts">
+        <dt>カード</dt><dd><span class="pill" id="cardState">—</span></dd>
+        <dt>電池</dt><dd><span class="pill" id="battState">—</span></dd>
         <dt>SD カード</dt><dd><span class="pill" id="sdState">—</span></dd>
         <dt>LCD</dt><dd id="lcdState">—</dd>
         <dt>SPI SRAM</dt><dd id="spiState">—</dd>
@@ -315,6 +321,10 @@ dialog .row { justify-content: flex-end; }
   </aside>
 
   <div class="work">
+    <div class="alert" id="battAlert" role="alert" hidden>
+      <strong>カードの電池が少なくなっています (<span id="battAlertV"></span>)</strong>
+      <span>電池が切れるとカードの中身が消えます。いまのうちに「PC に保存」で保存してから、電池を交換してください。</span>
+    </div>
     <section class="card prog" id="prog" hidden aria-live="polite">
       <div class="prog-head"><strong id="progTitle">処理中</strong><span id="progPhase"></span></div>
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progBar"><div id="progFill"></div></div>
@@ -577,6 +587,7 @@ const ERR_TEXT = {
   CANCEL: ['中断しました', ''],
   BUSY: ['本体が別の処理をしています', '終わるのを待ってから、もう一度実行してください。'],
   DISABLED: ['この本体は SD カードを使わない設定です', 'スケッチの config.h で USE_SD を 1 にすると使えます。'],
+  NOCARD: ['カードが入っていません', 'カードをスロットの奥まで挿してから、もう一度操作してください。処理の途中で抜いた場合は、最初からやり直してください。'],
   NOSPI: ['SPI SRAM が見つかりません', '配線 (/CS = D6・SCK・MISO・MOSI・電源) を確かめて、「SPI SRAM の自己診断」を実行してください。'],
   TIMEOUT: ['本体から応答がありません', 'USB ケーブルを確かめて、接続し直してください。'],
   CLOSED: ['本体との接続が切れました', 'USB ケーブルを確かめて、「本体に接続」からつなぎ直してください。'],
@@ -752,7 +763,7 @@ class Device {
 // 画面の状態
 // =====================================================================
 const dev = new Device();
-const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, spisram: 'ok', cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, spisram: 'ok', carddet: false, battdet: false, card: null, batt: null, battLow: 1000, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
 let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
 
 function refreshButtons() {
@@ -777,6 +788,7 @@ function setConnected(on, ver) {
     lcdBytes = null; setSd(null); drawLcd();
     $('#lcdState').textContent = '—'; $('#ramState').textContent = '—'; $('#tools62256').hidden = true;
     state.spisram = 'ok'; showSpiUi(); $('#spiState').textContent = '—';
+    setCard(null);
     state.sdcard = true; showSdUi(true); setSd(null);
     state.cardMax = MAX_SIZE;
   }
@@ -805,6 +817,25 @@ function showSpiUi() {
   $('#toolsLead').textContent = v === 'off'
     ? 'この本体は SPI SRAM を使わない設定です。カードの消去と、62256 を使う設定なら 62256 での配線の確認ができます。'
     : '本体の SPI SRAM を一時置き場として使う操作と、配線の確認です。';
+}
+// カードの有無: true / false / null (分からない、検出しない設定)
+function setCard(v) {
+  state.card = v;
+  const el = $('#cardState');
+  el.className = 'pill' + (v === true ? ' ok' : v === false ? ' bad' : '');
+  el.textContent = v === true ? '入っています' : v === false ? '入っていません' : (state.connected && !state.carddet ? '検出しない' : '—');
+  if (v !== true) setBatt(null);
+}
+// 電池電圧 [mV]。null = 測っていない。state.battLow 以下なら警告
+function setBatt(mv) {
+  state.batt = mv;
+  const el = $('#battState');
+  const low = mv !== null && mv <= state.battLow;
+  const v = mv !== null ? `${(mv / 1000).toFixed(2)} V` : '';
+  el.className = 'pill' + (mv === null ? '' : low ? ' warn' : ' ok');
+  el.textContent = mv === null ? (state.connected && !state.battdet ? '測らない' : '—') : low ? `${v} (少ない)` : v;
+  $('#battAlert').hidden = !low;
+  $('#battAlertV').textContent = v;
 }
 function setSd(v) {
   if (state.connected && !state.sdcard) return;
@@ -885,6 +916,12 @@ dev.onEvent = (l) => {
     if (/^[0-9A-F]{160}$/i.test(h)) { lcdBytes = Uint8Array.from(h.match(/../g), (x) => parseInt(x, 16)); drawLcd(); }
   } else if (l === 'E SD 1') setSd(true);
   else if (l === 'E SD 0') setSd(false);
+  else if (l === 'E CARD 1') setCard(true);
+  else if (l === 'E CARD 0') setCard(false);
+  else if (l.startsWith('E BATT ')) {
+    const mv = parseInt(l.slice(7), 10);
+    if (state.card !== false) setBatt(Number.isFinite(mv) && mv >= 0 ? mv : null);
+  }
 };
 dev.onClose = () => {
   setConnected(false);
@@ -930,6 +967,13 @@ async function connect() {
     const st = await dev.request('status');
     const m = /sd=(\d)/.exec(st.last);
     if (m && state.sdcard) setSd(m[1] === '1');
+    // カードと電池 (v2.6 から。古いスケッチには無い)
+    state.carddet = /carddet=1/.test(hello);
+    state.battdet = /battdet=1/.test(hello);
+    state.battLow = +((/battlow=(\d+)/.exec(hello) || [])[1] || 1000);
+    const c = /card=([01-])/.exec(st.last), b = /batt=(\d+|-)/.exec(st.last);
+    setCard(c ? (c[1] === '-' ? null : c[1] === '1') : null);
+    if (b && b[1] !== '-') setBatt(+b[1]);
     await dev.request('lcd on');
     clearResult('#resSave');
   } catch (e) {

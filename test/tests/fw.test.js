@@ -30,9 +30,9 @@ const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
 test('起動: SD があれば READY、バスの不正利用なし', async () => {
   const fw = await boot();
   assert.ok(fw.lines.includes('E SD 1'));
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.5 ready (LCD 20x4, SD on, 62256 off, SPI SRAM ok)')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6 ready (LCD 20x4, SD on, 62256 off, SPI SRAM ok, card in)')));
   const r = await fw.cmd('hello');
-  assert.match(r.last, /^HELLO FSU 2\.5 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok$/);
+  assert.match(r.last, /^HELLO FSU 2\.6 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
   await expectClean(fw);
   await fw.close();
 });
@@ -320,7 +320,7 @@ test('旧 1 文字コマンドと CRLF', async () => {
   const fw = await boot();
   fw.send('?\r\n');
   await fw.advance(50);
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.5')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6')));
   const r = await fw.cmd('e');
   assert.match(r.last, /^OK fill/);
   assert.ok((await fw.cardDump()).every((b) => b === 0xff));
@@ -386,10 +386,60 @@ test('処理が終わるとアドレス・データ線を手放し、制御線�
   await fw.close();
 });
 
-test('カードが挿さっていないとき、読み出しは全部 FF (照合で不一致になる)', async () => {
-  const fw = await boot({ args: ['--no-card'] });
-  const r = await fw.cmd('rd f 0 8');
-  assert.equal(r.lines[0], 'D 0000 FFFFFFFFFFFFFFFF');
+test('カードの検出 (/CARD DET = D2): 無ければ ERR NOCARD、抜き差しは E CARD で知らせる', async () => {
+  let fw = await boot({ args: ['--no-card'] });
+  assert.ok(fw.lines.some((l) => /card none\)/.test(l)), '起動メッセージ');
+  for (const c of ['rd f 0 8', 'wr f 0 00', 'fill f 0 1 0', 'copy f s', 'copy s f', 'cmp', 'erase f', 'R', 'C', 'X', 'e', 'B', 'L', 'V', 'sd save f']) {
+    assert.equal((await fw.cmd(c)).last, 'ERR NOCARD No card in the slot', c);
+  }
+  // カードを使わない操作はできる
+  assert.match((await fw.cmd('rd s 0 1')).last, /^OK rd/);
+  assert.match((await fw.cmd('erase s')).last, /^OK fill/);
+  assert.match((await fw.cmd('status')).last, / card=0 batt=-$/);
+  // 挿す: 50 ms のチャタリング除去のあと E CARD 1、続けて電池電圧
+  await fw.ctl('cardpresent 1');
+  await fw.advance(400);
+  assert.ok(fw.lines.includes('E CARD 1'));
+  assert.ok(fw.lines.includes('E BATT 3000'), fw.lines.slice(-5).join('|'));
+  assert.match((await fw.cmd('status')).last, / card=1 batt=3000$/);
+  assert.match((await fw.cmd('rd f 0 1')).last, /^OK rd 1/);
+  // 抜く
+  await fw.ctl('cardpresent 0');
+  await fw.advance(200);
+  assert.ok(fw.lines.includes('E CARD 0'));
+  await fw.close();
+
+  // 処理の途中で抜かれたら止める
+  fw = await boot();
+  await fw.ctl('trigger P>=8192 => cardpresent 0');
+  assert.match((await fw.cmd('R')).last, /^ERR NOCARD Card removed at 0x[0-9A-F]{4}$/);
+  await fw.ctl('cardpresent 1');
+  await fw.advance(200);
+  await fw.ctl('trigger P>=4096 => cardpresent 0');
+  assert.match((await fw.cmd('sd save f cut')).last, /^ERR NOCARD Card removed/);
+  assert.equal(await fw.ctl('bus'), 'bus addr_dir=FFFF data_dir=FF ctrl=3F ctrl_dir=00', '止めたあとバスは待機状態');
+  await fw.close();
+});
+
+test('電池電圧 (BATT-DET = A0): 50 mV 以上の変化で E BATT、1.00 V 以下で LCD に警告', async () => {
+  const fw = await boot({ args: ['--batt-mv', '2950'] });
+  await fw.advance(800);
+  assert.match((await fw.cmd('status')).last, / batt=2950$/);
+  let lcd = lcdText((await fw.cmd('lcd')).last);
+  assert.equal(lcd[1], 'Card:OK   Bat:2.95V ');
+  await fw.ctl('batt 2930');  // 20 mV の変化は送らない
+  await fw.advance(800);
+  assert.ok(!fw.lines.includes('E BATT 2930'));
+  await fw.ctl('batt 1000');  // 1.00 V ちょうどは警告
+  await fw.advance(800);
+  assert.ok(fw.lines.includes('E BATT 1000'));
+  lcd = lcdText((await fw.cmd('lcd')).last);
+  assert.equal(lcd[1], 'Card:OK   Bat:1.00V!');
+  assert.equal(lcd[3], '! Card battery low !');
+  await fw.ctl('batt 1040');  // 境目をまたいだら 50 mV 未満でも送る
+  await fw.advance(800);
+  assert.ok(fw.lines.includes('E BATT 1040'));
+  assert.match(lcdText((await fw.cmd('lcd')).last)[3], /^Last:/);
   await fw.close();
 });
 
@@ -403,9 +453,9 @@ const lcdText = (line) => {
 
 test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
   const fw = await boot({ args: ['--no-lcd'] });
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.5 ready (LCD none')));
-  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1 spisram=ok$/);
-  assert.match((await fw.cmd('status')).last, /lcd=0$/);
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.6 ready (LCD none')));
+  assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
+  assert.match((await fw.cmd('status')).last, / lcd=0 /);
   assert.match((await fw.cmd('B')).last, /^OK sd/);
   const r = await fw.cmd('lcd');
   assert.match(lcdText(r.last)[0], /^# BACKUP +DONE$/);
@@ -441,7 +491,7 @@ test('62256 を使わない設定 (既定) では対象 p は ERR DISABLED', asy
 test('62256 オプション (USE_SRAM62256=1): 読み書き・コピー・比較・SD 保存', async () => {
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_62256') });
   assert.ok(fw.lines.some((l) => l.includes('62256 on')));
-  assert.match((await fw.cmd('hello')).last, /sram62256=1 sdcard=1 spisram=ok$/);
+  assert.match((await fw.cmd('hello')).last, /sram62256=1 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1000$/);
   const pat = pattern(22);
   await fw.cardLoad(pat);
   assert.match((await fw.cmd('wr p 0x10 A1B2C3')).last, /^OK wr/);
@@ -491,7 +541,7 @@ test('62256 でのバス試験 (test p): 正常なら OK、線の固定やショ
 test('SPI SRAM を使わない設定 (USE_SPI_SRAM=0): 対象 s と R C X E S W T は ERR DISABLED、カードは使える', async () => {
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nospi') });
   assert.ok(fw.lines.some((l) => l.includes('SPI SRAM off')), fw.lines.join('|'));
-  assert.match((await fw.cmd('hello')).last, /spisram=off$/);
+  assert.match((await fw.cmd('hello')).last, /spisram=off carddet=0 battdet=0 battlow=1000$/);
   assert.match((await fw.cmd('status')).last, / spi=- /);
   const want = 'ERR DISABLED SPI SRAM is not used (USE_SPI_SRAM 0)';
   for (const c of ['R', 'C', 'X', 'E', 'S', 'W', 'T', 'rd s 0 1', 'wr s 0 00', 'fill s 0 1 0', 'copy f s', 'copy s f', 'cmp', 'cmp s f', 'erase s', 'test', 'test s']) {
@@ -510,7 +560,7 @@ test('SPI SRAM を使わない設定 (USE_SPI_SRAM=0): 対象 s と R C X E S W 
 test('SPI SRAM が見つからない (USE_SPI_SRAM=1): SPI SRAM を使う操作は ERR NOSPI、自己診断は実行して NG', async () => {
   const fw = await boot({ args: ['--no-spi-sram'] });
   assert.ok(fw.lines.some((l) => l.includes('SPI SRAM none')), fw.lines.join('|'));
-  assert.match((await fw.cmd('hello')).last, /spisram=none$/);
+  assert.match((await fw.cmd('hello')).last, /spisram=none carddet=1 battdet=1 battlow=1000$/);
   for (const c of ['R', 'C', 'X', 'E', 'S', 'W', 'rd s 0 1', 'copy f s', 'cmp', 'erase s', 'sd save s']) {
     assert.equal((await fw.cmd(c)).last, 'ERR NOSPI SPI SRAM not found', c);
   }
@@ -523,7 +573,7 @@ test('SD カードを使わない設定 (USE_SD=0): SD のコマンドは ERR DI
   const fw = await boot({ bin: path.join(OUT, 'fsu_sim_nosd') });
   assert.ok(fw.lines.some((l) => l.includes('SD off')), fw.lines.join('|'));
   assert.ok(!fw.lines.some((l) => /^E SD/.test(l)), 'SD の通知は出さない');
-  assert.match((await fw.cmd('hello')).last, /sdcard=0 spisram=ok$/);
+  assert.match((await fw.cmd('hello')).last, /sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1000$/);
   assert.match((await fw.cmd('status')).last, /^STATUS sd=- busy=0/);
   for (const c of ['B', 'L', 'V', 'S', 'W', 'sdcheck', 'sd ls', 'sd check', 'sd save f', 'sd load f x v', 'sd verify f']) {
     assert.equal((await fw.cmd(c)).last, 'ERR DISABLED SD card is not used (USE_SD 0)', c);
@@ -540,7 +590,7 @@ test('SD カードを使わない設定 (USE_SD=0): SD のコマンドは ERR DI
   // 表示は SD:off
   const lcd = lcdText((await fw.cmd('lcd')).last);
   await fw.advance(16000);
-  assert.match(lcdText((await fw.cmd('lcd')).last)[1], /^SD:off +PC:OK/);
+  assert.match(lcdText((await fw.cmd('lcd')).last)[2], /^SD:off +PC:OK/);
   assert.ok(lcd.length === 4);
   const d = await fw.diag();
   assert.equal(d.sd_ops, 0, 'SD カードに触れない');

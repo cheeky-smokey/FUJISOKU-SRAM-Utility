@@ -83,7 +83,7 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.5');
+  assert.equal(await page.textContent('#fwVer'), 'v2.6');
   assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
   assert.equal(await page.textContent('#ramState'), '使わない');
@@ -91,8 +91,9 @@ test('接続: バージョン・SD の状態・本体 LCD の表示が出る', a
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.5');
-  assert.equal(t[1].trim(), 'SD:OK      PC:OK');
+  assert.equal(t[0], 'FUJISOKU SRAM   v2.6');
+  assert.equal(t[1].trim(), 'Card:OK   Bat:3.00V');
+  assert.equal(t[2].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
   noErrors(page);
   await app.close();
@@ -246,7 +247,7 @@ test('カードに書き込み: 32KB より大きいファイルは「先頭 32K
   const { page, fw } = app;
   await page.click('#t-write');
   await fileInput(page, '#fileWrite', 'big.bin', img);
-  assert.match(await page.textContent('#dropWrite'), /65,536 バイト \(64KB\)/);
+  await page.waitForFunction(() => /65,536 バイト \(64KB\)/.test(document.querySelector('#dropWrite').textContent));
   await page.uncheck('#optBackup');
   // やめる
   await page.click('#btnWrite');
@@ -508,7 +509,7 @@ test('SD カードを使わない本体: SD のタブと案内を隠し、PC へ
   await page.click('#dlgYes');
   assert.equal((await waitResult(page, '#resWrite')).kind, 'ok');
   assert.ok((await fw.cardDump()).equals(img));
-  await page.waitForFunction(() => lcdBytes && /SD:off/.test(String.fromCharCode(...lcdBytes.slice(20, 40))), null, { timeout: 30000 });
+  await page.waitForFunction(() => lcdBytes && /SD:off/.test(String.fromCharCode(...lcdBytes.slice(40, 60))), null, { timeout: 30000 });
   await page.screenshot({ path: path.join(SHOTS, 'nosd.png'), fullPage: true });
   // 切断すると SD のタブは戻る
   await page.click('#btnConnect');
@@ -543,6 +544,42 @@ test('SPI SRAM: 使わない設定なら操作を隠し、見つからなけれ�
   await page.waitForFunction(() => /自己診断/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
   assert.match(await page.textContent('#resTools'), /応答がありません/);
   assert.equal(await page.textContent('#spiState'), '見つかりません');
+  noErrors(page);
+  await app.close();
+});
+
+test('カードと電池: 状態を表示し、1.00 V 以下で警告、抜くと NOCARD の案内', async () => {
+  const app = await connected({ card: pattern(14), fwArgs: ['--batt-mv', '2950'] });
+  const { page, fw } = app;
+  assert.equal(await page.textContent('#cardState'), '入っています');
+  await page.waitForFunction(() => document.querySelector('#battState').textContent === '2.95 V', null, { timeout: 10000 });
+  assert.equal(await page.isVisible('#battAlert'), false);
+  // 電池が弱る
+  await fw.ctl('batt 900');
+  await page.waitForFunction(() => /0\.90 V \(少ない\)/.test(document.querySelector('#battState').textContent), null, { timeout: 10000 });
+  assert.equal(await page.isVisible('#battAlert'), true);
+  assert.match(await page.textContent('#battAlert'), /電池が少なくなっています \(0\.90 V\)/);
+  await page.waitForFunction(() => lcdBytes && /Bat:0\.90V!/.test(String.fromCharCode(...lcdBytes.slice(20, 40))), null, { timeout: 10000 });
+  await page.screenshot({ path: path.join(SHOTS, 'batt-low.png'), fullPage: true });
+  // カードを抜く
+  await fw.ctl('cardpresent 0');
+  await page.waitForFunction(() => document.querySelector('#cardState').textContent === '入っていません', null, { timeout: 10000 });
+  assert.equal(await page.textContent('#battState'), '—');
+  assert.equal(await page.isVisible('#battAlert'), false);
+  await page.uncheck('#optTwice');
+  await page.click('#btnSave');
+  const r = await waitResult(page, '#resSave');
+  assert.equal(r.kind, 'err', r.text);
+  assert.match(r.text, /カードが入っていません/);
+  noErrors(page);
+  await app.close();
+});
+
+test('カード検出・電池を使わない本体 (USE_CARD_DET=0, USE_BATT_DET=0)', async () => {
+  const app = await connected({ bin: path.join(OUT, 'fsu_sim_nospi'), card: pattern(15) });
+  const { page } = app;
+  assert.equal(await page.textContent('#cardState'), '検出しない');
+  assert.equal(await page.textContent('#battState'), '測らない');
   noErrors(page);
   await app.close();
 });

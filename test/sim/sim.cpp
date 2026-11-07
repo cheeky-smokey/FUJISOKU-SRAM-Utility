@@ -47,6 +47,8 @@ struct Diag {
 
 static bool spi_sram_present = true;  // false: SPI SRAM が無い (MISO は High のまま)
 static bool card_present = true;
+static int batt_mv_sim = 3000;     // カードの電池電圧 (BATT-DET → A0) [mV]
+static int adc_bits = 10;
 static uint32_t card_size = 0x8000;  // カードの容量 (--card-kb)。上のアドレス線は無視される
 static int glitch_addr = -1;
 // バス線の故障 (H / L 固定) の再現: mask のビットが val に固定される
@@ -392,7 +394,17 @@ void digitalWrite(uint8_t pin, uint8_t v) {
   if (pin == PIN_CS_MCP && old == LOW && v) mcp_deselect();
   if (pin == PIN_CS_SPI_SRAM) sram23_update_select();
 }
-int digitalRead(uint8_t pin) { return pin < sizeof(pin_level) ? pin_level[pin] : 0; }
+int digitalRead(uint8_t pin) {
+  if (pin == PIN_CARD_DET) return card_present ? LOW : HIGH;  // /CARD DET はカードの中で GND (D2 はプルアップ)
+  return pin < sizeof(pin_level) ? pin_level[pin] : 0;
+}
+void analogReadResolution(int bits) { adc_bits = bits; }
+int analogRead(uint8_t pin) {
+  if (pin != PIN_BATT_DET) return 0;
+  long full = (1L << adc_bits) - 1;
+  long mv = card_present ? batt_mv_sim : 2500;  // カードが無いと浮いている (中間くらいの値)
+  return (int)((mv * full + 2500) / 5000);
+}
 
 // ---------------------------------------------------------------------
 // シリアル (標準入出力)
@@ -956,7 +968,10 @@ static void ctl_exec(const std::string &line) {
     glitch_addr = (int)strtol(a[1].c_str(), nullptr, 16);
     reply("ok");
   } else if (c == "cardpresent" && a.size() >= 2) {
-    card_present = a[1] != "0";
+    card_present = a[1] != "0";  // カードの応答と /CARD DET (D2) の両方
+    reply("ok");
+  } else if (c == "batt" && a.size() >= 2) {
+    batt_mv_sim = atoi(a[1].c_str());  // カードの電池電圧 [mV]
     reply("ok");
   } else if (c == "poke" && a.size() >= 4) {
     // poke card|spi ADDR VALUE (16 進)
@@ -1042,6 +1057,7 @@ int main(int argc, char **argv) {
     else if (a == "--no-lcd") lcd_hw_present = false;
     else if (a == "--no-spi-sram") spi_sram_present = false;
     else if (a == "--no-card") card_present = false;
+    else if (a == "--batt-mv" && i + 1 < argc) batt_mv_sim = atoi(argv[++i]);
     else if (a == "--card-kb" && i + 1 < argc) {
       long kb = atol(argv[++i]);
       if (kb != 32 && kb != 64 && kb != 128 && kb != 256) {
