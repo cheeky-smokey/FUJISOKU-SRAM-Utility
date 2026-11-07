@@ -110,8 +110,8 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 | 操作 | 送るコマンド |
 |---|---|
 | 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sram62256=` `sdcard=` `cardmax=` `carddet=` `battdet=` `battlow=` `battnone=` で構成を知り、`sdcard=0` なら SD のタブを隠し、`cardmax` より大きい読み込みのボタンは押せなくする）→ `status`（`card=` `batt=` でカードと電池を表示）→ `lcd on`。以後は `E CARD` / `E BATT` で表示を更新 |
-| PC に保存 | `ui begin <大きさ×2> Card_to_PC` → `rd f <a> 2048` と `ui prog` を（大きさ ÷ 2048）回 × 2 周（32KB なら 16 回）→ 2 周の結果を比べる → `ui end ok Saved_to_PC` |
-| カードに書き込み | （32KB より大きいファイルは、先頭 32KB だけかすべてかを PC 側で選ぶ）→（書き込む前の保存: 書き込む大きさの読み込みを 1 周）→ `ui begin <合計> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `rd` で読み戻して照合 → `ui end ok ...` |
+| PC に保存 | 1 周ごとに `ui begin <大きさ> Card_to_PC` → `rd f <a> 2048` と `ui prog` を（大きさ ÷ 2048）回（32KB なら 16 回）。これを 2 周 → 2 周の結果を比べる → `ui end ok Saved_to_PC` |
+| カードに書き込み | （32KB より大きいファイルは、先頭 32KB だけかすべてかを PC 側で選ぶ）→（書き込む前の保存: 書き込む大きさの読み込みを 1 周）→ `ui begin <書き込むバイト数> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `ui begin <大きさ> Verify` → `rd` で読み戻して照合 → `ui end ok ...`。段階ごとに `ui begin` し直すので、LCD の合計はその段階のバイト数（書き込みと照合を足した数は出さない） |
 | 比較（カード） | `ui begin <ファイルの大きさ> Compare` → `rd` をファイルの大きさまで → PC 側で比較 → `ui end ok\|ng ...` |
 | SD・SPI SRAM の操作 | 2.3 のコマンドをそのまま送り、`S` / `P` 行で進捗を出す |
 | 中断 | `!` を送る。PC 主導の処理では区切りで止めて `ui end cancel Canceled` |

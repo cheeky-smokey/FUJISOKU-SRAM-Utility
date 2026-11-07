@@ -871,23 +871,32 @@ function showError(id, e) {
 }
 
 // 進捗
-const prog = { t0: 0, title: '', total: 1 };
+// total は作業全体 (% と残り時間に使う)。バイト数の表示は今の段階の中の数 (pBase から pLen バイト) にする
+//   例: 32KB の書き込みと照合なら、全体は 65,536 だが表示は「書き込み 32,768 / 32,768」「照合 4,096 / 32,768」
+const prog = { t0: 0, title: '', total: 1, pBase: 0, pLen: 1, done: 0 };
 function progStart(title, total) {
   prog.t0 = performance.now(); prog.title = title; prog.total = total || 1;
+  prog.pBase = 0; prog.pLen = prog.total;
   $('#prog').hidden = false;
   $('#progTitle').textContent = title;
   $('#progPhase').textContent = '';
   $('#btnCancel').disabled = false;
   progSet(0);
 }
-function progPhase(text) { $('#progPhase').textContent = text; }
+// 段階の表示を変える。base と len を渡すと、バイト数の表示をその段階の中の数にする
+function progPhase(text, base, len) {
+  $('#progPhase').textContent = text;
+  if (len !== undefined) { prog.pBase = base; prog.pLen = len || 1; progSet(prog.done); }
+}
 function progSet(done, total) {
-  if (total) prog.total = total;
+  if (total) { prog.total = total; prog.pBase = 0; prog.pLen = total; }
+  prog.done = done;
   const pct = Math.min(100, Math.floor((done * 100) / prog.total));
   $('#progFill').style.width = pct + '%';
   $('#progBar').setAttribute('aria-valuenow', pct);
   $('#progPct').textContent = pct + '%';
-  $('#progBytes').textContent = prog.total > 100 ? `${fmtN(Math.min(done, prog.total))} / ${fmtN(prog.total)} バイト` : '';
+  const inPhase = Math.max(0, Math.min(done - prog.pBase, prog.pLen));
+  $('#progBytes').textContent = prog.pLen > 100 ? `${fmtN(inPhase)} / ${fmtN(prog.pLen)} バイト` : '';
   const el = performance.now() - prog.t0;
   let t = '経過 ' + fmtTime(el);
   if (done > 0 && done < prog.total && el > 1500) t += '  残り約 ' + fmtTime((el / done) * (prog.total - done));
@@ -1014,7 +1023,8 @@ async function lcdBegin(total, title) { await dev.request(`ui begin ${total} ${t
 async function lcdProg(done, phase) { await dev.request(`ui prog ${done}${phase ? ' ' + token(phase) : ''}`); }
 async function lcdEnd(kind, text) { try { await dev.request(`ui end ${kind} ${token(text)}`); } catch (e) {} }
 
-// カードの先頭から size バイトを 1 回読む。base は進捗表示の起点
+// カードの先頭から size バイトを 1 回読む。base は画面の進捗 (作業全体) での起点。
+// LCD の進捗はこの読み込みだけで 0 から size まで (呼ぶ前に lcdBegin(size, …) しておく)
 async function readPass(size, base, phase) {
   if (size > state.cardMax) throw new DevError('TOOBIG');
   const buf = new Uint8Array(size);
@@ -1036,18 +1046,21 @@ async function readPass(size, base, phase) {
     });
     if (r.last.startsWith('ERR')) throw errFromLine(r.last);
     if (got !== n) throw new DevError('FORMAT', `rd ${hex4(a)}: ${got} バイトしか届きませんでした`);
-    await lcdProg(base + a + n, phase);
+    await lcdProg(a + n, phase);
   }
   return buf;
 }
+// カードを passes 回読む (2 回なら一致を確かめる)。LCD は 1 回ごとに 0 から size まで進める
+// (2 回分をまとめると、32KB でも合計の 64KB が出てしまうため)
 async function readCard(passes, title, size = SIZE) {
-  const total = size * passes;
-  prog.total = total;
-  await lcdBegin(total, title);
+  prog.total = size * passes;
   try {
-    const first = await (progPhase(passes > 1 ? 'カードを読み込み中 (1 回目)' : 'カードを読み込み中'), readPass(size, 0, passes > 1 ? 'Reading card 1/2' : 'Reading card'));
+    progPhase(passes > 1 ? 'カードを読み込み中 (1 回目)' : 'カードを読み込み中', 0, size);
+    await lcdBegin(size, title);
+    const first = await readPass(size, 0, passes > 1 ? 'Reading card 1/2' : 'Reading card');
     if (passes > 1) {
-      progPhase('カードを読み込み中 (2 回目)');
+      progPhase('カードを読み込み中 (2 回目)', size, size);
+      await lcdBegin(size, title);
       const second = await readPass(size, size, 'Reading card 2/2');
       const d = diffList(first, second);
       if (d.length) {
@@ -1231,8 +1244,9 @@ $('#btnWrite').addEventListener('click', async () => {
     const writeBytes = addrs.reduce((n, a) => n + chunkLen(a), 0);
     const total = writeBytes + (verify ? len : 0) || 1;
     progStart('カードに書き込み', total);
-    progPhase(writeBytes === len ? 'カードに書き込み中' : `変わった部分を書き込み中 (${fmtN(writeBytes)} バイト)`);
-    await lcdBegin(total, 'PC to Card');
+    // 書き込みと照合は段階を分けて表示する (LCD もそれぞれ 0 から。合計を出すと 32KB でも 64KB に見える)
+    progPhase(writeBytes === len ? 'カードに書き込み中' : `変わった部分を書き込み中 (${fmtN(writeBytes)} バイト)`, 0, writeBytes);
+    await lcdBegin(writeBytes || 1, 'PC to Card');
     let readBack = null;
     try {
       let done = 0;
@@ -1246,7 +1260,8 @@ $('#btnWrite').addEventListener('click', async () => {
         if (i % 16 === 15 || i === addrs.length - 1) await lcdProg(done, 'Writing card');
       }
       if (verify) {
-        progPhase('読み戻して照合中');
+        progPhase('読み戻して照合中', writeBytes, len);
+        await lcdBegin(len, 'Verify');
         readBack = await readPass(len, writeBytes, 'Verifying');
       }
     } catch (e) {

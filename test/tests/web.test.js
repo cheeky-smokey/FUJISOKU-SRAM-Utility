@@ -592,6 +592,47 @@ test('カード検出・電池を使わない本体 (USE_CARD_DET=0, USE_BATT_DE
   await app.close();
 });
 
+test('カードに書き込み: 32KB のファイルの最初の書き込みで、進捗と LCD に 64KB と出さない (書き込みと照合を分けて表示)', async () => {
+  const app = await connected({ card: pattern(31) });
+  const { page, fw } = app;
+  await page.click('#t-write');
+  const img = pattern(32);
+  await fileInput(page, '#fileWrite', 'img.bin', img);
+  await page.waitForFunction(() => !document.querySelector('#btnWrite').disabled);
+  // 書き込み中の進捗のバイト数と LCD の 4 行目を集める
+  await page.evaluate(() => {
+    window.__seen = { bytes: new Set(), lcd: new Set() };
+    window.__timer = setInterval(() => {
+      const b = document.querySelector('#progBytes').textContent;
+      if (b) window.__seen.bytes.add(b.replace(/^[\d,]+ \/ /, '/ '));
+      if (lcdBytes) window.__seen.lcd.add(String.fromCharCode(...lcdBytes.slice(60, 79)));
+    }, 20);
+  });
+  await page.click('#btnWrite');
+  await page.click('#dlgYes');
+  const r = await waitResult(page, '#resWrite');
+  assert.equal(r.kind, 'ok', r.text);
+  const seen = await page.evaluate(() => { clearInterval(window.__timer); return { bytes: [...window.__seen.bytes], lcd: [...window.__seen.lcd] }; });
+  assert.ok(seen.bytes.length > 0);
+  // 書き込みは変わった部分だけなので 32,768 以下、照合は 32,768。合計 (32,768 を超える数) は出さない
+  for (const b of seen.bytes) {
+    const n = Number(b.replace(/[^\d]/g, ''));
+    assert.ok(n > 0 && n <= 32768, `進捗の表示: ${seen.bytes.join(' | ')}`);
+  }
+  assert.ok(seen.bytes.includes('/ 32,768 バイト'), seen.bytes.join(' | '));
+  const prog = seen.lcd.filter((l) => /^0x[0-9A-F]{4}\//.test(l));
+  assert.ok(prog.length > 0, seen.lcd.join(' | '));
+  for (const l of prog) {
+    const t = parseInt(/^0x[0-9A-F]{4}\/([0-9A-F]{4})/.exec(l)[1], 16);
+    assert.ok(t > 0 && t <= 0x8000, `LCD: ${l}`);  // 合計は 32KB (0x8000) 以下
+  }
+  assert.ok(prog.some((l) => /\/8000/.test(l)), prog.join(' | '));
+  assert.ok(!seen.lcd.some((l) => /64K/.test(l)), seen.lcd.join(' | '));
+  assert.ok((await fw.cardDump()).equals(img));
+  noErrors(page);
+  await app.close();
+});
+
 test('ファイル欄: × で外せる。別のファイルや同じファイルを選び直せる', async () => {
   const app = await connected({ card: pattern(21) });
   const { page } = app;

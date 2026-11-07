@@ -85,4 +85,4 @@ test/                       PC 上でスケッチを動かすシミュレータ�
 
 ## 確かめたこと
 
-スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、64 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 24。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も v2.6 まで確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
+スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、65 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 25。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も v2.6 まで確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
