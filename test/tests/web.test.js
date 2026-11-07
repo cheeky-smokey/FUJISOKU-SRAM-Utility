@@ -83,7 +83,7 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.2');
+  assert.equal(await page.textContent('#fwVer'), 'v2.3');
   assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
   assert.equal(await page.textContent('#ramState'), '使わない');
@@ -91,7 +91,7 @@ test('接続: バージョン・SD の状態・本体 LCD の表示が出る', a
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.2');
+  assert.equal(t[0], 'FUJISOKU SRAM   v2.3');
   assert.equal(t[1].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
   noErrors(page);
@@ -286,7 +286,8 @@ test('SPI SRAM・診断: コピー・比較・自己診断・消去 (確認あ�
   await page.waitForFunction(() => /すべて一致/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
   await page.click('.action[data-cmd="test"]');
   await page.waitForFunction(() => /自己診断/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
-  assert.match(await page.textContent('#resTools'), /D6: PASS/);
+  assert.match(await page.textContent('#resTools'), /自己診断: 異常はありません/);
+  assert.match(await page.textContent('#resTools'), /T mode=40/);
   await page.click('.action[data-cmd="erase f"]');
   await page.click('#dlgNo');
   await page.waitForTimeout(200);

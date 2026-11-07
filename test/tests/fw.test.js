@@ -22,7 +22,7 @@ async function boot(opts = {}) {
 }
 async function expectClean(fw, extra = {}) {
   const d = await fw.diag();
-  const want = { no_txn: 0, spi_dead: 0, over_clock: 0, bus_conflict: 0, contention: 0, addr_change_in_write: 0, oe_we_overlap: 0, mcp_unaddressed: 0, sram_junk: 0, lcd_cgram_stray: 0, lcd_before_init: 0, lcd_absent_writes: 0, ...extra };
+  const want = { no_txn: 0, spi_dead: 0, over_clock: 0, bus_conflict: 0, contention: 0, addr_change_in_write: 0, data_change_in_write: 0, oe_we_overlap: 0, mcp_unaddressed: 0, lcd_cgram_stray: 0, lcd_before_init: 0, lcd_absent_writes: 0, ...extra };
   for (const k of Object.keys(want)) assert.equal(d[k], want[k], `diag ${k}`);
 }
 const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
@@ -30,9 +30,9 @@ const sdfile = (fw, n = 'fujisoku.bin') => path.join(fw.sdRoot, n);
 test('起動: SD があれば READY、バスの不正利用なし', async () => {
   const fw = await boot();
   assert.ok(fw.lines.includes('E SD 1'));
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2 ready (LCD 20x4, SD on, 62256 off)')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3 ready (LCD 20x4, SD on, 62256 off)')));
   const r = await fw.cmd('hello');
-  assert.match(r.last, /^HELLO FSU 2\.2 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1$/);
+  assert.match(r.last, /^HELLO FSU 2\.3 size=32768 chunk=64 lcd=20x4 sram62256=0 sdcard=1$/);
   await expectClean(fw);
   await fw.close();
 });
@@ -73,9 +73,9 @@ test('rd は 64 バイトごとの行で全域を読める', async () => {
   await fw.close();
 });
 
-for (const [name, cs] of [['D6 のみ', 'd6'], ['D6 と MCP 両方', 'both']]) {
-  test(`SPI SRAM (/CS ${name}): R / C / X / E`, async () => {
-    const fw = await boot({ args: ['--spi-cs', cs] });
+{
+  test('SPI SRAM: R / C / X / E', async () => {
+    const fw = await boot();
     const pat = pattern(5);
     await fw.cardLoad(pat);
     let r = await fw.cmd('R');
@@ -96,19 +96,34 @@ for (const [name, cs] of [['D6 のみ', 'd6'], ['D6 と MCP 両方', 'both']]) {
   });
 }
 
-test('SPI SRAM 自己診断: 配線ごとの判定と、MCP 経由の書き込みで隣が壊れない', async () => {
-  for (const [cs, want] of [['d6', 'D6=PASS MCP=FAIL'], ['mcp', 'D6=FAIL MCP=PASS'], ['both', 'D6=PASS MCP=PASS']]) {
-    const fw = await boot({ args: ['--spi-cs', cs] });
-    await fw.ctl('spi fill 3c');
-    const r = await fw.cmd('T');
-    assert.equal(r.last, 'OK test ' + want, cs);
-    const spi = await fw.spiDump();
-    // 診断が触れるのは 0x0000-0x000F と 0x7FF0-0x7FFF だけ。それ以外は元のまま
-    for (let i = 0x10; i < 0x7ff0; i++) if (spi[i] !== 0x3c) assert.fail(`${cs}: 0x${i.toString(16)} が壊れた`);
-    const d = await fw.diag();
-    assert.equal(d.sram_junk, 0, cs + ': MCP への書き込みが SRAM に紛れ込んだ');
-    await fw.close();
+test('SPI SRAM 自己診断: 合格のときは中身を元に戻し、SPI SRAM が無ければ NG', async () => {
+  let fw = await boot();
+  await fw.ctl('spi fill 3c');
+  let r = await fw.cmd('T');
+  assert.equal(r.last, 'OK test SPI SRAM OK');
+  assert.ok(r.lines.includes('T mode=40'), r.lines.join('\n'));
+  assert.ok(r.lines.includes('T readback=A0A1A2A3A4A5A6A7A8A9AAABACADAEAF bad=0'));
+  // 試験で書いた両端も含めて、中身は元のまま
+  assert.ok((await fw.spiDump()).every((b) => b === 0x3c));
+  assert.match((await fw.cmd('status')).last, / spi=40 /);
+  await expectClean(fw);
+  await fw.close();
+
+  fw = await boot({ args: ['--no-spi-sram'] });
+  r = await fw.cmd('test s');
+  assert.equal(r.last, 'NG test no response (check /CS D6) bad=64');
+  assert.ok(r.lines.includes('T mode=FF'));
+  assert.match((await fw.cmd('status')).last, / spi=FF /);
+  await fw.close();
+});
+
+test('rd / wr / fill: アドレスと長さの桁あふれを範囲外として断る', async () => {
+  const fw = await boot();
+  for (const c of ['rd f 0xFFFFFFF0 0x20', 'rd s 0x7FFF 2', 'wr f 0xFFFFFFFF 0011', 'fill f 0xFFFFFF00 0x200 0', 'rd f 0x8000 1']) {
+    assert.equal((await fw.cmd(c)).last, 'ERR RANGE out of range', c);
   }
+  assert.equal((await fw.cmd('rd f 0x7FFF 1')).last, 'OK rd 1');
+  await fw.close();
 });
 
 test('B (バックアップ) → V (照合) → L (書き込み) の往復', async () => {
@@ -279,7 +294,7 @@ test('旧 1 文字コマンドと CRLF', async () => {
   const fw = await boot();
   fw.send('?\r\n');
   await fw.advance(50);
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3')));
   const r = await fw.cmd('e');
   assert.match(r.last, /^OK fill/);
   assert.ok((await fw.cardDump()).every((b) => b === 0xff));
@@ -364,7 +379,7 @@ const lcdText = (line) => {
 
 test('LCD が見つからなくても動き、表示内容は lcd コマンドで取れる (USE_LCD=1)', async () => {
   const fw = await boot({ args: ['--no-lcd'] });
-  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.2 ready (LCD none')));
+  assert.ok(fw.lines.some((l) => l.startsWith('FUJISOKU SRAM Utility 2.3 ready (LCD none')));
   assert.match((await fw.cmd('hello')).last, /lcd=none sram62256=0 sdcard=1$/);
   assert.match((await fw.cmd('status')).last, /lcd=0$/);
   assert.match((await fw.cmd('B')).last, /^OK sd/);

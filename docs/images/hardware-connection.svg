@@ -6,7 +6,7 @@
   </defs>
   <rect width="1000" height="700" fill="#ffffff"/>
 
-  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v2.2 - hardware connection overview</text>
+  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v2.3 - hardware connection overview</text>
   <text x="20" y="44" font-size="11" fill="#555555">solid boxes = required, dashed boxes = optional (USE_SD / USE_LCD / USE_SRAM62256 in config.h)</text>
 
   <!-- PC -->
@@ -72,8 +72,8 @@
   <rect x="560" y="230" width="170" height="80" rx="6" fill="#f3f4f6" stroke="#555555" stroke-width="1.3"/>
   <text x="570" y="250" font-weight="bold" fill="#111111">SPI SRAM (23LC512)</text>
   <text x="570" y="268" font-size="11" fill="#333333">data buffer (required)</text>
-  <text x="570" y="284" font-size="11" fill="#333333">set to byte mode at boot</text>
-  <text x="570" y="300" font-size="10" fill="#555555">/CS = D6 (copy) or MCP GPB5</text>
+  <text x="570" y="284" font-size="11" fill="#333333">sequential mode at boot</text>
+  <text x="570" y="300" font-size="10" fill="#555555">/CS = D6 only (not via MCP)</text>
 
   <rect x="760" y="230" width="220" height="80" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
   <text x="770" y="250" font-weight="bold" fill="#111111">MCP23S17 x 2  (ch6, ch7)</text>
@@ -99,7 +99,7 @@
   <text x="650" y="416" font-size="11" font-family="monospace" fill="#333333">GPB0 CS2 (F5)    GPB1 /OE (F7)</text>
   <text x="650" y="432" font-size="11" font-family="monospace" fill="#333333">GPB3 /WE (F6)    GPB4 /CE1 (F4)</text>
   <text x="650" y="448" font-size="11" font-family="monospace" fill="#333333">GPB6 A16 (F32)   GPB7 A17 (F33)</text>
-  <text x="650" y="466" font-size="11" font-family="monospace" fill="#333333">GPB2 62256 /OE   GPB5 SPI SRAM /CS</text>
+  <text x="650" y="466" font-size="11" font-family="monospace" fill="#333333">GPB2 62256 /OE   GPB5 unused</text>
   <text x="650" y="484" font-size="10" fill="#555555">GPB0 is also /CS of the 62256 (low = 62256)</text>
 
   <!-- legend -->

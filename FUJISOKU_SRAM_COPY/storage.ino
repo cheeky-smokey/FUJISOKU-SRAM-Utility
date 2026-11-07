@@ -5,23 +5,22 @@
 //  - 処理中に失敗したら、カードが生きているか確認して「SDERR / SDLOST」に分類する
 //  - 待機中は 1.5 秒ごとにカードの生存確認だけ行い、抜かれたら状態を ABSENT にする
 //  - カードが無い状態での SD.begin() は約 2 秒かかる (SdFat の仕様) ため、
-//    ABSENT のときは自動では再検出しない。SD を使う処理 / sdcheck / LCD の SD 表示タッチで再検出する
+//    ABSENT のときは自動では再検出しない。SD を使う処理か sdcheck (Web アプリの「SD カードを確認」) で再検出する
 
 #if USE_SD
 
-// SD.end() は UNO R4 では共有の SPI 自体を止める (SPI.end())。MCP23S17 / LCD / タッチも
+// SD.end() は UNO R4 では共有の SPI 自体を止める (SPI.end())。MCP23S17 と SPI SRAM も
 // 同じ SPI を使うので、止まったままにならないよう直後に動かし直す
-// (beginTransaction は未初期化なら begin() を呼ぶ)
+// (UNO R4 の beginTransaction は、SPI が止まっていれば begin() から行う)
 static void spi_revive() {
   SPI.beginTransaction(fsu_spi_settings);
   SPI.endTransaction();
 }
 
-// 状態を更新し、変化があれば PC と LCD に知らせる
+// 状態を更新し、変化があれば PC に知らせる (LCD の待機画面は 0.2 秒ごとに sd_state を見て描き直す)
 void sd_set_state(uint8_t s) {
   if (s == sd_state) return;
   sd_state = s;
-  sd_changed = true;
   Serial.print("E SD ");
   Serial.println(s == SD_STATE_READY ? 1 : 0);
 }
@@ -33,7 +32,7 @@ bool sd_mount() {
     SD.end();
     spi_revive();
   }
-  bool ok = SD.begin(CS_SDcard);
+  bool ok = SD.begin(PIN_CS_SD);
   sd_checked_ms = millis();
   sd_set_state(ok ? SD_STATE_READY : SD_STATE_ABSENT);
   return ok;

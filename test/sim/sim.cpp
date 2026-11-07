@@ -4,12 +4,13 @@
 //   - 仮想時計 (delay は時間を進めるだけ。SPI 1 バイトごとにも進む)
 //   - MCP23S17 ×8 (IOCON の BANK/HAEN、BANK0/1 のレジスタ配置、A2 ピンの癖まで再現)
 //   - FUJISOKU カード (32KB) / 並列 62256 / SPI SRAM 23LC512 を、物理的な配線から再現
-//       ch7 GPIOB: B0 = CS2 (= 62256 の nCS)、B1 = nOE、B2 = 62256 の nOE、B3 = nWE、B4 = nCS1、B5 = SPI SRAM の nCS
+//       ch7 GPIOB: B0 = CS2 (= 62256 の nCS)、B1 = nOE、B2 = 62256 の nOE、B3 = nWE、B4 = nCS1、B5 = 未使用
+//       SPI SRAM の /CS は Arduino の D6
 //   - SD カード (ホストのディレクトリ。抜き差し・世代管理・SPI の停止まで再現)
 //   - 20x4 キャラクタ LCD (HD44780 + PCF8574) のモデル。文字列の取り出しと画像化ができる
 //   - シリアル = 標準入出力、制御チャンネル = fd 3 (コマンド) / fd 4 (応答)
 //   - バスの不正利用を数える診断カウンタ (トランザクション外転送、MCP の上限クロック超え、
-//     バス競合、書き込み中のアドレス変更、SPI 停止中の転送 など)
+//     バス競合、書き込み中のアドレス・データ変更、SPI 停止中の転送 など)
 
 #include "Arduino.h"
 #include "SPI.h"
@@ -40,10 +41,10 @@ static bool realtime = false;  // 待機中の仮想時間を実時間に合わ�
 
 struct Diag {
   uint32_t no_txn = 0, spi_dead = 0, over_clock = 0, bus_conflict = 0, contention = 0;
-  uint32_t addr_change_in_write = 0, oe_we_overlap = 0, mcp_unaddressed = 0, sd_stale = 0, sram_junk = 0;
+  uint32_t addr_change_in_write = 0, data_change_in_write = 0, oe_we_overlap = 0, mcp_unaddressed = 0, sd_stale = 0;
 } diag;
 
-static int spi_cs_mode = 3;  // 1: D6 だけ、2: MCP B5 だけ、3: 両方つながっている
+static bool spi_sram_present = true;  // false: SPI SRAM が無い (MISO は High のまま)
 static bool card_present = true;
 static int glitch_addr = -1;
 // バス線の故障 (H / L 固定) の再現: mask のビットが val に固定される
@@ -118,7 +119,7 @@ static uint8_t mcp_pins_basic(int ch, int port, uint8_t ext, uint8_t ext_mask) {
 struct Sig {
   uint16_t addr;
   uint8_t data;  // MCP が出している (または浮いている) データ
-  bool card_sel, card_oe, card_we, ram_sel, ram_oe, ram_we, sram_cs_low;
+  bool card_sel, card_oe, card_we, ram_sel, ram_oe, ram_we;
 };
 
 static uint8_t card_mem[0x8000];
@@ -134,14 +135,13 @@ static Sig sig_eval() {
   s.data = (uint8_t)((s.data & ~data_stuck_mask) | (data_stuck_val & data_stuck_mask));
   uint8_t b = mcp_pins_basic(7, 1, 0, 0);
   auto bit = [&](int n) { return (b >> n) & 1; };
-  // B0 = CS2(カード) / nCS(62256) 共用、B1 = nOE(カード)、B2 = nOE(62256)、B3 = nWE 共用、B4 = nCS1(カード)、B5 = nCS(SPI SRAM)
+  // B0 = CS2(カード) / nCS(62256) 共用、B1 = nOE(カード)、B2 = nOE(62256)、B3 = nWE 共用、B4 = nCS1(カード)、B5 = 未使用
   s.card_sel = (bit(4) == 0) && (bit(0) == 1);
   s.card_oe = bit(1) == 0;
   s.card_we = bit(3) == 0;
   s.ram_sel = bit(0) == 0;
   s.ram_oe = bit(2) == 0;
   s.ram_we = bit(3) == 0;
-  s.sram_cs_low = bit(5) == 0;
   return s;
 }
 
@@ -186,12 +186,11 @@ static uint8_t data_bus_read() {
 static bool sram23_sel_prev = false;
 struct Sram23 {
   uint8_t mem[65536];
-  uint8_t mode = 0x41;
+  uint8_t mode = 0x40;  // 電源投入時はシーケンシャル
   int st = 0, ab = 0;
   uint8_t op = 0;
   uint16_t addr = 0;
   int cnt = 0;
-  bool overhear = false;  // MCP 宛ての転送を横で聞いている
   void reset() { st = 0; }
   uint8_t xfer(uint8_t b) {
     switch (st) {
@@ -220,7 +219,6 @@ struct Sram23 {
         uint8_t m = mode >> 6;
         if (m == 0 && cnt >= 1) return 0xFF;
         mem[addr] = b;
-        if (overhear) diag.sram_junk++;
         cnt++;
         if (m == 2) addr = (uint16_t)((addr & ~31) | ((addr + 1) & 31));
         else addr++;
@@ -235,9 +233,7 @@ struct Sram23 {
 static Sram23 sram23;
 
 static bool sram23_selected() {
-  bool d6 = (spi_cs_mode & 1) && pin_level[CS_SRAM_512] == LOW;
-  bool viamcp = (spi_cs_mode & 2) && sig_eval().sram_cs_low;
-  return d6 || viamcp;
+  return spi_sram_present && pin_level[PIN_CS_SPI_SRAM] == LOW;
 }
 static void sram23_update_select() {
   bool now = sram23_selected();
@@ -278,7 +274,8 @@ static void mcp_reg_write(int ch, int port, int reg, uint8_t v) {
     bool ra = after.ram_sel && after.ram_we;
     if (rb && ra && before.addr != after.addr) diag.addr_change_in_write++;
     if (rb && !ra) ram62[before.addr & 0x7FFF] = before.data;
-    sram23_update_select();
+    // /WE = L のあいだにデータ線が変わると、途中の値が一瞬書き込まれる
+    if (((wb && wa) || (rb && ra)) && before.data != after.data) diag.data_change_in_write++;
   }
 }
 
@@ -329,6 +326,9 @@ static uint8_t mcp_xfer(uint8_t b) {
         } else {
           mcp_reg_write(ch, port, reg, b);
         }
+        // FSU_SIM_TRACE=1: MCP のレジスタアクセスを標準エラーに出す (docs/hardware.md §8 の表の元)
+        static const bool trace = getenv("FSU_SIM_TRACE") != NULL;
+        if (trace) fprintf(stderr, "[mcp] ch%d %s %02X %02X\n", ch, m.rd ? "R" : "W", m.addr, m.rd ? ret : b);
         if (!(m.r[0][R_IOCON] & 0x20)) m.addr++;  // SEQOP=0: アドレスが進む
         break;
       }
@@ -366,18 +366,12 @@ uint8_t SPIClass::transfer(uint8_t b) {
   }
   if (!in_txn) diag.no_txn++;
   vt_us += 6 + (8000000ULL / spi_clk);  // 呼び出しの負荷 + ビット時間
-  bool m = pin_level[CS_MCP23S17] == LOW;
+  bool m = pin_level[PIN_CS_MCP] == LOW;
   bool s = sram23_selected();
-  bool others = pin_level[CS_SDcard] == LOW;
-  if (others && (m || s)) diag.bus_conflict++;
+  bool sd = pin_level[PIN_CS_SD] == LOW;
+  if ((int)m + (int)s + (int)sd > 1) diag.bus_conflict++;  // 2 つ以上の /CS が同時に Low
   if (m) {
     if (spi_clk > 10000000) diag.over_clock++;
-    if (s) {
-      // MCP への書き込み中に SPI SRAM の /CS も Low (MCP の B5 を戻す書き込み)。SRAM もバイトを受け取る
-      sram23.overhear = true;
-      sram23.xfer(b);
-      sram23.overhear = false;
-    }
     return mcp_xfer(b);
   }
   if (s) {
@@ -392,8 +386,8 @@ void digitalWrite(uint8_t pin, uint8_t v) {
   if (pin >= sizeof(pin_level)) return;
   uint8_t old = pin_level[pin];
   pin_level[pin] = v ? 1 : 0;
-  if (pin == CS_MCP23S17 && old == LOW && v) mcp_deselect();
-  if (pin == CS_SRAM_512) sram23_update_select();
+  if (pin == PIN_CS_MCP && old == LOW && v) mcp_deselect();
+  if (pin == PIN_CS_SPI_SRAM) sram23_update_select();
 }
 int digitalRead(uint8_t pin) { return pin < sizeof(pin_level) ? pin_level[pin] : 0; }
 
@@ -991,9 +985,9 @@ static void ctl_exec(const std::string &line) {
     }
     char b[480];
     snprintf(b, sizeof(b),
-             "diag no_txn=%u spi_dead=%u over_clock=%u bus_conflict=%u contention=%u addr_change_in_write=%u oe_we_overlap=%u mcp_unaddressed=%u sd_stale=%u sram_junk=%u lcd_cgram_stray=%u lcd_before_init=%u lcd_absent_writes=%u sd_ops=%u lcd_writes=%u now=%lu",
-             diag.no_txn, diag.spi_dead, diag.over_clock, diag.bus_conflict, diag.contention, diag.addr_change_in_write, diag.oe_we_overlap,
-             diag.mcp_unaddressed, diag.sd_stale, diag.sram_junk, lcd_cgram_stray, lcd_before_init, lcd_absent_writes, sd_ops, lcd_writes, millis());
+             "diag no_txn=%u spi_dead=%u over_clock=%u bus_conflict=%u contention=%u addr_change_in_write=%u data_change_in_write=%u oe_we_overlap=%u mcp_unaddressed=%u sd_stale=%u lcd_cgram_stray=%u lcd_before_init=%u lcd_absent_writes=%u sd_ops=%u lcd_writes=%u now=%lu",
+             diag.no_txn, diag.spi_dead, diag.over_clock, diag.bus_conflict, diag.contention, diag.addr_change_in_write, diag.data_change_in_write,
+             diag.oe_we_overlap, diag.mcp_unaddressed, diag.sd_stale, lcd_cgram_stray, lcd_before_init, lcd_absent_writes, sd_ops, lcd_writes, millis());
     reply(b);
   } else if (c == "state") {
     char b[200];
@@ -1043,10 +1037,8 @@ int main(int argc, char **argv) {
     else if (a == "--no-usb") usb_connected = false;
     else if (a == "--realtime") realtime = true;
     else if (a == "--no-lcd") lcd_hw_present = false;
-    else if (a == "--spi-cs" && i + 1 < argc) {
-      std::string m = argv[++i];
-      spi_cs_mode = m == "d6" ? 1 : (m == "mcp" ? 2 : 3);
-    } else if (a == "--no-card") card_present = false;
+    else if (a == "--no-spi-sram") spi_sram_present = false;
+    else if (a == "--no-card") card_present = false;
     else {
       fprintf(stderr, "unknown option %s\n", a.c_str());
       return 2;

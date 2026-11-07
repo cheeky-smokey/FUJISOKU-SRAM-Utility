@@ -415,7 +415,7 @@ dialog .row { justify-content: flex-end; }
         <button class="action" data-cmd="cmp" data-title="カードと SPI SRAM を比較" data-needs="device"><strong>カードと SPI SRAM を比較</strong><span>2 つが同じかを確かめます</span></button>
         <button class="action" data-cmd="erase s" data-title="SPI SRAM を消去" data-needs="device"><strong>SPI SRAM を消去</strong><span>すべて FF にします</span></button>
         <button class="action danger" data-cmd="erase f" data-title="カードを消去" data-confirm="カードの内容をすべて FF にします。編み柄も消えます。" data-needs="device"><strong>カードを消去</strong><span>カードをすべて FF にします</span></button>
-        <button class="action" data-cmd="test" data-title="SPI SRAM の自己診断" data-needs="device"><strong>SPI SRAM の自己診断</strong><span>/CS の配線 (D6 / MCP B5) ごとに読み書きを試します</span></button>
+        <button class="action" data-cmd="test" data-title="SPI SRAM の自己診断" data-needs="device"><strong>SPI SRAM の自己診断</strong><span>モードレジスタと読み書きを確かめます (/CS = D6)</span></button>
       </div>
       <div id="tools62256" hidden>
         <h3 class="subhead">62256（動作確認用の SRAM）</h3>
@@ -1142,7 +1142,7 @@ const PHASE_JA = {
   'Checking SD card': 'SD カードを確認中', 'Opening file': 'ファイルを開いています', 'Reading card': 'カードを読み込み中',
   'Reading SPI SRAM': 'SPI SRAM を読み込み中', 'Writing card': 'カードに書き込み中', 'Writing SPI SRAM': 'SPI SRAM に書き込み中',
   'Verifying': '照合中', 'Comparing': '比較中', 'Closing file': 'ファイルを閉じています', 'Saving file': 'ファイルを保存しています',
-  'Erasing': '消去中', 'Testing /CS = D6': '/CS = D6 を試験中', 'Testing /CS = MCP B5': '/CS = MCP B5 を試験中',
+  'Erasing': '消去中', 'Mode register': 'モードレジスタを確認中', 'Read/write test': '読み書きを試験中',
   'Reading 62256': '62256 を読み込み中', 'Writing 62256': '62256 に書き込み中', 'Copying': 'コピー中',
   'Data lines D0-D7': 'データ線 D0〜D7 を試験中', 'Address lines A0-A14': 'アドレス線 A0〜A14 を試験中',
 };
@@ -1221,7 +1221,10 @@ for (const b of $$('.action[data-cmd]')) {
       result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? 'カードと 62256 はすべて一致しました' : 'カードと 62256 に違いがあります', msg);
     } else if (b.dataset.cmd === 'test') {
       const t = r.lines.filter((l) => l.startsWith('T ')).join('\n');
-      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? '自己診断: 読み書きできる配線があります' : '自己診断: どちらの配線でも読み書きできません', msg.replace('D6=', '/CS が D6: ').replace(' MCP=', '、/CS が MCP B5: '), `<p style="font-family:var(--mono);font-size:12.5px;white-space:pre-wrap">${esc(t)}</p>`);
+      const detail = okLine(r) ? 'SPI SRAM は正しく読み書きできました。'
+        : /no response/.test(msg) ? 'SPI SRAM から応答がありません。/CS (D6)・MISO・電源の配線を確かめてください。'
+        : '応答はありますが、書いた値と読んだ値が違います。MOSI・SCK の配線とチップを確かめてください。';
+      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? '自己診断: 異常はありません' : '自己診断: 異常があります', detail, `<p style="font-family:var(--mono);font-size:12.5px;white-space:pre-wrap">${esc(t)}</p>`);
     } else if (b.dataset.cmd === 'cmp') {
       result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? 'カードと SPI SRAM はすべて一致しました' : 'カードと SPI SRAM に違いがあります', msg);
     } else result('#resTools', okLine(r) ? 'ok' : 'ng', `${b.dataset.title}: ${okLine(r) ? '完了しました' : '違いがあります'}`, msg);

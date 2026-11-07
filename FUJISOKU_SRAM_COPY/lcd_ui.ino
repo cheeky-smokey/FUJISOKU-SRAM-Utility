@@ -6,7 +6,7 @@
 //
 //  待機画面                 進捗画面                 結果画面
 //  +--------------------+   +--------------------+   +--------------------+
-//  |FUJISOKU SRAM   v2.0|   |BACKUP         00:04|   |v BACKUP        DONE|
+//  |FUJISOKU SRAM   v2.3|   |BACKUP         00:04|   |v BACKUP        DONE|
 //  |SD:OK       PC:OK   |   |Reading card        |   |32768 bytes ->      |
 //  |Ready               |   |#######-------  47% |   |fujisoku.bin        |
 //  |Last:v BACKUP OK    |   |0x3B00/0x8000 3.2k/s|   |Time 00:10          |
@@ -187,7 +187,6 @@ static void draw_idle_status() {
   snprintf(line, sizeof(line), "SD:%-8sPC:%s", sd, usb ? "OK" : "--");
   lcd_row(1, line);
   lcd_row(2, usb ? "Ready" : "Waiting for PC (USB)");
-  sd_changed = false;
 }
 
 static void draw_idle() {
@@ -249,8 +248,8 @@ static void draw_progress_info(uint32_t now) {
   lcd_row(3, line);
 }
 
-void ui_progress_begin(const char *title, const char *sub, uint32_t total, bool from_pc) {
-  (void)from_pc;
+// 進捗画面を出す。title: 1 行目の処理名、sub: 段階が届くまで 2 行目に出す説明、total: 進捗の合計
+void ui_progress_begin(const char *title, const char *sub, uint32_t total) {
   strncpy(ui_title, title, sizeof(ui_title) - 1);
   ui_title[sizeof(ui_title) - 1] = '\0';
   strncpy(ui_sub, sub, sizeof(ui_sub) - 1);

@@ -52,6 +52,11 @@ static bool parse_dev(const char *s, uint8_t *dev) {
   return true;
 }
 
+// addr から len バイトが 0x0000-0x7FFF に収まるか (len = 0 は不可。addr + len の桁あふれも防ぐ)
+static bool range_ok(uint32_t addr, uint32_t len) {
+  return len > 0 && addr < CARD_SIZE && len <= CARD_SIZE - addr;
+}
+
 static int hex_val(char c) {
   if (c >= '0' && c <= '9') return c - '0';
   if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -81,8 +86,10 @@ void print_status() {
 #endif
   Serial.print(" busy=");
   Serial.print(op_session ? 1 : 0);
-  Serial.print(" spi=");
-  Serial.print(spi_sram_rdmr(0), HEX);
+  Serial.print(" spi=");  // SPI SRAM のモードレジスタ (40 = 応答あり、FF = 応答なし)
+  uint8_t mode = spi_sram_read_mode();
+  if (mode < 0x10) Serial.print('0');
+  Serial.print(mode, HEX);
   Serial.print(" lcd=");
   Serial.println(ui_lcd_present() ? 1 : 0);
 }
@@ -112,7 +119,7 @@ static bool proto_cancel_taken() {
 
 static void cmd_rd(uint8_t dev, uint32_t addr, uint32_t len) {
   char line[24 + CHUNK_BYTES * 2];
-  if (len == 0 || addr + len > CARD_SIZE) {
+  if (!range_ok(addr, len)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -150,7 +157,7 @@ static void cmd_wr(uint8_t dev, uint32_t addr, const char *hex) {
     return;
   }
   uint32_t n = hl / 2;
-  if (addr + n > CARD_SIZE) {
+  if (!range_ok(addr, n)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -176,7 +183,7 @@ static void cmd_wr(uint8_t dev, uint32_t addr, const char *hex) {
 }
 
 static void cmd_fill(uint8_t dev, uint32_t addr, uint32_t len, uint8_t value) {
-  if (len == 0 || addr + len > CARD_SIZE) {
+  if (!range_ok(addr, len)) {
     reply_err("RANGE", "out of range");
     return;
   }
@@ -219,7 +226,7 @@ static void cmd_ui(int argc, char **argv) {
     op_cancel = false;
     op_session = 2;
     op_session_ms = millis();
-    ui_progress_begin(argv[3], "from PC (USB)", total, true);
+    ui_progress_begin(argv[3], "from PC (USB)", total);
     Serial.println("OK ui");
   } else if (strcmp(argv[1], "prog") == 0) {
     uint32_t done;
@@ -425,16 +432,17 @@ void proto_exec(char *line) {
       op_compare(dev, dev2);
     }
   } else if (strcmp(cmd, "test") == 0) {
-    // test / test s = SPI SRAM の自己診断、test p = 62256 でバスの配線試験
+    // test / test s = SPI SRAM の自己診断、test p = 62256 でバスの配線試験 (p は USE_SRAM62256 のときだけ)
+    dev = DEV_SPI_SRAM;
     if (argc >= 2 && (!parse_dev(argv[1], &dev) || dev == DEV_FUJISOKU)) {
       reply_err("ARG", "test [s|p]");
-    } else if (!proto_idle_or_busy()) {
-    } else if (argc >= 2 && dev == DEV_SRAM62256) {
+    } else if (proto_idle_or_busy()) {
 #if USE_SRAM62256
-      op_test_62256();
-#endif
-    } else {
+      if (dev == DEV_SRAM62256) op_test_62256();
+      else op_test_spi();
+#else
       op_test_spi();
+#endif
     }
   } else if (strcmp(cmd, "erase") == 0) {
     if (argc < 2 || !parse_dev(argv[1], &dev)) {

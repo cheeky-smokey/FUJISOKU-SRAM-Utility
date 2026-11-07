@@ -38,7 +38,7 @@ test/realhdr/       本物のライブラリのヘッダで型チェックする
 | MCP23S17 × 8 | IOCON の BANK / HAEN、BANK0 / BANK1 のレジスタ配置、HAEN 無効時は A2 だけで応答する癖 |
 | FUJISOKU カード | ch6 / ch7 のピンから物理的な配線どおりに信号を作り、/WE の立ち上がりで書き込む SRAM |
 | 62256 | B0 = /CS、B2 = /OE、/WE 共用 |
-| SPI SRAM（23LC512） | READ / WRITE / RDMR / WRMR、バイト / ページ / シーケンシャルモード。/CS は D6 と MCP B5 のどちらか、または両方（`--spi-cs d6\|mcp\|both`） |
+| SPI SRAM（23LC512） | READ / WRITE / RDMR / WRMR、バイト / ページ / シーケンシャルモード（電源投入時はシーケンシャル）。/CS は D6。`--no-spi-sram` でつながっていない状態（MISO が High のまま）にできる |
 | SD カード | ホストのディレクトリ。抜く・挿す・差し替え（世代が変わると古い接続は使えない）、カードが無いときの 2 秒待ち、`SD.end()` で SPI が止まること |
 | LCD | HD44780（20×4）。DDRAM の行の並び、CGRAM、`createChar` の後にアドレスが CGRAM に残ること。文字列と画像（PPM）で取り出せる。`--no-lcd` でつながっていない状態（I2C が NACK）にできる |
 | バスの故障 | `stuck addr\|data <ビット> <0\|1>` でアドレス線・データ線を H / L に固定できる（62256 のバス試験の確認用） |
@@ -50,11 +50,13 @@ test/realhdr/       本物のライブラリのヘッダで型チェックする
 | `no_txn` | `beginTransaction()` の外での SPI 転送 |
 | `over_clock` | MCP23S17（10 MHz）/ SPI SRAM（20 MHz）の上限を超えるクロック |
 | `spi_dead` | 止まった SPI での転送 |
-| `bus_conflict` / `contention` | 2 つのデバイスの同時選択 / データバスの衝突 |
-| `addr_change_in_write` / `oe_we_overlap` | 書き込み中のアドレス変更 / /OE と /WE が同時に Low |
-| `sram_junk` | MCP への転送が SPI SRAM に書き込まれた |
+| `bus_conflict` / `contention` | SPI の /CS が 2 つ以上同時に Low / データバスの衝突 |
+| `addr_change_in_write` / `data_change_in_write` | /WE が Low のあいだにアドレス / データ線が変わった |
+| `oe_we_overlap` | /OE と /WE が同時に Low |
 | `lcd_cgram_stray` | `createChar` の後に位置を決めずに文字を書いた |
 | `lcd_absent_writes` | LCD が無いのに LCD に送ろうとした |
+
+環境変数 `FSU_SIM_TRACE=1` を付けると、MCP23S17 のレジスタアクセスを 1 回ずつ標準エラーに出します（`docs/hardware.md` §8 の表はこれで記録）。
 
 制御チャンネル（fd 3 にコマンド、fd 4 に応答）で、SD の抜き差し（`sd remove` / `sd insert` / `sd swap`）、カードの中身の読み書き（`card load` / `card dump` / `poke`）、読み値を 1 回化けさせる（`glitch`）、PC からのバイトの注入（`inject 21` = `!`）、LCD の取り出し（`lcd` / `snap`）、決まった出力行が出たときに操作する（`trigger P>=16384 => sd remove`）などができます。
 

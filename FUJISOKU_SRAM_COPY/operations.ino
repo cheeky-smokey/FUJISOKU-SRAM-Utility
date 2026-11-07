@@ -19,20 +19,20 @@ static char sd_fname[24];
 //   DEV_SPI_SRAM  (s) : SPI SRAM (データの一時保管、必須)
 //   DEV_SRAM62256 (p) : 並列 SRAM 62256 (動作確認用、USE_SRAM62256 のときだけ)
 // ---------------------------------------------------------------------
-uint8_t dev_read(uint8_t dev, unsigned long address) {
+uint8_t dev_read(uint8_t dev, uint32_t address) {
   if (dev == DEV_FUJISOKU) return read_fujisoku(address);
 #if USE_SRAM62256
-  if (dev == DEV_SRAM62256) return read_sram(address);
+  if (dev == DEV_SRAM62256) return read_sram62256(address);
 #endif
-  return read_spi_sram_byte((unsigned int)address);
+  return read_spi_sram_byte((uint16_t)address);
 }
 
-void dev_write(uint8_t dev, unsigned long address, uint8_t dat) {
+void dev_write(uint8_t dev, uint32_t address, uint8_t dat) {
   if (dev == DEV_FUJISOKU) write_fujisoku(address, dat);
 #if USE_SRAM62256
-  else if (dev == DEV_SRAM62256) write_sram(address, dat);
+  else if (dev == DEV_SRAM62256) write_sram62256(address, dat);
 #endif
-  else write_spi_sram_byte((unsigned int)address, dat);
+  else write_spi_sram_byte((uint16_t)address, dat);
 }
 
 const char *dev_name(uint8_t dev) {
@@ -68,7 +68,7 @@ void op_start(const char *name, const char *title, const char *sub, uint32_t tot
   op_session_ms = millis();
   op_last_ms = 0;
   op_msg[0] = '\0';
-  ui_progress_begin(title, sub, total, false);
+  ui_progress_begin(title, sub, total);
 }
 
 // 段階の名前を変える (LCD と PC に表示)
@@ -163,10 +163,10 @@ bool op_sd_prepare(const char *base) {
 #endif  // USE_SD
 
 // ---------------------------------------------------------------------
-// FUJISOKU <-> SPI SRAM のコピー / 比較
+// メモリ同士のコピー / 比較 / 消去
 // ---------------------------------------------------------------------
 
-// src -> dst のコピー。R は Card -> SPI SRAM、C は SPI SRAM -> Card
+// src -> dst のコピー (R = カード -> SPI SRAM、C = SPI SRAM -> カード)
 uint8_t op_copy(uint8_t src, uint8_t dst) {
   const char *title = dst == DEV_FUJISOKU ? "WRITE CARD" : (src == DEV_FUJISOKU ? "READ CARD" : "COPY");
   op_start("copy", title, op_sub(dev_name(src), "->", dev_name(dst)), CARD_SIZE);
@@ -179,7 +179,7 @@ uint8_t op_copy(uint8_t src, uint8_t dst) {
   return op_finish(RES_OK, "", "32768 bytes");
 }
 
-// X: SPI SRAM と Card の比較
+// da と db の比較 (X = SPI SRAM とカード)。最初の 8 か所の違いを "M <アドレス> <da の値> <db の値>" で送る
 uint8_t op_compare(uint8_t da, uint8_t db) {
   uint32_t mismatch = 0, first = 0;
   op_start("cmp", "COMPARE", op_sub(dev_name(da), "<->", dev_name(db)), CARD_SIZE);
@@ -210,12 +210,12 @@ uint8_t op_compare(uint8_t da, uint8_t db) {
   return op_finish(RES_NG, "", m);
 }
 
-// E / e: メモリ全体を 0xFF で埋める
+// メモリ全体を ERASE_VALUE (0xFF) で埋める (E = SPI SRAM、e = カード)
 uint8_t op_erase(uint8_t dev) {
   op_start("fill", "ERASE", dev_name(dev), CARD_SIZE);
   op_phase("Erasing");
   for (uint32_t a = 0; a < CARD_SIZE; a += BLOCK_BYTES) {
-    for (uint16_t i = 0; i < BLOCK_BYTES; i++) dev_write(dev, a + i, SRAM_ERASE);
+    for (uint16_t i = 0; i < BLOCK_BYTES; i++) dev_write(dev, a + i, ERASE_VALUE);
     op_step(a + BLOCK_BYTES);
     if (op_cancel) return op_cancelled(a + BLOCK_BYTES);
   }
@@ -390,65 +390,63 @@ uint8_t op_sd_check() {
 #endif  // USE_SD
 
 // ---------------------------------------------------------------------
-// SPI SRAM 自己診断 (T)
+// SPI SRAM 自己診断 (test / T)
+//   1. モードレジスタを読む (起動時にシーケンシャル 0x40 にしてある。0xFF なら応答なし)
+//   2. 両端の 16 バイト (0x0000-0x000F、0x7FF0-0x7FFF) に 2 種類の模様を書いて読み戻す。元の内容は戻す
+//      SPI SRAM のアドレスはシリアルで送るので、配線の確認は端の読み書きで足りる
 // ---------------------------------------------------------------------
-// 0x0000-0x000F と 0x7FF0-0x7FFF を書き込み→読み戻しして /CS 経路ごとに判定。元の内容は復元する。
-// path 0: /CS = Arduino D6, path 1: /CS = MCP23S17 GPB5
+#define SPI_TEST_BYTES 16
+
+static uint8_t spi_test_pattern(uint8_t pass_no, uint8_t i) {
+  uint8_t pat = (uint8_t)(0xA0 + i);
+  return pass_no ? (uint8_t)~pat : pat;
+}
+
 uint8_t op_test_spi() {
-  const unsigned int base[2] = { 0x0000, 0x7FF0 };
-  bool pass[2] = { false, false };
-  char m[40];
+  static const uint16_t base[2] = { 0x0000, 0x7FF0 };
+  uint8_t keep[2][SPI_TEST_BYTES];
+  uint8_t first_read[SPI_TEST_BYTES];
+  unsigned int bad = 0;
+  char m[48];
 
-  op_start("test", "SPI SRAM TEST", "D6 and MCP B5", 2);
-  for (uint8_t path = 0; path < 2; path++) {
-    uint8_t keep[32];
-    unsigned int bad = 0;
-    uint8_t first16[16];
-    op_phase(path ? "Testing /CS = MCP B5" : "Testing /CS = D6");
+  op_start("test", "SPI SRAM TEST", "SPI SRAM (/CS D6)", 2);
+  op_phase("Mode register");
+  uint8_t mode = spi_sram_read_mode();
+  Serial.print("T mode=");
+  if (mode < 0x10) Serial.print('0');
+  Serial.println(mode, HEX);
+  op_step(1);
 
-    Serial.print("T path=");
-    Serial.print(path);
-    Serial.print(" rdmr=");
-    Serial.println(spi_sram_rdmr(path), HEX);
-
-    for (uint8_t k = 0; k < 2; k++)
-      for (uint8_t i = 0; i < 16; i++) keep[k * 16 + i] = spi_sram_rd(path, base[k] + i);
-
-    for (uint8_t pass_no = 0; pass_no < 2; pass_no++) {
-      for (uint8_t k = 0; k < 2; k++) {
-        for (uint8_t i = 0; i < 16; i++) {
-          uint8_t pat = (uint8_t)(0xA0 + i);
-          if (pass_no) pat = (uint8_t)~pat;
-          spi_sram_wr(path, base[k] + i, pat);
-        }
-        for (uint8_t i = 0; i < 16; i++) {
-          uint8_t pat = (uint8_t)(0xA0 + i);
-          if (pass_no) pat = (uint8_t)~pat;
-          uint8_t r = spi_sram_rd(path, base[k] + i);
-          if (r != pat) bad++;
-          if (pass_no == 0 && k == 0) first16[i] = r;
-        }
+  op_phase("Read/write test");
+  for (uint8_t k = 0; k < 2; k++)
+    for (uint8_t i = 0; i < SPI_TEST_BYTES; i++) keep[k][i] = read_spi_sram_byte(base[k] + i);
+  for (uint8_t pass_no = 0; pass_no < 2; pass_no++) {
+    for (uint8_t k = 0; k < 2; k++) {
+      for (uint8_t i = 0; i < SPI_TEST_BYTES; i++) write_spi_sram_byte(base[k] + i, spi_test_pattern(pass_no, i));
+      for (uint8_t i = 0; i < SPI_TEST_BYTES; i++) {
+        uint8_t r = read_spi_sram_byte(base[k] + i);
+        if (r != spi_test_pattern(pass_no, i)) bad++;
+        if (pass_no == 0 && k == 0) first_read[i] = r;
       }
     }
-
-    for (uint8_t k = 0; k < 2; k++)
-      for (uint8_t i = 0; i < 16; i++) spi_sram_wr(path, base[k] + i, keep[k * 16 + i]);
-
-    Serial.print("T path=");
-    Serial.print(path);
-    Serial.print(" readback=");
-    for (uint8_t i = 0; i < 16; i++) {
-      if (first16[i] < 0x10) Serial.print('0');
-      Serial.print(first16[i], HEX);
-    }
-    Serial.print(" bad=");
-    Serial.println(bad);
-    pass[path] = (bad == 0);
-    op_step(path + 1);
-    if (op_cancel) return op_cancelled(path + 1);
   }
-  snprintf(m, sizeof(m), "D6=%s MCP=%s", pass[0] ? "PASS" : "FAIL", pass[1] ? "PASS" : "FAIL");
-  return op_finish((pass[0] || pass[1]) ? RES_OK : RES_NG, "", m);
+  for (uint8_t k = 0; k < 2; k++)
+    for (uint8_t i = 0; i < SPI_TEST_BYTES; i++) write_spi_sram_byte(base[k] + i, keep[k][i]);
+
+  // 0x0000 から読み戻した 16 バイト (正しければ A0A1...AF) と、違ったバイト数
+  Serial.print("T readback=");
+  for (uint8_t i = 0; i < SPI_TEST_BYTES; i++) {
+    if (first_read[i] < 0x10) Serial.print('0');
+    Serial.print(first_read[i], HEX);
+  }
+  Serial.print(" bad=");
+  Serial.println(bad);
+  op_step(2);
+
+  if (bad == 0) return op_finish(RES_OK, "", "SPI SRAM OK");
+  if (mode == 0xFF) snprintf(m, sizeof(m), "no response (check /CS D6) bad=%u", bad);
+  else snprintf(m, sizeof(m), "read/write failed bad=%u", bad);
+  return op_finish(RES_NG, "", m);
 }
 
 #if USE_SRAM62256
@@ -468,23 +466,24 @@ uint8_t op_test_62256() {
 
   op_phase("Data lines D0-D7");
   for (uint8_t i = 0; i < sizeof(pats); i++) {
-    write_sram(0, pats[i]);
-    bad_data |= (uint8_t)(read_sram(0) ^ pats[i]);
+    write_sram62256(0, pats[i]);
+    bad_data |= (uint8_t)(read_sram62256(0) ^ pats[i]);  // 違ったビット = 疑わしいデータ線
   }
   op_step(1);
 
+  // A_n が H / L に固定されていると、0 番地と 2^n 番地が同じ場所になる
   op_phase("Address lines A0-A14");
-  for (uint8_t n = 0; n < 15; n++) write_sram(1UL << n, 0x55);
-  write_sram(0, 0xAA);
+  for (uint8_t n = 0; n < 15; n++) write_sram62256(1UL << n, 0x55);
+  write_sram62256(0, 0xAA);
   for (uint8_t n = 0; n < 15; n++)
-    if (read_sram(1UL << n) != 0x55) bad_addr |= (uint16_t)(1U << n);  // H 固定
-  write_sram(0, 0x55);
+    if (read_sram62256(1UL << n) != 0x55) bad_addr |= (uint16_t)(1U << n);  // 0 番地への書き込みが 2^n 番地に出た
+  write_sram62256(0, 0x55);
   for (uint8_t n = 0; n < 15; n++) {
-    write_sram(1UL << n, 0xAA);
-    if (read_sram(0) != 0x55) bad_addr |= (uint16_t)(1U << n);  // L 固定
+    write_sram62256(1UL << n, 0xAA);
+    if (read_sram62256(0) != 0x55) bad_addr |= (uint16_t)(1U << n);  // 2^n 番地への書き込みが 0 番地に出た
     for (uint8_t k = 0; k < 15; k++)
-      if (k != n && read_sram(1UL << k) != 0x55) bad_addr |= (uint16_t)((1U << n) | (1U << k));  // ショート
-    write_sram(1UL << n, 0x55);
+      if (k != n && read_sram62256(1UL << k) != 0x55) bad_addr |= (uint16_t)((1U << n) | (1U << k));  // A_n と A_k のショート
+    write_sram62256(1UL << n, 0x55);
     op_poll_cancel();
     if (op_cancel) return op_cancelled(1);
   }

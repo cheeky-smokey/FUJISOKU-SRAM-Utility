@@ -1,251 +1,214 @@
-// ハードウェアアクセス: MCP23S17 (GPIO エキスパンダ), FUJISOKU カード, SPI SRAM, 62256 (オプション)
+// ハードウェアアクセス: MCP23S17、FUJISOKU カード、62256 (オプション)、SPI SRAM
 //
-// すべての SPI アクセスは SPI.beginTransaction() で SPI_BUS_HZ に設定してから行う。
-// (SD ライブラリが SPI 設定を高速に変えたままにするため、設定なしの SPI.transfer() は
-//  直前に使ったデバイスのクロックで動いてしまう)
+// SPI につながる部品 (どれも D13 SCK / D12 MISO / D11 MOSI を共有)
+//   MCP23S17 x 2 : /CS = D4 (共通)。ハードウェアアドレス 6 と 7 で区別する
+//   SPI SRAM     : /CS = D6
+//   SD カード    : /CS = D7 (storage.ino)
+// どのアクセスも SPI.beginTransaction() で SPI_BUS_HZ にしてから行う
+// (SdFat は SPI を高速にしたままにするので、設定なしの SPI.transfer() は SD のクロックで動いてしまう)。
+//
+// カードと 62256 は MCP23S17 を通した並列バスにつながる
+//   ch6 GPA / GPB = A0-A7 / A8-A15、ch7 GPA = D0-D7、ch7 GPB = 制御線 (config.h の CTRL_*)
+// 1 バイトの手順
+//   読み出し: アドレス → 選択 → /OE = L → データを読む → /OE = H → 解放
+//   書き込み: データ → アドレス → 選択 → /WE = L → /WE = H (ここで書き込まれる) → 解放
+// 処理が終わったら bus_idle() でアドレス・データ線を入力に戻す (カードの抜き差しに備える)。
 
 static const SPISettings fsu_spi_settings(SPI_BUS_HZ, MSBFIRST, SPI_MODE0);
 
-//READ GPIO register
-uint8_t read_mcp_register(uint8_t ch, uint8_t address) {
-  uint8_t dat;
+// v1 で実機確認した制御値から変わっていないことを確かめる
+static_assert(CTRL_IDLE == 0x3F, "ch7 GPB idle value");
+static_assert(CTRL_CARD_SELECT == 0x2F, "card select value");
+static_assert(CTRL_CARD_RELEASE == 0x3E, "card release value");
+static_assert(CTRL_62256_SELECT == 0x3E, "62256 select value");
+static_assert(MCP_IOCON_VALUE == 0x8C, "MCP23S17 IOCON value");
+
+// ---------------------------------------------------------------------
+// MCP23S17 のレジスタ
+// ---------------------------------------------------------------------
+uint8_t mcp_read(uint8_t ch, uint8_t reg) {
   SPI.beginTransaction(fsu_spi_settings);
-  digitalWrite(CS_MCP23S17, LOW);
-  SPI.transfer(MCP23x17_OPE_READ + ch * 2);
-  SPI.transfer(address);
-  dat = SPI.transfer(0);
-  digitalWrite(CS_MCP23S17, HIGH);
+  digitalWrite(PIN_CS_MCP, LOW);
+  SPI.transfer(MCP_OP_READ(ch));
+  SPI.transfer(reg);
+  uint8_t dat = SPI.transfer(0x00);
+  digitalWrite(PIN_CS_MCP, HIGH);
   SPI.endTransaction();
-  return (dat);
+  return dat;
 }
 
-//GPIO register write
-void write_mcp_register(uint8_t ch, uint8_t address, uint8_t dat) {
+void mcp_write(uint8_t ch, uint8_t reg, uint8_t dat) {
   SPI.beginTransaction(fsu_spi_settings);
-  digitalWrite(CS_MCP23S17, LOW);
-  SPI.transfer(MCP23x17_OPE_WRITE + ch * 2);
-  SPI.transfer(address);
+  digitalWrite(PIN_CS_MCP, LOW);
+  SPI.transfer(MCP_OP_WRITE(ch));
+  SPI.transfer(reg);
   SPI.transfer(dat);
-  digitalWrite(CS_MCP23S17, HIGH);
+  digitalWrite(PIN_CS_MCP, HIGH);
   SPI.endTransaction();
 }
 
-// MCP23S17 の初期化 (BANK=1, 全チャネル入力+プルアップ, バス待機状態)
-void mcp_init() {
-  uint8_t ch;
-  //MCP23S17 BANK=1
-  //アドレスA2:Hのときはレシスタ書き込みオペコード(0x40)のA2ビットを1にしないとIOCRが指定されない!!!
-  //アドレス0-3(A2:0)のレシスタ書き込みオペコードは(0x40)だが
-  //アドレス4-7(A2:1)のレシスタ書き込みオペコードは(0x48)となる
-  SPI.beginTransaction(fsu_spi_settings);
-  digitalWrite(CS_MCP23S17, LOW);
-  SPI.transfer(MCP23x17_OPE_WRITE);
-  SPI.transfer(MCP23x17_IOCR_BANK0);
-  SPI.transfer(IOCR_BANK1 + IOCR_HAEN + IOCR_ODR);
-  digitalWrite(CS_MCP23S17, HIGH);
-  digitalWrite(CS_MCP23S17, LOW);
-  SPI.transfer(MCP23x17_OPE_WRITE_A2);
-  SPI.transfer(MCP23x17_IOCR_BANK0);
-  SPI.transfer(IOCR_BANK1 + IOCR_HAEN + IOCR_ODR);
-  digitalWrite(CS_MCP23S17, HIGH);
-  SPI.endTransaction();
+// ch7 GPB (制御線) に書く
+static void ctrl_write(uint8_t value) {
+  mcp_write(MCP_CH_CTRL, MCP_GPIO_B, value);
+}
 
-  // ONCE after RESET
-  for (ch = 0; ch < 8; ch++) {
-    write_mcp_register(ch, MCP23x17_OLAT_A, 0x00);
-    write_mcp_register(ch, MCP23x17_OLAT_B, 0x00);
-    write_mcp_register(ch, MCP23x17_DDR_A, MCP_ALL_INPUT);
-    write_mcp_register(ch, MCP23x17_DDR_B, MCP_ALL_INPUT);
-    write_mcp_register(ch, MCP23x17_GPUP_A, 0b11111111);  //All pins PullUp
-    write_mcp_register(ch, MCP23x17_GPUP_B, 0b11111111);
+// ---------------------------------------------------------------------
+// 並列バスの向き
+//   同じ向きが続くあいだは MCP の IODIR を書き直さない (1 バイトあたりの SPI 転送を減らす)。
+//   bus_idle() でアドレス・データとも入力に戻る。
+// ---------------------------------------------------------------------
+#define BUS_IDLE 0   // アドレス・データとも入力 (待機中)
+#define BUS_READ 1   // アドレス出力、データ入力
+#define BUS_WRITE 2  // アドレス・データとも出力
+
+static uint8_t bus_dir = BUS_IDLE;
+
+static void bus_set_dir(uint8_t dir) {
+  if (dir == bus_dir) return;
+  if (bus_dir == BUS_IDLE) {
+    mcp_write(MCP_CH_ADDR, MCP_IODIR_A, MCP_ALL_OUTPUT);  // A0-A7
+    mcp_write(MCP_CH_ADDR, MCP_IODIR_B, MCP_ALL_OUTPUT);  // A8-A15
+  }
+  mcp_write(MCP_CH_DATA, MCP_IODIR_A, dir == BUS_WRITE ? MCP_ALL_OUTPUT : MCP_ALL_INPUT);  // D0-D7
+  bus_dir = dir;
+}
+
+// バスを待機状態にする: アドレス・データ線は入力 (プルアップ)、制御線はすべて非選択
+void bus_idle() {
+  mcp_write(MCP_CH_DATA, MCP_IODIR_A, MCP_ALL_INPUT);
+  mcp_write(MCP_CH_ADDR, MCP_IODIR_A, MCP_ALL_INPUT);
+  mcp_write(MCP_CH_ADDR, MCP_IODIR_B, MCP_ALL_INPUT);
+  // 先に出力ラッチへ非選択の値を書いてから出力にする (制御線が一瞬 Low になるのを避ける)
+  ctrl_write(CTRL_IDLE);
+  mcp_write(MCP_CH_CTRL, MCP_IODIR_B, MCP_ALL_OUTPUT);
+  bus_dir = BUS_IDLE;
+}
+
+// MCP23S17 の初期化 (リセット直後に 1 回): BANK = 1、HAEN = 1、全ピン入力 + プルアップ、バスを待機状態に
+void mcp_init() {
+  // リセット直後は HAEN = 0 で、本来はアドレスピンに関係なく全チップが応答する。ところが A2 ピンが High の
+  // チップは、オペコードの A2 ビットも 1 でないと応答しない (MCP23S17 の癖)。ch6 / ch7 は A2 = 1 なので、
+  // A2 = 0 宛て (0x40) と A2 = 1 宛て (0x48) の両方で IOCON を書く。
+  const uint8_t ops[2] = { MCP_OP_WRITE(0), MCP_OP_WRITE(4) };
+  for (uint8_t i = 0; i < 2; i++) {
+    SPI.beginTransaction(fsu_spi_settings);
+    digitalWrite(PIN_CS_MCP, LOW);
+    SPI.transfer(ops[i]);
+    SPI.transfer(MCP_IOCON_BANK0);
+    SPI.transfer(MCP_IOCON_VALUE);
+    digitalWrite(PIN_CS_MCP, HIGH);
+    SPI.endTransaction();
+  }
+
+  // ここからは BANK = 1 の配置。全チャネルを入力 + プルアップにする (使うのは ch6 と ch7)
+  for (uint8_t ch = 0; ch < 8; ch++) {
+    mcp_write(ch, MCP_OLAT_A, 0x00);
+    mcp_write(ch, MCP_OLAT_B, 0x00);
+    mcp_write(ch, MCP_IODIR_A, MCP_ALL_INPUT);
+    mcp_write(ch, MCP_IODIR_B, MCP_ALL_INPUT);
+    mcp_write(ch, MCP_GPPU_A, 0xFF);
+    mcp_write(ch, MCP_GPPU_B, 0xFF);
   }
   bus_idle();
 }
 
-// バスを待機状態に戻す (データ/アドレス入力、制御線 全非選択)
-void bus_idle() {
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_INPUT);
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_DDR_A, MCP_ALL_INPUT);
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_DDR_B, MCP_ALL_INPUT);
-  // 先に GPIO_B へ非選択値を書いてから出力にする (全制御線が一瞬 Low になるのを避ける)
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, CTRL_IDLE);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_DDR_B, MCP_ALL_OUTPUT);
+// ---------------------------------------------------------------------
+// 並列バス (カード / 62256) の 1 バイト読み書き
+// ---------------------------------------------------------------------
+
+// アドレスを出してチップを選ぶ。sel: 選択の制御値。戻り値: 選択中の制御値 (A16 / A17 を含む)
+static uint8_t bus_select(uint32_t address, uint8_t sel) {
+  mcp_write(MCP_CH_ADDR, MCP_GPIO_A, (uint8_t)address);         // A0-A7
+  mcp_write(MCP_CH_ADDR, MCP_GPIO_B, (uint8_t)(address >> 8));  // A8-A15
+  uint8_t ctrl = sel | (uint8_t)((address >> 10) & (CTRL_A16 | CTRL_A17));  // A16 → B6、A17 → B7
+  ctrl_write(ctrl);
+  return ctrl;
 }
 
-//SET SRAM Address set to MCP
-void set_mcp_sram_address(unsigned long int address, uint8_t CS) {
-  uint8_t addr1, addr2, addr3;
-
-  addr1 = address & 0xff;
-  addr2 = (address >> 8) & 0xff;
-  addr3 = (address >> (8 + 2)) & 0b11000000;  //A17,A16
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_DDR_A, MCP_ALL_OUTPUT);
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_DDR_B, MCP_ALL_OUTPUT);
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_GPIO_A, addr1);  //A0-A7
-  write_mcp_register(CH_MCP_BUS_ADDRESS, MCP23x17_GPIO_B, addr2);  //A8-A15
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, CS + addr3);  // A17 A16 + chip select
-}
-
-#if USE_SRAM62256
-// 62256 (動作確認用の並列 SRAM 32KB、オプション) を 1 バイト読む
-uint8_t read_sram(unsigned long int address) {
-  uint8_t dat;
-  uint8_t address_cs;
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_INPUT);  // Data bus direction change to input
-  set_mcp_sram_address(address, ENABLE_SRAM_nCS);                      // Address set and chip select
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_SRAM_nOE));  // nOE Output enable
-  dat = read_mcp_register(CH_MCP_BUS_DATA, MCP23x17_GPIO_A);                                // Read data
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);                          // nOE Output disenable ; A17,A16
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, DISENABLE_SRAM);                      // All control pin disable
-  return (dat);
-}
-#endif
-
-// Read FUJISOKU SRAM Memory card (MAX 512kB)
-uint8_t read_fujisoku(unsigned long int address) {
-  uint8_t dat;
-  uint8_t address_cs;
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_INPUT);  // Data bus direction change to input
-  set_mcp_sram_address(address, ENABLE_FUJISOKU_nCS1_CS2);             // Address set and chip select
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_FUJISOKU_nOE));  // nOE Output enable
-  dat = read_mcp_register(CH_MCP_BUS_DATA, MCP23x17_GPIO_A);                                    // Read dat
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);                              // nOE Output disenable
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, DISENABLE_FUJISOKU);                      // All control pin disable
-  return (dat);
-}
-
-#if USE_SRAM62256
-// 62256 に 1 バイト書く
-void write_sram(unsigned long int address, uint8_t dat) {
-  uint8_t address_cs;
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_OUTPUT);  //DATA BUS OUTPUT
-  set_mcp_sram_address(address, ENABLE_SRAM_nCS);                       // Address set and chip select
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_nWE));  // write enable
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_GPIO_A, dat);                           // Data set
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);                     // write disenable
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, DISENABLE_SRAM);                 // All control pin disable
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_INPUT);                  // Data bus direction change to input(Pull Up)
-}
-#endif
-
-// Write FUJISOKU SRAM Memory card (MAX 512kB)
-void write_fujisoku(unsigned long int address, uint8_t dat) {
-  uint8_t address_cs;
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_OUTPUT);  //DATA BUS OUTPUT
-  set_mcp_sram_address(address, ENABLE_FUJISOKU_nCS1_CS2);              // Address set and chip select
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_nWE));  // write enable
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_GPIO_A, dat);                           // Data set
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);                     // write disenable
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, DISENABLE_FUJISOKU);             // All control pin disable
-  write_mcp_register(CH_MCP_BUS_DATA, MCP23x17_DDR_A, MCP_ALL_INPUT);
-}
-
-//READ SPI SRAM register
-uint8_t read_spi_sram_byte(unsigned int address) {
-  uint8_t dat;
-  SPI.beginTransaction(fsu_spi_settings);
-  digitalWrite(CS_SRAM_512, LOW);
-  SPI.transfer(SRAM_OPE_READ);
-  SPI.transfer(address / 0x100);
-  SPI.transfer(address % 0x100);
-  dat = SPI.transfer(MODE_RW_BYTE);
-  digitalWrite(CS_SRAM_512, HIGH);
-  SPI.endTransaction();
-  return (dat);
-}
-
-//WRITE SPI SRAM register
-void write_spi_sram_byte(unsigned int address, uint8_t dat) {
-  SPI.beginTransaction(fsu_spi_settings);
-  digitalWrite(CS_SRAM_512, LOW);
-  SPI.transfer(SRAM_OPE_WRITE);
-  SPI.transfer(address / 0x100);
-  SPI.transfer(address % 0x100);
-  SPI.transfer(dat);
-  digitalWrite(CS_SRAM_512, HIGH);
-  SPI.endTransaction();
-}
-
-//READ SPI SRAM on MCP register (/CS = MCP ch7 GPB5)
-uint8_t read_spi_sram4MCP_byte(unsigned int address) {
-  uint8_t dat;
-  uint8_t address_cs;
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_SPI_SRAM));
-  SPI.beginTransaction(fsu_spi_settings);
-  SPI.transfer(SRAM_OPE_READ);
-  SPI.transfer(address / 0x100);
-  SPI.transfer(address % 0x100);
-  dat = SPI.transfer(MODE_RW_BYTE);
-  SPI.endTransaction();
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);
-  return (dat);
-}
-
-//WRITE SPI SRAM on MCP register (/CS = MCP ch7 GPB5)
-void write_spi_sram4MCP_byte(unsigned int address, uint8_t dat) {
-  uint8_t address_cs;
-  address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_SPI_SRAM));
-  SPI.beginTransaction(fsu_spi_settings);
-  SPI.transfer(SRAM_OPE_WRITE);
-  SPI.transfer(address / 0x100);
-  SPI.transfer(address % 0x100);
-  SPI.transfer(dat);
-  SPI.endTransaction();
-  write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);
-}
-
-// SPI SRAM 自己診断用: path 0 = /CS が Arduino D6, path 1 = /CS が MCP23S17 GPB5
-uint8_t spi_sram_rd(uint8_t path, unsigned int a) {
-  return path ? read_spi_sram4MCP_byte(a) : read_spi_sram_byte(a);
-}
-
-void spi_sram_wr(uint8_t path, unsigned int a, uint8_t d) {
-  if (path) write_spi_sram4MCP_byte(a, d);
-  else write_spi_sram_byte(a, d);
-}
-
-// モードレジスタ読み出し (RDMR 0x05)。起動時に spi_sram_init() でバイトモードにするので、応答があれば 0x00。
-// 0xFF = MISO が H のまま (チップ無応答 / /CS 未接続)
-uint8_t spi_sram_rdmr(uint8_t path) {
-  uint8_t dat;
-  uint8_t address_cs = 0;
-  if (path) {
-    address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-    write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_SPI_SRAM));
-  }
-  SPI.beginTransaction(fsu_spi_settings);
-  if (!path) digitalWrite(CS_SRAM_512, LOW);
-  SPI.transfer(REG_READ);
-  dat = SPI.transfer(0);
-  if (!path) digitalWrite(CS_SRAM_512, HIGH);
-  SPI.endTransaction();
-  if (path) write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);
+// sel: 選択の制御値、oe_bit: そのチップの /OE のビット、release: 読んだあとの制御値
+static uint8_t bus_read_byte(uint32_t address, uint8_t sel, uint8_t oe_bit, uint8_t release) {
+  bus_set_dir(BUS_READ);
+  uint8_t ctrl = bus_select(address, sel);
+  ctrl_write(ctrl & ~oe_bit);                        // /OE = L: チップがデータを出す
+  uint8_t dat = mcp_read(MCP_CH_DATA, MCP_GPIO_A);  // D0-D7
+  ctrl_write(ctrl);                                  // /OE = H
+  ctrl_write(release);
   return dat;
 }
 
-// SPI SRAM をバイトモードにする (WRMR 0x01, 0x00)。電源投入直後はシーケンシャルモード。
-// /CS を MCP23S17 の B5 で作る配線では、B5 を戻す MCP への書き込み (3 バイト) の間もまだ /CS が
-// Low のため、シーケンシャルのままだとその 3 バイトが次のアドレスに書き込まれてしまう。
-// バイトモードなら 1 バイトで終わるので影響しない。どちらの /CS も試す (つながっていない側は無害)。
+static void bus_write_byte(uint32_t address, uint8_t dat, uint8_t sel, uint8_t release) {
+  mcp_write(MCP_CH_DATA, MCP_GPIO_A, dat);  // 先に出力ラッチへ (出力にしたときから正しい値が出る)
+  bus_set_dir(BUS_WRITE);
+  uint8_t ctrl = bus_select(address, sel);
+  ctrl_write(ctrl & ~CTRL_nWE);  // /WE = L
+  ctrl_write(ctrl);              // /WE = H: この立ち上がりでデータが書き込まれる
+  ctrl_write(release);
+}
+
+// FUJISOKU カード (A0-A17 で最大 256 KB。このスケッチが扱うのは 0x0000-0x7FFF)
+uint8_t read_fujisoku(uint32_t address) {
+  return bus_read_byte(address, CTRL_CARD_SELECT, CTRL_CARD_nOE, CTRL_CARD_RELEASE);
+}
+
+void write_fujisoku(uint32_t address, uint8_t dat) {
+  bus_write_byte(address, dat, CTRL_CARD_SELECT, CTRL_CARD_RELEASE);
+}
+
+#if USE_SRAM62256
+// 62256 (動作確認用の並列 SRAM 32 KB、オプション)
+uint8_t read_sram62256(uint32_t address) {
+  return bus_read_byte(address, CTRL_62256_SELECT, CTRL_62256_nOE, CTRL_62256_RELEASE);
+}
+
+void write_sram62256(uint32_t address, uint8_t dat) {
+  bus_write_byte(address, dat, CTRL_62256_SELECT, CTRL_62256_RELEASE);
+}
+#endif
+
+// ---------------------------------------------------------------------
+// SPI SRAM 23LC512 (/CS = D6)
+// ---------------------------------------------------------------------
+static void spi_sram_begin(uint8_t cmd) {
+  SPI.beginTransaction(fsu_spi_settings);
+  digitalWrite(PIN_CS_SPI_SRAM, LOW);
+  SPI.transfer(cmd);
+}
+
+static void spi_sram_end() {
+  digitalWrite(PIN_CS_SPI_SRAM, HIGH);
+  SPI.endTransaction();
+}
+
+uint8_t read_spi_sram_byte(uint16_t address) {
+  spi_sram_begin(SRAM23_READ);
+  SPI.transfer((uint8_t)(address >> 8));
+  SPI.transfer((uint8_t)address);
+  uint8_t dat = SPI.transfer(0x00);  // ダミーを送るあいだにデータが返る
+  spi_sram_end();
+  return dat;
+}
+
+void write_spi_sram_byte(uint16_t address, uint8_t dat) {
+  spi_sram_begin(SRAM23_WRITE);
+  SPI.transfer((uint8_t)(address >> 8));
+  SPI.transfer((uint8_t)address);
+  SPI.transfer(dat);
+  spi_sram_end();
+}
+
+// モードレジスタを読む。起動時にシーケンシャルにするので、応答があれば 0x40。
+// 0xFF なら MISO が High のまま (チップが無い、/CS の配線が違う など)
+uint8_t spi_sram_read_mode() {
+  spi_sram_begin(SRAM23_RDMR);
+  uint8_t mode = SPI.transfer(0x00);
+  spi_sram_end();
+  return mode;
+}
+
+// モードを電源投入時と同じシーケンシャルに揃える (リセットだけでは前の設定が残るため)。
+// 読み書きは 1 バイトずつ /CS を上げ下げするので、どのモードでも同じように動く。
 void spi_sram_init() {
-  for (uint8_t path = 0; path < 2; path++) {
-    uint8_t address_cs = 0;
-    if (path) {
-      address_cs = read_mcp_register(CH_MCP_CONTROL, MCP23x17_OLAT_B);
-      write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, (address_cs & AND_ENABLE_SPI_SRAM));
-    }
-    SPI.beginTransaction(fsu_spi_settings);
-    if (!path) digitalWrite(CS_SRAM_512, LOW);
-    SPI.transfer(REG_WRITE);
-    SPI.transfer(MODE_RW_BYTE);
-    if (!path) digitalWrite(CS_SRAM_512, HIGH);
-    SPI.endTransaction();
-    if (path) write_mcp_register(CH_MCP_CONTROL, MCP23x17_GPIO_B, address_cs);
-  }
+  spi_sram_begin(SRAM23_WRMR);
+  SPI.transfer(SRAM23_MODE_SEQUENTIAL);
+  spi_sram_end();
 }

@@ -67,7 +67,7 @@
     <text x="30" y="266">GPB1 = /OE</text>
     <text x="30" y="282">GPB2 = 62256 /OE</text>
     <text x="30" y="298">GPB3 = /WE</text>
-    <text x="30" y="314">GPB4 = /CE1   GPB5 = SRAM /CS</text>
+    <text x="30" y="314">GPB4 = /CE1   GPB5 = unused</text>
     <text x="30" y="330">GPB6 = A16</text>
     <text x="30" y="346">GPB7 = A17</text>
   </g>
@@ -139,12 +139,12 @@
     <text x="660" y="154">B2</text><text x="705" y="154">/OE  62256</text><text x="850" y="154">-</text>
     <text x="660" y="170">B3</text><text x="705" y="170">/WE  (shared)</text><text x="850" y="170">F6</text>
     <text x="660" y="186">B4</text><text x="705" y="186">/CE1 card</text><text x="850" y="186">F4</text>
-    <text x="660" y="202">B5</text><text x="705" y="202">/CS  SPI SRAM</text><text x="850" y="202">-</text>
+    <text x="660" y="202">B5</text><text x="705" y="202">(unused, kept high)</text><text x="850" y="202">-</text>
     <text x="660" y="218">B6</text><text x="705" y="218">A16</text><text x="850" y="218">F32</text>
     <text x="660" y="234">B7</text><text x="705" y="234">A17</text><text x="850" y="234">F33</text>
   </g>
   <text x="660" y="254" font-size="10" fill="#555555">Confirmed by the board owner: the sketch constants</text>
-  <text x="660" y="268" font-size="10" fill="#555555">are correct (the article table differs for B0-B5).</text>
+  <text x="660" y="268" font-size="10" fill="#555555">are correct (the article table differs for B0-B4).</text>
 
   <!-- notes -->
   <g font-size="11" fill="#333333">

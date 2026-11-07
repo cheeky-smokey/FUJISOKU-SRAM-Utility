@@ -1,16 +1,20 @@
 // FUJISOKU SRAM Utility - 設定・定数・共通定義
+//
+// つないだ部品に合わせて書き換えるのは、先頭の「オプション部品」だけ。
+// それより下は配線と部品の仕様で決まる値 (docs/hardware.md と対応)。
 #ifndef FSU_CONFIG_H
 #define FSU_CONFIG_H
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.2"
+#define FSU_VERSION "2.3"
 
-// ---------------------------------------------------------------------
+// =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
-//   必須: MCP23S17 x 2、FUJISOKU カードのスロット、SPI SRAM (データの一時保管)
+//   必須: MCP23S17 x 2、FUJISOKU カードのスロット、SPI SRAM (データの一時保管、/CS = D6)
 //   カードの吸い出し・書き込み・比較は Web アプリ (PC) でできるので、SD カードと LCD はなくてもよい
-// ---------------------------------------------------------------------
+// =====================================================================
+
 // SD カード (本体だけでの保存・照合・書き戻し)。
 //   0 にすると SdFat ライブラリも不要になり、sd コマンドと B L V S W は ERR DISABLED を返す。
 //   1 のときは、起動時にカードが無くても、処理の合間に抜き差ししても動く。
@@ -31,10 +35,11 @@
 #define USE_SRAM62256 0
 #endif
 
-// ---------------------------------------------------------------------
+// =====================================================================
 // 設定
-// ---------------------------------------------------------------------
-// LCD の I2C アドレス (PCF8574 バックパック)。基板によって 0x27 または 0x3F が多い。
+// =====================================================================
+
+// LCD の I2C アドレス (PCF8574 バックパック)。基板によって 0x27 または 0x3F が多い
 #ifndef LCD_I2C_ADDR
 #define LCD_I2C_ADDR 0x27
 #endif
@@ -46,23 +51,23 @@
 #define RESULT_HOLD_MS 15000
 #endif
 
-// MCP23S17 / SPI SRAM を操作するときの SPI クロック [Hz]
+// MCP23S17 と SPI SRAM を操作するときの SPI クロック [Hz] (MCP23S17 の上限は 10 MHz)
 #ifndef SPI_BUS_HZ
 #define SPI_BUS_HZ 4000000
 #endif
 
-// 定期的な SD カード生存確認の間隔 [ms] (カードが READY のときだけ行う)
+// SD カードの生存確認の間隔 [ms] (カードが READY のときだけ行う)
 #ifndef SD_ALIVE_CHECK_MS
 #define SD_ALIVE_CHECK_MS 1500
 #endif
 
-// ---------------------------------------------------------------------
-// データ量
-// ---------------------------------------------------------------------
+// =====================================================================
+// データ量・識別子
+// =====================================================================
 #define CARD_SIZE 0x8000UL  // 扱う範囲 0x0000-0x7FFF (32 KB)
 #define CHUNK_BYTES 64      // PC とのやりとりの 1 行あたりのバイト数
-#define BLOCK_BYTES 256     // SD/コピー処理の 1 ブロック
-#define SRAM_ERASE 0xFF
+#define BLOCK_BYTES 256     // SD / コピー処理の 1 ブロック
+#define ERASE_VALUE 0xFF    // 消去で書く値
 
 // バックアップ中に使う一時ファイル名 (成功したら本来の名前に付け替える)
 #define SD_TMP_NAME "FSU_TMP.TMP"
@@ -83,95 +88,91 @@
 #define RES_ERR 2
 #define RES_CANCEL 3
 
-// SPI GPIO(MCP23S17 GPIOA, GPIOB) Definition
-#define MCP23x17_OPE_WRITE 0x40
-#define MCP23x17_OPE_WRITE_A2 0x48
-#define MCP23x17_OPE_READ 0x41
+// =====================================================================
+// Arduino のピン
+//   SPI: D13 SCK / D12 MISO / D11 MOSI (MCP23S17、SPI SRAM、SD カードで共有)
+//   I2C: A4 SDA / A5 SCL (LCD)
+//   D2、D8、D9、D10 は未使用
+// =====================================================================
+#define PIN_CS_SD 7        // SD カードの /CS。USE_SD = 0 でも High にしておく (モジュールが付いたままでも邪魔しない)
+#define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS
+#define PIN_MCP_RESET 5    // MCP23S17 の /RESET (2 個共通)
+#define PIN_CS_MCP 4       // MCP23S17 の /CS (2 個共通。ハードウェアアドレスで区別する)
+#define PIN_MCP_INT 3      // MCP23S17 の INT (入力にしておくだけで使わない)
+
+// =====================================================================
+// MCP23S17 (GPIO エキスパンダ)
+// =====================================================================
+// チャネル = ハードウェアアドレス (A2 A1 A0 ピンの値)
+#define MCP_CH_ADDR 6  // ch6: GPA = A0-A7、GPB = A8-A15
+#define MCP_CH_DATA 7  // ch7: GPA = D0-D7
+#define MCP_CH_CTRL 7  // ch7: GPB = 制御線 (下の CTRL_*)
+
+// SPI のオペコード: 0 1 0 0 A2 A1 A0 R/W
+#define MCP_OP_WRITE(ch) (0x40 | ((ch) << 1))
+#define MCP_OP_READ(ch) (0x41 | ((ch) << 1))
+
+// レジスタアドレス (IOCON.BANK = 1 の配置)
+#define MCP_IODIR_A 0x00  // 向き (1 = 入力、0 = 出力)
+#define MCP_GPPU_A 0x06   // プルアップ (1 = 有効)
+#define MCP_GPIO_A 0x09   // 読むとピンの状態、書くと出力ラッチ
+#define MCP_OLAT_A 0x0A   // 出力ラッチ
+#define MCP_IODIR_B 0x10
+#define MCP_GPPU_B 0x16
+#define MCP_GPIO_B 0x19
+#define MCP_OLAT_B 0x1A
+#define MCP_IOCON_BANK0 0x0A  // リセット直後 (BANK = 0) の IOCON のアドレス
+
+// IOCON の設定値
+#define IOCON_BANK 0x80  // レジスタをポート A / B ごとにまとめる (上の配置になる)
+#define IOCON_HAEN 0x08  // ハードウェアアドレスを有効にする (同じ /CS の 2 個を区別する)
+#define IOCON_ODR 0x04   // INT ピンをオープンドレインにする
+#define MCP_IOCON_VALUE (IOCON_BANK | IOCON_HAEN | IOCON_ODR)  // 0x8C
 
 #define MCP_ALL_INPUT 0xFF
 #define MCP_ALL_OUTPUT 0x00
 
-// register address (BANK=1)
-// PORT A
-#define MCP23x17_DDR_A 0x00      //  Data Direction Register A
-#define MCP23x17_POL_A 0x01      //  Input Polarity A
-#define MCP23x17_GPINTEN_A 0x02  //  Interrupt enable
-#define MCP23x17_DEFVAL_A 0x03   //  Interrupt default
-#define MCP23x17_INTCON_A 0x04   //  Interrupt control register
-#define MCP23x17_IOCR 0x05       //  IO control register
-#define MCP23x17_GPUP_A 0x06     //  Pull Up Resistors A
-#define MCP23x17_INTF_A 0x07     //  Interrupt flag register
-#define MCP23x17_INTCAP_A 0x08   //  Interrupt capture register
-#define MCP23x17_GPIO_A 0x09     //  General Purpose IO A
-#define MCP23x17_OLAT_A 0x0A     //  output latch
-// PORT B
-#define MCP23x17_DDR_B 0x10      //  Data Direction Register B
-#define MCP23x17_POL_B 0x11      //  Input Polarity B
-#define MCP23x17_GPINTEN_B 0x12  //  Interrupt enable
-#define MCP23x17_DEFVAL_B 0x13   //  Interrupt default
-#define MCP23x17_INTCON_B 0x14   //  Interrupt control register
-#define MCP23x17_IOCR_B 0x15     //  IO control register
-#define MCP23x17_GPUP_B 0x16     //  Pull Up Resistors B
-#define MCP23x17_INTF_B 0x17     //  Interrupt flag register
-#define MCP23x17_INTCAP_B 0x18   //  Interrupt capture register
-#define MCP23x17_GPIO_B 0x19     //  General Purpose IO B
-#define MCP23x17_OLAT_B 0x1A     //  output latch
+// =====================================================================
+// ch7 GPB: カードと 62256 の制御線 (ビット = 1 で High)
+// =====================================================================
+//   B0  カードの CS2 (High で選択) と 62256 の /CS (Low で選択) を兼ねる
+//   B1  カードの /OE
+//   B2  62256 の /OE
+//   B3  /WE (カードと 62256 で共通)
+//   B4  カードの /CE1
+//   B5  未使用 (どこにもつながない。High のまま)
+//   B6  A16、B7 A17 (アドレスの上位。0x0000-0x7FFF では常に 0)
+#define CTRL_CS2 0x01
+#define CTRL_CARD_nOE 0x02
+#define CTRL_62256_nOE 0x04
+#define CTRL_nWE 0x08
+#define CTRL_CARD_nCE1 0x10
+#define CTRL_B5_UNUSED 0x20
+#define CTRL_A16 0x40
+#define CTRL_A17 0x80
 
-//  Initial IOCR (BANK=0)
-#define MCP23x17_IOCR_BANK0 0x0A
+// 状態ごとの値 (A16 / A17 は 0。アドレスを出すときに足す)
+//   待機     0x3F: カードは /CE1 = H、62256 は /CS = H で、どちらも非選択
+//   カード選択 0x2F: /CE1 = L、CS2 = H
+//   カード解放 0x3E: /CE1 = H、CS2 = L (1 バイトごとの後始末。v1 と同じ)
+//                    B0 を兼ねているので 62256 が選ばれた状態になるが、/OE も /WE も H なのでバスには出てこない
+//   62256 選択 0x3E: /CS = L
+#define CTRL_IDLE (CTRL_CS2 | CTRL_CARD_nOE | CTRL_62256_nOE | CTRL_nWE | CTRL_CARD_nCE1 | CTRL_B5_UNUSED)
+#define CTRL_CARD_SELECT (CTRL_IDLE & ~CTRL_CARD_nCE1)
+#define CTRL_CARD_RELEASE (CTRL_IDLE & ~CTRL_CS2)
+#define CTRL_62256_SELECT (CTRL_IDLE & ~CTRL_CS2)
+#define CTRL_62256_RELEASE CTRL_IDLE
 
-//  IOCR = IO CONTROL REGISTER bit masks
-#define IOCR_BANK1 0x80   // BANK=1
-#define IOCR_MIRROR 0x40  // INT Pins Mirror bit.
-#define IOCR_SEQOP 0x20   // Sequential Operation mode bit.
-#define IOCR_DISSLW 0x10  // Slew Rate control bit for SDA output.
-#define IOCR_HAEN 0x08    // Hardware Address Enable bit (MCP23S17 only).
-#define IOCR_ODR 0x04     // Configures the INT pin as an open-drain output.
-#define IOCR_INTPOL 0x02  // This bit sets the polarity of the INT output pin.
-#define IOCR_NI 0x01      // Not implemented.
-
-// SPI SRAM Definition
-#define SRAM_OPE_READ 0x03
-#define SRAM_OPE_WRITE 0x02
-#define SRAM_OPE_MODE 0xFF
-#define REG_READ 0x05
-#define REG_WRITE 0x01
-#define MODE_RW_BYTE 0x00
-#define MODE_RW_PAGE 0x40  // 32byte onetime
-#define MODE_RW_SEQ 0x80
-
-// SPI Chip Select pin number (LCD を使うときは I2C: SDA = A4, SCL = A5)
-#define CS_SDcard 7  // USE_SD = 0 でも High にしておく (モジュールが付いたままでも SPI を邪魔しない)
-#define CS_SRAM_512 6
-#define CS_RESET 5
-#define CS_MCP23S17 4
-#define CS_FSRAM_512 1
-
-#define IRQ_MCP 3
-
-// MCP Ch (MCP23S17 GPIOA, GPIOB)
-#define CH_MCP_BUS_ADDRESS 6
-#define CH_MCP_BUS_DATA 7
-#define CH_MCP_CONTROL 7
-
-// all INPUT PULL UP
-#define MCP7_PORT_PULUP 0b11111111
-
-// ---------------------------------------------------------------------
-// ch7 GPIOB (B7-B0) の制御値
-// ---------------------------------------------------------------------
-// B7 A17 / B6 A16 / B5 nCS_SPI_SRAM / B4 nCS1_FUJISOKU / B3 nWE / B2 nOE_62256 / B1 nOE_FUJISOKU / B0 CS2_FUJISOKU (= nCS_62256)
-#define MCP_IODIR_PE1_CONNECT 0b11011011
-#define MCP_IODIR_FUJISOKU_CONNECT 0b00000000
-#define MCP_IODIR_SRAM_CONNECT 0b00000000
-#define DISENABLE_SRAM 0b00111111
-#define DISENABLE_FUJISOKU 0b00111110
-#define AND_ENABLE_nWE 0b11110111
-#define ENABLE_SRAM_nCS 0b00111110
-#define AND_ENABLE_SRAM_nOE 0b11111011
-#define ENABLE_FUJISOKU_nCS1_CS2 0b00101111
-#define AND_ENABLE_FUJISOKU_nOE 0b11111101
-#define AND_ENABLE_SPI_SRAM 0b11011111
-#define CTRL_IDLE DISENABLE_SRAM
+// =====================================================================
+// SPI SRAM 23LC512 (64 KB、/CS = D6)。使うのは 0x0000-0x7FFF
+// =====================================================================
+#define SRAM23_READ 0x03   // 読み出し: 03 アドレス上位 下位 → データ
+#define SRAM23_WRITE 0x02  // 書き込み: 02 アドレス上位 下位 データ
+#define SRAM23_RDMR 0x05   // モードレジスタ読み出し
+#define SRAM23_WRMR 0x01   // モードレジスタ書き込み
+#define SRAM23_MODE_MASK 0xC0
+#define SRAM23_MODE_BYTE 0x00
+#define SRAM23_MODE_PAGE 0x80
+#define SRAM23_MODE_SEQUENTIAL 0x40  // 電源投入時の値。起動時にこれに揃える
 
 #endif  // FSU_CONFIG_H

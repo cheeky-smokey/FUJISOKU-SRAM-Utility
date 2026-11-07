@@ -6,7 +6,7 @@
 // ファイル構成 (Arduino IDE ではタブとして開く)
 //   FUJISOKU_SRAM_COPY.ino  このファイル。ライブラリ、グローバル変数、setup / loop
 //   config.h                オプション部品 (USE_SD / USE_LCD / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
-//   hardware.ino            MCP23S17 / FUJISOKU / SPI SRAM の 1 バイト読み書き
+//   hardware.ino            MCP23S17 / FUJISOKU カード / 62256 / SPI SRAM の 1 バイト読み書き
 //   storage.ino             SD カードの状態管理 (抜き差し対応、USE_SD のときだけ)
 //   operations.ino          コピー・比較・SD 保存/書き込み/照合などの処理
 //   protocol.ino            PC との通信 (1 行コマンド)。Web アプリはこれを使う
@@ -35,11 +35,10 @@ SdFat SD;
 FsFile myFile;
 #endif
 uint8_t sd_state = SD_STATE_UNKNOWN;  // storage.ino が更新する (USE_SD = 0 なら UNKNOWN のまま)
-bool sd_changed = false;              // 状態が変わった (LCD の再描画用)
-uint32_t sd_checked_ms = 0;
+uint32_t sd_checked_ms = 0;           // 最後に SD カードを確かめた時刻
 
 // 処理の状態 (operations.ino / protocol.ino / lcd_ui.ino で共有)
-char op_msg[48];
+char op_msg[48];             // 終了行の説明 (LCD の結果画面にも出す)
 bool op_cancel = false;      // 中断要求 (PC からの '!')
 uint8_t op_session = 0;      // 0: なし  1: 処理中  2: PC が LCD を操作中 (ui begin ～ ui end)
 uint32_t op_session_ms = 0;  // 最後に動きがあった時刻 (PC 側が止まったら画面を戻すため)
@@ -47,28 +46,28 @@ uint32_t op_session_ms = 0;  // 最後に動きがあった時刻 (PC 側が止�
 void setup() {
   Serial.begin(115200);  // 接続待ちはしない (PC をつなぐ前から LCD に状態を出す)
 
+  // SPI の /CS はすべて High (非選択) にしてから SPI を始める
+  pinMode(PIN_CS_SD, OUTPUT);
+  pinMode(PIN_CS_SPI_SRAM, OUTPUT);
+  pinMode(PIN_CS_MCP, OUTPUT);
+  digitalWrite(PIN_CS_SD, HIGH);
+  digitalWrite(PIN_CS_SPI_SRAM, HIGH);
+  digitalWrite(PIN_CS_MCP, HIGH);
+  pinMode(PIN_MCP_INT, INPUT);
   SPI.begin();
-  pinMode(CS_SDcard, OUTPUT);
-  pinMode(CS_SRAM_512, OUTPUT);
-  pinMode(CS_RESET, OUTPUT);
-  pinMode(CS_MCP23S17, OUTPUT);
-  pinMode(IRQ_MCP, INPUT);
-  digitalWrite(CS_SDcard, HIGH);
-  digitalWrite(CS_SRAM_512, HIGH);
-  digitalWrite(CS_MCP23S17, HIGH);
 
-  // MCP23S17 の nRESET
-  digitalWrite(CS_RESET, HIGH);
-  digitalWrite(CS_RESET, LOW);
+  // MCP23S17 をリセットする (/RESET を 1 ms Low)
+  pinMode(PIN_MCP_RESET, OUTPUT);
+  digitalWrite(PIN_MCP_RESET, LOW);
   delay(1);
-  digitalWrite(CS_RESET, HIGH);
+  digitalWrite(PIN_MCP_RESET, HIGH);
   delay(1);
 
   ui_begin();
 
   ui_splash_status("Bus init...");
-  mcp_init();
-  spi_sram_init();
+  mcp_init();       // バスは待機状態 (カードも 62256 も非選択) になる
+  spi_sram_init();  // SPI SRAM のモードを揃える
 
 #if USE_SD
   // SD カードが無くても止まらない (無ければ SD:NONE と表示するだけ)
