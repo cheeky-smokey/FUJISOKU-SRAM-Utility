@@ -1,10 +1,10 @@
-// Web アプリ (webapp/index.html) を Playwright の Chromium で開き、
+// Web アプリ (webapp/FSRAM-Utility.html) を Playwright の Chromium で開き、
 // navigator.serial の代わりにホストシミュレータのファームウェアへつなぐ
 const path = require('path');
 const { chromium } = require('playwright');
 const { Firmware } = require('./fw');
 
-const APP = 'file://' + path.join(__dirname, '..', '..', 'webapp', 'index.html');
+const APP = 'file://' + path.join(__dirname, '..', '..', 'webapp', 'FSRAM-Utility.html');
 
 // ページ内に差し込む Web Serial の代役
 const MOCK = () => {

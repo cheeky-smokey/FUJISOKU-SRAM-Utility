@@ -1,6 +1,6 @@
 # Web アプリの使い方
 
-`webapp/index.html` は 1 ファイルだけの Web アプリです。インストールやサーバーは要りません。ファイルをダブルクリックして開くか、GitHub Pages などに置いて開きます。
+`webapp/FSRAM-Utility.html` は 1 ファイルだけの Web アプリです。インストールやサーバーは要りません。ファイルをダブルクリックして開くか、GitHub Pages などに置いて開きます。
 
 ![Web アプリ](images/webapp.png)
 

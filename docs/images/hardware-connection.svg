@@ -12,7 +12,7 @@
   <!-- PC -->
   <rect x="20" y="60" width="200" height="74" rx="6" fill="#eef0fb" stroke="#2c3393" stroke-width="1.5"/>
   <text x="30" y="80" font-weight="bold" fill="#111111">PC (Chrome / Edge)</text>
-  <text x="30" y="98" font-size="11" fill="#333333">webapp/index.html (Web Serial)</text>
+  <text x="30" y="98" font-size="11" fill="#333333">webapp/FSRAM-Utility.html (Web Serial)</text>
   <text x="30" y="114" font-size="11" fill="#333333">or any serial terminal</text>
   <text x="30" y="128" font-size="10" fill="#555555">115200 bps, line commands</text>
   <path d="M220,97 H286" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arr)"/>

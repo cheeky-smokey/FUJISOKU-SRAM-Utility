@@ -36,7 +36,7 @@
 
 ![ハードウェア接続図](images/hardware-connection.svg)
 
-- Arduino UNO R4 が SPI マスタです。PC とは USB シリアル（115200 bps）でつながり、Web アプリ（`webapp/index.html`）やシリアル端末から操作します。
+- Arduino UNO R4 が SPI マスタです。PC とは USB シリアル（115200 bps）でつながり、Web アプリ（`webapp/FSRAM-Utility.html`）やシリアル端末から操作します。
 - カードのアドレス・データ・制御線は **MCP23S17 を 2 個**（ch6 = アドレス、ch7 = データ + 制御）使った GPIO エキスパンダ経由で駆動します。
 - 破線の箱（SD カード、LCD、62256）はオプション部品です。v1 の TFT（ILI9341）とタッチ（XPT2046）は使いません。
 

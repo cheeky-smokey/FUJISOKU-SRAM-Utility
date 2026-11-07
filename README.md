@@ -1,3 +1,5 @@
+![FUJISOKU SRAM Utility](docs/images/banner.png)
+
 # FUJISOKU SRAM Utility
 
 Silver Reed 編み機のメモリカード（FUJISOKU SRAM、32KB）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
@@ -14,7 +16,7 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、32KB）を、Arduin
 ## 使い方
 
 1. 本体をスケッチ v2 で動かし、USB で PC につなぐ。
-2. PC の **Google Chrome** または **Microsoft Edge** で [`webapp/index.html`](webapp/index.html) を開き、「本体に接続」を押してシリアルポートを選ぶ。
+2. PC の **Google Chrome** または **Microsoft Edge** で [`webapp/FSRAM-Utility.html`](webapp/FSRAM-Utility.html) を開き、「本体に接続」を押してシリアルポートを選ぶ。
 3. 目的のタブを選ぶ。
 
 | タブ | できること |
@@ -63,10 +65,10 @@ v1 で使っていた Adafruit GFX / ILI9341 / XPT2046 は不要になりまし�
 ## 構成
 
 ```
-FUJISOKU_SRAM_COPY/   スケッチ (メイン、config.h、hardware / storage / operations / protocol / lcd_ui)
-webapp/index.html     Web アプリ (1 ファイル、インストール不要)
-docs/                 hardware.md (配線)、specification.md (ソフト仕様)、protocol.md (通信)、webapp.md
-test/                 PC 上でスケッチを動かすシミュレータと自動テスト (test/README.md)
+FUJISOKU_SRAM_COPY/         スケッチ (メイン、config.h、hardware / storage / operations / protocol / lcd_ui)
+webapp/FSRAM-Utility.html   Web アプリ (1 ファイル、インストール不要)
+docs/                       hardware.md (配線)、specification.md (ソフト仕様)、protocol.md (通信)、webapp.md
+test/                       PC 上でスケッチを動かすシミュレータと自動テスト (test/README.md)
 ```
 
 ## 確かめたこと
