@@ -421,7 +421,7 @@ test('カードの検出 (/CARD DET = D2): 無ければ ERR NOCARD、抜き差�
   await fw.close();
 });
 
-test('電池電圧 (BATT-DET = A0): 50 mV 以上の変化で E BATT、1.00 V 以下で LCD に警告', async () => {
+test('電池電圧 (BATT-DET = A2): 50 mV 以上の変化で E BATT、1.00 V 以下で LCD に警告', async () => {
   const fw = await boot({ args: ['--batt-mv', '2950'] });
   await fw.advance(800);
   assert.match((await fw.cmd('status')).last, / batt=2950$/);

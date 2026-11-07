@@ -97,7 +97,7 @@
   <!-- notes in the free area next to the power / unused rows (left) -->
   <g font-size="10" fill="#555555" text-anchor="end">
     <text x="414" y="109">GND (joined with F38 in the card)</text>
-    <text x="414" y="137">to Arduino A0 (battery voltage)</text>
+    <text x="414" y="137">to Arduino A2 (battery voltage)</text>
     <text x="414" y="165">5 V (joined with F36 in the card)</text>
   </g>
 

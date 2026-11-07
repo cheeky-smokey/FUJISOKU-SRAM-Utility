@@ -22,7 +22,7 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | ファイル | 内容 |
 |---|---|
 | `FUJISOKU_SRAM_COPY.ino` | ライブラリの読み込み（LCD はオプションに応じて）、グローバル変数、`setup()`、`loop()` |
-| `card.ino` | カードの抜き差し（/CARD DET = D2、`E CARD`）と電池電圧（BATT-DET = A0、`E BATT`）。処理中にカードが抜かれたかの確認 |
+| `card.ino` | カードの抜き差し（/CARD DET = D2、`E CARD`）と電池電圧（BATT-DET = A2、`E BATT`）。処理中にカードが抜かれたかの確認 |
 | `config.h` | **オプション部品の選択**（§3）、設定値、ピン（`PIN_*`）、MCP23S17 のレジスタ（`MCP_*`）、制御線のビットと状態（`CTRL_*`）、SPI SRAM のコマンド（`SRAM23_*`） |
 | `hardware.ino` | MCP23S17 のレジスタ読み書き（`mcp_read()` / `mcp_write()`）、`mcp_init()` / `bus_idle()`、バスの向きの管理、カード・62256・SPI SRAM の 1 バイト読み書き、`spi_sram_init()` / `spi_sram_read_mode()` |
 | `storage.ino` | SD カードの状態管理（マウント、生存確認、抜けの検出）、ファイル名の組み立て、一覧。`USE_SD` のときだけ |
@@ -42,7 +42,7 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | オプション | SPI SRAM（本体だけでのコピー・比較の一時置き場） | `USE_SPI_SRAM` |
 | オプション | 62256 並列 SRAM（動作確認用） | `USE_SRAM62256` |
 | 配線 | カードの検出（F37 /CARD DET → D2） | `USE_CARD_DET` |
-| 配線 | カードの電池電圧（F2 BATT-DET → A0） | `USE_BATT_DET` |
+| 配線 | カードの電池電圧（F2 BATT-DET → A2） | `USE_BATT_DET` |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、SD カードと LCD はなくても使えます。既定の構成は SD カードなし（`USE_SD` = 0）、LCD と SPI SRAM はあり（どちらも起動時に探し、見つからなければ使わない）、62256 なしです。
 
@@ -54,7 +54,7 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 #define USE_SPI_SRAM 1    // SPI SRAM。0 で SPI SRAM のコードを外す (1 でも見つからなければ使わない)
 #define USE_SRAM62256 0   // 動作確認用の 62256。1 で対象 p と test p が使える
 #define USE_CARD_DET 1    // カードの検出 (D2)。配線しない基板では 0
-#define USE_BATT_DET 1    // カードの電池電圧 (A0)。配線しない基板では 0
+#define USE_BATT_DET 1    // カードの電池電圧 (A2)。配線しない基板では 0
 ```
 
 | 設定 | 1 のとき | 0 のとき |
@@ -64,7 +64,7 @@ Arduino IDE ではフォルダ内の `.ino` がタブとして開かれ、メイ
 | `USE_SPI_SRAM` | 起動時に SPI SRAM を探し（`spi_sram_init()`）、見つかれば対象 `s` と `R` `C` `X` `E` `S` `W` が使える。見つからなければそれらは `ERR NOSPI`。`test` は見つからなくても実行し、探し直す | SPI SRAM のコードを入れない。対象 `s` と `R` `C` `X` `E` `S` `W` `T` は `ERR DISABLED`。`status` は `spi=-` |
 | `USE_SRAM62256` | 対象 `p`、`test p` が使える。`read_sram62256()` / `write_sram62256()` が入る | 62256 のコードを入れない。`p` を指定すると `ERR DISABLED` |
 | `USE_CARD_DET` | D2 でカードの有無を見る。無ければカードを使う操作は `ERR NOCARD`、処理中に抜かれたら止める（§6.4） | いつもカードが入っているものとして扱う。`status` は `card=-` |
-| `USE_BATT_DET` | A0 で電池電圧を測り、LCD と Web アプリに出す。`BATT_LOW_MV` 以下で警告（§6.4） | 測らない。`status` は `batt=-` |
+| `USE_BATT_DET` | A2 で電池電圧を測り、LCD と Web アプリに出す。`BATT_LOW_MV` 以下で警告（§6.4） | 測らない。`status` は `batt=-` |
 
 LCD の設定にかかわらず、本体は画面の内容を持ち続けるので、Web アプリには同じ画面が出ます。`hello` の応答（`lcd=20x4|none`、`sram62256=1|0`、`sdcard=1|0`、`spisram=ok|none|off`）で、PC は構成を知ることができます。Web アプリは `sdcard=0` なら SD のタブを隠し、`spisram` が `ok` でなければ SPI SRAM の操作を隠します（`none` のときは自己診断だけ出す）。
 
@@ -94,7 +94,7 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | `USE_CARD_DET` / `USE_BATT_DET` | `1` / `1` | §3.2 |
 | `CARD_DET_ACTIVE_LOW` | `1` | /CARD DET はカードが入ると Low（逆の基板では 0） |
 | `BATT_LOW_MV` | `1000` | 電池の警告電圧 [mV]。これ以下で警告 |
-| `BATT_ADC_FULL_MV` | `5000` | A0 の測定範囲 [mV]（UNO R4 の 5 V）。5 V ピンの実測値にすると電圧が正確になる |
+| `BATT_ADC_FULL_MV` | `5000` | A2 の測定範囲 [mV]（UNO R4 の 5 V）。5 V ピンの実測値にすると電圧が正確になる |
 | `LCD_I2C_ADDR` | `0x27` | LCD バックパックの I2C アドレス（`0x3F` の基板もある） |
 | `RESULT_HOLD_MS` | `15000` | 結果画面を出しておく時間 |
 | `SPI_BUS_HZ` | `4000000` | MCP23S17 / SPI SRAM の SPI クロック |
@@ -112,7 +112,7 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 3. `ui_begin()`: `USE_LCD` が 1 なら I2C で LCD を探し、見つかれば初期化して自作文字を登録する。起動画面を出す。
 4. `mcp_init()`: MCP23S17 を BANK=1・HAEN にして全チャネルを初期化し、`bus_idle()`。
 5. `spi_sram_init()`（`USE_SPI_SRAM` のときだけ）: SPI SRAM（/CS = D6）があるかを確かめ、モードを電源投入時と同じシーケンシャル（`0x40`）に揃える。無くても止まらない（[hardware.md §9.1](hardware.md#91-spi-sramオプション本体だけでの処理の一時置き場)）。
-6. `card_begin()`: D2 を内蔵プルアップの入力にしてカードの有無を読み、カードがあれば A0 で電池電圧を測る。
+6. `card_begin()`: D2 を内蔵プルアップの入力にしてカードの有無を読み、カードがあれば A2 で電池電圧を測る。
 7. `sd_mount()`（`USE_SD` のときだけ）: SD カードがあればマウント。無くても止まらない。
 8. 待機画面を出し、`FUJISOKU SRAM Utility 2.6 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok, card in). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定）、カードは `in` / `none` / `-`（検出しない設定））。
 
@@ -181,7 +181,7 @@ v1 との違い:
 | カードの有無 | D2（/CARD DET、内蔵プルアップ）。`CARD_DET_ACTIVE_LOW` が 1 なら Low = カードあり。50 ms 同じ値が続いたら `card_inserted` を変え、`E CARD 1` / `E CARD 0` を送る |
 | カードが無いとき | `dev_ready()` が、カードを使うコマンドに `ERR NOCARD No card in the slot` を返す（`rd f` `wr f` `fill f` `copy` `cmp` `erase f` `sd save/load/verify f`、`R` `C` `X` `B` `L` `V` `e`） |
 | 処理中に抜かれたら | カードを使うコマンドでは `op_needs_card` を立てる。`op_poll_cancel()` が 3 回続けて「無い」と読んだら中断し、`ERR NOCARD Card removed at 0x....`（PC 主導の `rd` / `wr` / `fill` は `ERR NOCARD Card removed`）。バスは待機状態に戻す |
-| 電池電圧 | A0（BATT-DET）。12 ビットで 8 回測って平均し、`BATT_ADC_FULL_MV`（5000 mV）を満点として mV にする。0.5 秒ごと。カードが無いときは測らない（`batt_mv` = -1）。挿してから 0.1 秒後に測り直す |
+| 電池電圧 | A2（BATT-DET）。12 ビットで 8 回測って平均し、`BATT_ADC_FULL_MV`（5000 mV）を満点として mV にする。0.5 秒ごと。カードが無いときは測らない（`batt_mv` = -1）。挿してから 0.1 秒後に測り直す |
 | 知らせ方 | 前に送った値から 50 mV 以上変わったとき、または警告の境目をまたいだときに `E BATT <mV>`。`status` の `batt=` はいつでも最新の値 |
 | 警告 | `batt_mv` が `BATT_LOW_MV`（1000 mV）以下。LCD は電圧の後ろに `!`、4 行目に `! Card battery low !`。Web アプリは画面の上に警告を出す |
 
@@ -262,7 +262,7 @@ v1 との違い:
 
 | 区分 | 内容 |
 |---|---|
-| 配線 | カードの /CARD DET（F37）を D2、BATT-DET（F2）を A0 に直接つなぐ |
+| 配線 | カードの /CARD DET（F37）を D2、BATT-DET（F2）を A2 に直接つなぐ |
 | カードの検出 | `USE_CARD_DET`（既定 1）。カードが無いとカードを使う操作は `ERR NOCARD`。処理中に抜かれたら止めて `ERR NOCARD Card removed at 0x....`。抜き差しは `E CARD 1/0` |
 | 電池電圧 | `USE_BATT_DET`（既定 1）。0.5 秒ごとに測り、`E BATT <mV>` で知らせる。1.00 V（`BATT_LOW_MV`）以下で LCD と Web アプリに警告 |
 | 通信 | `hello` に `carddet` `battdet` `battlow`、`status` に `card` `batt` を追加 |

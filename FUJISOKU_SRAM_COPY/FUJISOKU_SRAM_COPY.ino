@@ -6,7 +6,7 @@
 // ファイル構成 (Arduino IDE ではタブとして開く)
 //   FUJISOKU_SRAM_COPY.ino  このファイル。ライブラリ、グローバル変数、setup / loop
 //   config.h                オプション部品 (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
-//   card.ino                カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A0)
+//   card.ino                カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A2)
 //   hardware.ino            MCP23S17 / FUJISOKU カード / 62256 / SPI SRAM の 1 バイト読み書き
 //   storage.ino             SD カードの状態管理 (抜き差し対応、USE_SD のときだけ)
 //   operations.ino          コピー・比較・SD 保存/書き込み/照合などの処理

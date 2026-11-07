@@ -111,7 +111,7 @@
   <text x="80" y="426" font-size="11" fill="#333333">chip select / signal flow</text>
   <rect x="32" y="436" width="38" height="14" rx="3" fill="#f3f4f6" stroke="#555555" stroke-dasharray="5,3"/>
   <text x="80" y="447" font-size="11" fill="#333333">optional part</text>
-  <text x="32" y="474" font-size="11" fill="#333333">D2 = /CARD DET (F37), A0 = BATT-DET (F2)</text>
+  <text x="32" y="474" font-size="11" fill="#333333">D2 = /CARD DET (F37), A2 = BATT-DET (F2)</text>
   <text x="32" y="488" font-size="11" fill="#333333">D3 not connected; D8, D9, D10 free</text>
 
   <!-- parallel bus -->

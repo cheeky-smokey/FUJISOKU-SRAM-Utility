@@ -47,7 +47,7 @@ struct Diag {
 
 static bool spi_sram_present = true;  // false: SPI SRAM が無い (MISO は High のまま)
 static bool card_present = true;
-static int batt_mv_sim = 3000;     // カードの電池電圧 (BATT-DET → A0) [mV]
+static int batt_mv_sim = 3000;     // カードの電池電圧 (BATT-DET → A2) [mV]
 static int adc_bits = 10;
 static uint32_t card_size = 0x8000;  // カードの容量 (--card-kb)。上のアドレス線は無視される
 static int glitch_addr = -1;

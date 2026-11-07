@@ -1,12 +1,12 @@
-// カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A0)
+// カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A2)
 //
 // /CARD DET (カードの F37): カードが入ると Low になる (CARD_DET_ACTIVE_LOW)。D2 は内蔵プルアップの入力。
 //   50 ms 同じ値が続いたら抜き差しとみなし、"E CARD 1" / "E CARD 0" を PC に送る。
 //   カードが無いとき、カードを使うコマンドは ERR NOCARD を返す (protocol.ino の dev_ready())。
 //   処理中に抜かれたら op_poll_cancel() が気づいて止める (ERR NOCARD Card removed ...)。
-// BATT-DET (カードの F2): カードの電池の電圧。A0 で 0.5 秒ごとに測る (12 ビット、8 回の平均)。
+// BATT-DET (カードの F2): カードの電池の電圧。A2 で 0.5 秒ごとに測る (12 ビット、8 回の平均)。
 //   50 mV 以上変わったときと、警告の境目 (BATT_LOW_MV) をまたいだときに "E BATT <mV>" を送る。
-//   カードが無いときは A0 が浮いているので測らない (batt_mv = -1)。
+//   カードが無いときは A2 が浮いているので測らない (batt_mv = -1)。
 // USE_CARD_DET = 0 なら、いつもカードが入っているものとして扱う。
 
 #define CARD_DEBOUNCE_MS 50

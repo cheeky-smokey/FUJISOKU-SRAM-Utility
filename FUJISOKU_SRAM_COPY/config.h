@@ -43,7 +43,7 @@
 #define USE_CARD_DET 1
 #endif
 
-// カードの電池電圧 (カードの F2 BATT-DET → A0)。
+// カードの電池電圧 (カードの F2 BATT-DET → A2)。
 //   1 にすると、電圧を Web アプリと LCD に出し、BATT_LOW_MV 以下で警告する。
 #ifndef USE_BATT_DET
 #define USE_BATT_DET 1
@@ -86,7 +86,7 @@
 #define BATT_LOW_MV 1000
 #endif
 
-// A0 の測定範囲 [mV] (UNO R4 は 5V が基準)。テスターで測った 5V の値にすると電圧が正確になる
+// A2 の測定範囲 [mV] (UNO R4 は 5V が基準)。テスターで測った 5V の値にすると電圧が正確になる
 #ifndef BATT_ADC_FULL_MV
 #define BATT_ADC_FULL_MV 5000
 #endif
@@ -138,7 +138,7 @@
 #define PIN_CS_MCP 4       // MCP23S17 の /CS (2 個共通。ハードウェアアドレスで区別する)
 #define PIN_MCP_INT 3      // 未接続 (MCP23S17 の INT は使わない。入力にしておくだけ)
 #define PIN_CARD_DET 2     // カードの /CARD DET (F37)。内蔵プルアップの入力
-#define PIN_BATT_DET A0    // カードの BATT-DET (F2)。アナログ入力
+#define PIN_BATT_DET A2    // カードの BATT-DET (F2)。アナログ入力
 
 // =====================================================================
 // MCP23S17 (GPIO エキスパンダ)

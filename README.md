@@ -42,7 +42,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | オプション | SPI SRAM（23LC512。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 | 配線 | カードの検出（カードの F37 /CARD DET → D2） | `USE_CARD_DET`（既定 1） |
-| 配線 | 電池電圧（カードの F2 BATT-DET → A0） | `USE_BATT_DET`（既定 1） |
+| 配線 | 電池電圧（カードの F2 BATT-DET → A2） | `USE_BATT_DET`（既定 1） |
 
 カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 
@@ -52,7 +52,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 #define USE_SPI_SRAM 1    // SPI SRAM をつながないなら 0 (1 のままでも、見つからなければ飛ばす)
 #define USE_SRAM62256 0   // 62256 をつないだら 1
 #define USE_CARD_DET 1    // D2 にカードの検出を配線していないなら 0
-#define USE_BATT_DET 1    // A0 にカードの電池電圧を配線していないなら 0
+#define USE_BATT_DET 1    // A2 にカードの電池電圧を配線していないなら 0
 ```
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。
