@@ -34,7 +34,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | 区分 | 部品 | `config.h` |
 |---|---|---|
 | 必須 | Arduino UNO R4、MCP23S17 × 2、FUJISOKU カードのスロット | - |
-| 必須 | **SPI SRAM**（23LC512 クラス、データの一時保管。/CS は D6。MCP23S17 にはつながない） | - |
+| 必須 | **SPI SRAM**（23LC512 クラス、データの一時保管。/CS は D6） | - |
 | オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
 | オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
