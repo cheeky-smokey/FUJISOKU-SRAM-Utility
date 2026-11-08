@@ -9,7 +9,7 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC
 - **PC から操作**: ブラウザの Web アプリで、カードを PC に保存・PC のファイルをカードに書き込み・比較。
 - **表示**: 状態・処理の段階・進捗バー・結果を 20 文字 × 4 行で表示。同じ画面が Web アプリにも出るので、LCD はオプションです。
 - **SD カード（オプション）**: 本体だけでカード ⇄ SD のバックアップ・照合・書き戻し。SD カードは処理の合間に抜き差しでき、最初から入っていなくても止まりません。
-- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.50 V 以下で「少ない」（Low battery）、0.50 V 以下で「電池なし」と警告します。
+- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.70 V 以下で「少ない」（Low battery）、0.50 V 以下で「電池なし」と警告します。
 - **62256（オプション）**: 動作確認用の SRAM で、カードを使わずにバスの配線を試験できます。
 
 ![Web アプリ](docs/images/webapp.png)
@@ -56,7 +56,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 #define USE_CARD_DET 1    // D2 にカードの検出を配線していないなら 0
 #define USE_BATT_DET 1    // A2 にカードの電池電圧を配線していないなら 0
 #define BATT_NONE_MV 500  // これ以下は「電池なし」(No battery) [mV]
-#define BATT_LOW_MV 1500  // これ以下は「少ない」(Low battery) [mV]。BATT_NONE_MV より大きくする
+#define BATT_LOW_MV 1700  // これ以下は「少ない」(Low battery) [mV]。BATT_NONE_MV より大きくする
 ```
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。

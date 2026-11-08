@@ -46,7 +46,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1500 battnone=500`（既定の構成）。`carddet` / `battdet` はカードの検出・電池電圧を使うか（`USE_CARD_DET` / `USE_BATT_DET`）、`battlow` は電池が「少ない」とする電圧 [mV]（v2.6 から）、`battnone` は「電池なし」とする電圧 [mV]（v2.7 から。無ければ判定しない）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `hello` | `HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500`（既定の構成）。`carddet` / `battdet` はカードの検出・電池電圧を使うか（`USE_CARD_DET` / `USE_BATT_DET`）、`battlow` は電池が「少ない」とする電圧 [mV]（v2.6 から）、`battnone` は「電池なし」とする電圧 [mV]（v2.7 から。無ければ判定しない）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
 | `status` | `STATUS sd=- busy=0 spi=40 lcd=1 card=1 batt=2950`（`card` はカードの有無（`1` / `0`、検出しない設定なら `-`）、`batt` は電池電圧 [mV]（測っていなければ `-`）。`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`、`USE_SPI_SRAM` が 0 なら `-`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
@@ -155,7 +155,7 @@ v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は�
 
 ```
 > hello
-< HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1500 battnone=500
+< HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500
 > sd save f game1
 < S Checking SD card
 < S Opening file

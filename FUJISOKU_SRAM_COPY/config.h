@@ -52,14 +52,15 @@
 
 // 電池の判定電圧 [mV] (A2 で測った表示の値と比べる)。BATT_NONE_MV < BATT_LOW_MV にすること
 //   電圧 <= BATT_NONE_MV                 → 「電池なし」(No battery)   既定 0.50 V
-//   BATT_NONE_MV < 電圧 <= BATT_LOW_MV   → 「少ない」(Low battery)    既定 1.50 V
+//   BATT_NONE_MV < 電圧 <= BATT_LOW_MV   → 「少ない」(Low battery)    既定 1.70 V
 //   BATT_LOW_MV より上                   → 正常
 //   作者の基板 (A2 に 1 MΩ) の実測: 電池なし 0.24 V、新品の電池 2.75 V
+//   1.70 V は、テスターで測った電池の電圧で約 2 V (CR2016 は約 2.05 V、BR2325 は約 1.94 V。docs/hardware.md §6.1)
 #ifndef BATT_NONE_MV
 #define BATT_NONE_MV 500
 #endif
 #ifndef BATT_LOW_MV
-#define BATT_LOW_MV 1500
+#define BATT_LOW_MV 1700
 #endif
 
 // 動作確認用の並列 SRAM 62256 (カードと同じバスにつなぐ)。

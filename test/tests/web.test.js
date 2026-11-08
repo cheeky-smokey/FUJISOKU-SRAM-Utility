@@ -548,7 +548,7 @@ test('SPI SRAM: 使わない設定なら操作を隠し、見つからなけれ�
   await app.close();
 });
 
-test('カードと電池: 状態を表示し、1.50 V 以下で「少ない」、0.50 V 以下で「電池なし」、抜くと NOCARD の案内', async () => {
+test('カードと電池: 状態を表示し、1.70 V 以下で「少ない」、0.50 V 以下で「電池なし」、抜くと NOCARD の案内', async () => {
   const app = await connected({ card: pattern(14), fwArgs: ['--batt-mv', '2950'] });
   const { page, fw } = app;
   assert.equal(await page.textContent('#cardState'), '入っています');
