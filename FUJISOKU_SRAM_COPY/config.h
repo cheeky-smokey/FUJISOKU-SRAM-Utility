@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.7"
+#define FSU_VERSION "2.8"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
@@ -50,6 +50,18 @@
 #define USE_BATT_DET 1
 #endif
 
+// 電池の判定電圧 [mV] (A2 で測った表示の値と比べる)。BATT_NONE_MV < BATT_LOW_MV にすること
+//   電圧 <= BATT_NONE_MV                 → 「電池なし」(No battery)   既定 0.50 V
+//   BATT_NONE_MV < 電圧 <= BATT_LOW_MV   → 「少ない」(Low battery)    既定 1.50 V
+//   BATT_LOW_MV より上                   → 正常
+//   作者の基板 (A2 に 1 MΩ) の実測: 電池なし 0.24 V、新品の電池 2.75 V
+#ifndef BATT_NONE_MV
+#define BATT_NONE_MV 500
+#endif
+#ifndef BATT_LOW_MV
+#define BATT_LOW_MV 1500
+#endif
+
 // 動作確認用の並列 SRAM 62256 (カードと同じバスにつなぐ)。
 //   1 にすると、コマンドの対象 p として読み書き・コピー・比較・バスの配線試験 (test p) に使える。
 #ifndef USE_SRAM62256
@@ -80,17 +92,6 @@
 // /CARD DET の向き: 1 = カードが入ると Low (D2 は内蔵プルアップ)
 #ifndef CARD_DET_ACTIVE_LOW
 #define CARD_DET_ACTIVE_LOW 1
-#endif
-
-// カードの電池の警告電圧 [mV]。これ以下で「少ない」(Low battery) と警告する
-//   作者の基板 (A2 に 1 MΩ) では新品の電池が 2.75 V と表示される。コイン型のリチウム電池は 2 V 前後が交換の目安
-#ifndef BATT_LOW_MV
-#define BATT_LOW_MV 2000
-#endif
-
-// これ以下なら「電池なし」とみなす [mV]。1 MΩ をつけた作者の基板では、電池が無いと約 0.24 V
-#ifndef BATT_NONE_MV
-#define BATT_NONE_MV 400
 #endif
 
 // A2 の測定範囲 [mV] (UNO R4 は 5V が基準)。テスターで測った 5V の値にすると電圧が正確になる

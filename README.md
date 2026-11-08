@@ -2,14 +2,14 @@
 
 # FUJISOKU SRAM Utility
 
-**最新版 v2.7**（電池なしの検出、Low battery 2.00 V、LCD の署名を追加。v2.6 でカードの検出と電池電圧の表示を追加）。Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
+**最新版 v2.8**（電池の判定電圧を No battery 0.50 V・Low battery 1.50 V にし、`config.h` の先頭で変えられるようにした）。v2.7 までは Arduino UNO R4 と作者の基板で動作確認済みです。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
 
 Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 256KB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
 
 - **PC から操作**: ブラウザの Web アプリで、カードを PC に保存・PC のファイルをカードに書き込み・比較。
 - **表示**: 状態・処理の段階・進捗バー・結果を 20 文字 × 4 行で表示。同じ画面が Web アプリにも出るので、LCD はオプションです。
 - **SD カード（オプション）**: 本体だけでカード ⇄ SD のバックアップ・照合・書き戻し。SD カードは処理の合間に抜き差しでき、最初から入っていなくても止まりません。
-- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。2.00 V 以下で「少ない」（Low battery）、0.40 V 以下で「電池なし」と警告します。
+- **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.50 V 以下で「少ない」（Low battery）、0.50 V 以下で「電池なし」と警告します。
 - **62256（オプション）**: 動作確認用の SRAM で、カードを使わずにバスの配線を試験できます。
 
 ![Web アプリ](docs/images/webapp.png)
@@ -55,6 +55,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 #define USE_SRAM62256 0   // 62256 をつないだら 1
 #define USE_CARD_DET 1    // D2 にカードの検出を配線していないなら 0
 #define USE_BATT_DET 1    // A2 にカードの電池電圧を配線していないなら 0
+#define BATT_NONE_MV 500  // これ以下は「電池なし」(No battery) [mV]
+#define BATT_LOW_MV 1500  // これ以下は「少ない」(Low battery) [mV]。BATT_NONE_MV より大きくする
 ```
 
 `USE_LCD` と `USE_SPI_SRAM` は 1 のままでも、起動時に見つからなければその部品を使わずに動きます（SPI SRAM を使う操作は `ERR NOSPI` になり、Web アプリは自己診断だけを出します）。LCD の I2C アドレスは `LCD_I2C_ADDR`（既定 `0x27`、表示されないときは `0x3F`）です。

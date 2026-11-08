@@ -1,6 +1,6 @@
-# ソフトウェア仕様（スケッチ v2.7）
+# ソフトウェア仕様（スケッチ v2.8）
 
-対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.7）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
+対象: `FUJISOKU_SRAM_COPY/`（`FSU_VERSION` = 2.8）。配線は [hardware.md](hardware.md)、PC との通信は [protocol.md](protocol.md)、Web アプリは [webapp.md](webapp.md) を参照してください。
 
 ## 1. 概要
 
@@ -93,8 +93,8 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 | `USE_SRAM62256` | `0` | §3.2 |
 | `USE_CARD_DET` / `USE_BATT_DET` | `1` / `1` | §3.2 |
 | `CARD_DET_ACTIVE_LOW` | `1` | /CARD DET はカードが入ると Low（逆の基板では 0） |
-| `BATT_LOW_MV` | `2000` | 電池の警告電圧 [mV]。これ以下で「少ない」（Low battery） |
-| `BATT_NONE_MV` | `400` | これ以下なら「電池なし」[mV]。A2 の 1 MΩ で、電池が無いと約 0.24 V になる |
+| `BATT_NONE_MV` | `500` | これ以下なら「電池なし」（No battery）[mV]。A2 の 1 MΩ で、電池が無いと約 0.24 V になる |
+| `BATT_LOW_MV` | `1500` | これ以下なら「少ない」（Low battery）[mV]。`BATT_NONE_MV` より大きくする（逆ならビルドが止まる）。新品の電池は約 2.75 V |
 | `BATT_ADC_FULL_MV` | `5000` | A2 の測定範囲 [mV]（UNO R4 の 5 V）。5 V ピンの実測値にすると電圧が正確になる |
 | `LCD_I2C_ADDR` | `0x27` | LCD バックパックの I2C アドレス（`0x3F` の基板もある） |
 | `RESULT_HOLD_MS` | `15000` | 結果画面を出しておく時間 |
@@ -115,7 +115,7 @@ v1 の `SPI_SRAM` マクロ（SPI SRAM の代わりに 62256 を使う）は廃�
 5. `spi_sram_init()`（`USE_SPI_SRAM` のときだけ）: SPI SRAM（/CS = D6）があるかを確かめ、モードを電源投入時と同じシーケンシャル（`0x40`）に揃える。無くても止まらない（[hardware.md §9.1](hardware.md#91-spi-sramオプション本体だけでの処理の一時置き場)）。
 6. `card_begin()`: D2 を内蔵プルアップの入力にしてカードの有無を読み、カードがあれば A2 で電池電圧を測る。
 7. `sd_mount()`（`USE_SD` のときだけ）: SD カードがあればマウント。無くても止まらない。
-8. 待機画面を出し、`FUJISOKU SRAM Utility 2.7 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok, card in). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定）、カードは `in` / `none` / `-`（検出しない設定））。
+8. 待機画面を出し、`FUJISOKU SRAM Utility 2.8 ready (LCD 20x4, SD off, 62256 off, SPI SRAM ok, card in). ...` を送る（LCD が無ければ `LCD none`、`USE_SD` が 1 なら `SD on`、SPI SRAM は `ok` / `none`（見つからない）/ `off`（使わない設定）、カードは `in` / `none` / `-`（検出しない設定））。
 
 ### 5.2 `loop()`
 
@@ -184,8 +184,8 @@ v1 との違い:
 | 処理中に抜かれたら | カードを使うコマンドでは `op_needs_card` を立てる。`op_poll_cancel()` が 3 回続けて「無い」と読んだら中断し、`ERR NOCARD Card removed at 0x....`（PC 主導の `rd` / `wr` / `fill` は `ERR NOCARD Card removed`）。バスは待機状態に戻す |
 | 電池電圧 | A2（BATT-DET）。12 ビットで 8 回測って平均し、`BATT_ADC_FULL_MV`（5000 mV）を満点として mV にする。0.5 秒ごと。カードが無いときは測らない（`batt_mv` = -1）。挿してから 0.1 秒後に測り直す |
 | 知らせ方 | 前に送った値から 50 mV 以上変わったとき、または警告の境目（「少ない」「電池なし」）をまたいだときに `E BATT <mV>`。`status` の `batt=` はいつでも最新の値 |
-| 電池なし | `batt_mv` が `BATT_NONE_MV`（400 mV）以下（`batt_none()`）。A2 と GND の間の 1 MΩ で、電池が無いと 0 V 近くになる（無いと漏れ電流で 3〜4 V に浮く）。LCD は `Bat:NONE!`、4 行目に `! No card battery`。Web アプリは「なし」と画面の上の警告 |
-| 少ない | `batt_mv` が `BATT_LOW_MV`（2000 mV）以下（`batt_low()`。電池なしも含む）。LCD は電圧の後ろに `!`、4 行目に `! Card battery low`。Web アプリは画面の上に警告を出す |
+| 電池なし | `batt_mv` が `BATT_NONE_MV`（500 mV）以下（`batt_none()`）。A2 と GND の間の 1 MΩ で、電池が無いと 0 V 近くになる（無いと漏れ電流で 3〜4 V に浮く）。LCD は `Bat:NONE!`、4 行目に `! No card battery`。Web アプリは「なし」と画面の上の警告 |
+| 少ない | `batt_mv` が `BATT_LOW_MV`（1500 mV）以下（`batt_low()`。電池なしも含む）。LCD は電圧の後ろに `!`、4 行目に `! Card battery low`。Web アプリは画面の上に警告を出す |
 
 ## 7. SD カードの扱い（`storage.ino`、オプション）
 
@@ -213,7 +213,7 @@ v1 との違い:
 
 | 画面 | 1 行目 | 2 行目 | 3 行目 | 4 行目 |
 |---|---|---|---|---|
-| 待機 | `FUJISOKU SRAM   v2.7` | `Card:OK / NONE` と電池電圧（例 `Bat:2.75V`。2.00 V 以下は後ろに `!`、0.40 V 以下は `Bat:NONE!`） | `SD:OK / NONE / off`、`PC:OK / --` | `Last:` 直前の結果。電池が 2.00 V 以下なら `! Card battery low`、0.40 V 以下なら `! No card battery`。右下に © |
+| 待機 | `FUJISOKU SRAM   v2.8` | `Card:OK / NONE` と電池電圧（例 `Bat:2.75V`。1.50 V 以下は後ろに `!`、0.50 V 以下は `Bat:NONE!`） | `SD:OK / NONE / off`、`PC:OK / --` | `Last:` 直前の結果。電池が 2.00 V 以下なら `! Card battery low`、0.40 V 以下なら `! No card battery`。右下に © |
 | 処理中 | 題名と経過時間 | 段階 | 進捗バー（15 文字）と % | アドレス / 合計と速度（例 `0x3B00/8000  3.2k/s`）、右下に © |
 | 結果 | 記号、題名、見出し（`DONE` `MISMATCH` `NO SD` `SD LOST` `CANCELED` など） | 説明（2 行に折り返し） | | 所要時間とエラーコード（例 `Time 00:02 NOSD`）、右下に © |
 
@@ -256,13 +256,21 @@ v1 との違い:
 | 書き込みの確かめ | `sd load ... v` と Web アプリの書き込みは、読み戻して照合する |
 | PC が途中で止まった | 本体は 8 秒で PC 主導の表示を終える。カードへの書き込みは 64 バイト単位なので、途中までは書かれている（Web アプリの自動保存から戻せる） |
 | カードの挿し忘れ | /CARD DET で検出し、カードが無ければカードを使う操作を止める（空の `FF` を「保存できた」と思い込まない）。処理中に抜かれても止める |
-| 電池切れ・電池なし | 電池電圧を表示し、2.00 V 以下で「少ない」、0.40 V 以下で「電池なし」と警告。中身が消える前に保存できる |
+| 電池切れ・電池なし | 電池電圧を表示し、1.50 V 以下で「少ない」、0.50 V 以下で「電池なし」と警告。中身が消える前に保存できる |
 | 配線の不安 | 62256 があれば、カードを挿す前に `test p` でバスを確かめられる。SPI SRAM は `test` で確かめられる（見つからないときも実行できる） |
 | 範囲外のアドレス | PC からの `rd` `wr` `fill` は、桁あふれも含めて対象の範囲（カード 256KB、SPI SRAM 64KB、62256 32KB）の外を断る |
 
 ## 12. 変更履歴
 
-### 12.1 v2.7（電池なしの検出）
+### 12.1 v2.8（電池の判定電圧）
+
+| 区分 | 内容 |
+|---|---|
+| 判定電圧 | No battery を 0.40 V → **0.50 V**（`BATT_NONE_MV` = 500）、Low battery を 2.00 V → **1.50 V**（`BATT_LOW_MV` = 1500）にした |
+| config.h | 2 つの判定電圧を `config.h` の先頭（`USE_BATT_DET` のすぐ下）に移し、どの電圧でどう判定するかを書いた。`BATT_NONE_MV` < `BATT_LOW_MV` でなければビルドが止まる（`static_assert`） |
+| 通信 | `hello` は `battlow=1500 battnone=500` |
+
+### 12.2 v2.7（電池なしの検出）
 
 | 区分 | 内容 |
 |---|---|
@@ -274,7 +282,7 @@ v1 との違い:
 | 実機 | Arduino UNO R4 と作者の基板で動作を確認済み（電池なし・Low battery の判定、LCD の署名、進捗の表示を含む） |
 | 通信 | `hello` に `battnone` を追加。境目（0.40 V）をまたいだら `E BATT` を送る |
 
-### 12.2 v2.6（カードの検出と電池電圧）
+### 12.3 v2.6（カードの検出と電池電圧）
 
 | 区分 | 内容 |
 |---|---|
@@ -286,7 +294,7 @@ v1 との違い:
 | Web アプリのファイル欄 | 選んだファイルを × で外せるようにした。同じ名前のファイルも選び直せる |
 | 実機 | Arduino UNO R4 と作者の基板で動作を確認済み（D2 のカード検出、A2 の電池電圧を含む） |
 
-### 12.3 v2.5（SPI SRAM をオプションに。リリース版）
+### 12.4 v2.5（SPI SRAM をオプションに。リリース版）
 
 | 区分 | 内容 |
 |---|---|
@@ -298,7 +306,7 @@ v1 との違い:
 | 実機 | Arduino UNO R4 と作者の基板で動作を確認済み（SPI SRAM のオプション化を含む） |
 | 公開 | v2.5 をベータ版からリリース版にした（2026-11-07） |
 
-### 12.4 v2.4（32KB より大きいカード）
+### 12.5 v2.4（32KB より大きいカード）
 
 | 区分 | 内容 |
 |---|---|
@@ -307,7 +315,7 @@ v1 との違い:
 | Web アプリ | 読み込む大きさを 32KB（既定）/ 64KB / 128KB / 256KB のボタンで選ぶ。32KB〜256KB のファイルを書き込める。32KB より大きいときは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。比較とメモリマップ・16 進表示も大きさに合わせる |
 | 上限 | 256KB（A0〜A17）。A18・A19 は MCP につながっていない |
 
-### 12.5 v2.3（コードレビューの結果）
+### 12.6 v2.3（コードレビューの結果）
 
 | 区分 | 内容 |
 |---|---|

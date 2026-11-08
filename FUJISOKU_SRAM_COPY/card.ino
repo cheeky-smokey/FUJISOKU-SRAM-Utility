@@ -11,6 +11,9 @@
 //   カードが無いときは A2 が浮いているので測らない (batt_mv = -1)。
 // USE_CARD_DET = 0 なら、いつもカードが入っているものとして扱う。
 
+// 判定電圧の大小を確かめる (逆にすると「少ない」が出なくなる)
+static_assert(BATT_NONE_MV < BATT_LOW_MV, "config.h: BATT_NONE_MV (No battery) must be lower than BATT_LOW_MV (Low battery)");
+
 #define CARD_DEBOUNCE_MS 50
 #define BATT_PERIOD_MS 500
 #define BATT_SETTLE_MS 100     // カードを挿してから最初に測るまで
