@@ -74,8 +74,6 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
    - **LiquidCrystal I2C**（Frank de Brabander）。`USE_LCD` が 1 のときだけ必要です。「AVR 用」と警告が出ることがありますが、UNO R4 でも使えます。
 2. `FUJISOKU_SRAM_COPY/FUJISOKU_SRAM_COPY.ino` を開いてボードに書き込む（同じフォルダの `.ino` と `config.h` はタブとして一緒に開かれます）。
 
-v1 で使っていた Adafruit GFX / ILI9341 / XPT2046 は不要になりました。
-
 ## 構成
 
 ```
