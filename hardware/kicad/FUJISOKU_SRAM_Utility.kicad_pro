@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "filename": "FUJISOKU_SRAM_Utility.kicad_pro",
+    "version": 1
+  },
+  "schematic": {
+    "legacy_lib_dir": "",
+    "legacy_lib_list": []
+  },
+  "sheets": [
+    [
+      "a66cb278-25ce-5aef-87e9-b43c7785baf9",
+      ""
+    ]
+  ],
+  "boards": [],
+  "libraries": {
+    "pinned_footprint_libs": [],
+    "pinned_symbol_libs": []
+  }
+}

@@ -1,0 +1,6 @@
+# KiCad が作る作業用のファイル
+*.kicad_prl
+*-backups/
+_autosave-*
+fp-info-cache
+*.lck
