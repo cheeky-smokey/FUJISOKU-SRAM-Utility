@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "FSU")(type "KiCad")(uri "${KIPRJMOD}/FSU.pretty")(options "")(descr "FUJISOKU SRAM Utility shield"))
+)

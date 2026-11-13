@@ -4,3 +4,9 @@
 _autosave-*
 fp-info-cache
 *.lck
+__pycache__/
+# gen_pcb.py の途中のファイル
+shield/_render/
+shield/*.dsn
+shield/*.ses
+shield/*.net

@@ -63,7 +63,7 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 
 電源は 5 V で、部品はすべて 5 V 系なのでレベル変換は要りません。
 
-接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。KiCad の回路図（PDF 付き）は [hardware/kicad/](hardware/kicad/) にあります。メモリカードスロットの作り方と参考写真（秋月電子の 2.54 mm ⇔ 1.27 mm 変換基板を使ったもの）は、同じ文書の [§12](docs/hardware.md#12-スロット記事より) にあります。
+接続図・信号表・ピン配置は [docs/hardware.md](docs/hardware.md) を参照してください。KiCad の回路図（PDF 付き）と、Arduino UNO R4 用の**シールド基板**（2 層、DIP、ガーバー付き。カードとはリボンケーブルでつなぐ）は [hardware/kicad/](hardware/kicad/) にあります。メモリカードスロットの作り方と参考写真（秋月電子の 2.54 mm ⇔ 1.27 mm 変換基板を使ったもの）は、同じ文書の [§12](docs/hardware.md#12-スロット記事より) にあります。
 
 ![ハードウェア接続図](docs/images/hardware-connection.svg)
 
@@ -80,7 +80,8 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 FUJISOKU_SRAM_COPY/         スケッチ (メイン、config.h、hardware / storage / operations / protocol / lcd_ui)
 webapp/FSRAM-Utility.html   Web アプリ (1 ファイル、インストール不要)
 docs/                       hardware.md (配線)、specification.md (ソフト仕様)、protocol.md (通信)、webapp.md
-hardware/kicad/             KiCad の回路図 (.kicad_sch、PDF、作り直し・確認用のスクリプト)
+hardware/kicad/             KiCad の回路図 (.kicad_sch、PDF)、作り直し・確認用のスクリプト
+hardware/kicad/shield/      UNO R4 用シールド基板 (.kicad_pcb、ガーバー zip、原寸 PDF)
 test/                       PC 上でスケッチを動かすシミュレータと自動テスト (test/README.md)
 ```
 

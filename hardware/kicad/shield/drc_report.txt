@@ -1,0 +1,10 @@
+** Drc report for FSU_Shield.kicad_pcb **
+** Created by gen_pcb.py
+
+** Found 0 DRC violations **
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **
