@@ -4156,12 +4156,12 @@
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Value" "40-pin box header to card slot board"
+    (property "Value" "40-pin MIL socket (keyed) for slot unit"
       (at 319.27 157.21 0)
       (effects
         (font
           (size 1.27 1.27))))
-    (property "Footprint" "Connector_IDC:IDC-Header_2x20_P2.54mm_Vertical"
+    (property "Footprint" "FSU:MIL_Socket_2x20_P2.54mm_Vertical"
       (at 318 128 0)
       (effects
         (font
@@ -5286,7 +5286,7 @@
         (size 1.27 1.27))
       (justify left bottom))
     (uuid "accef00a-e6df-56a4-ab60-4be7e81c54ca"))
-  (text "Straight 40-pin IDC ribbon cable to the slot board, pin 1 to pin 1."
+  (text "The slot unit (right-angle box header) plugs in directly. Key toward U1."
     (at 296 166.08 0)
     (effects
       (font
@@ -6652,7 +6652,7 @@
         (size 1.27 1.27))
       (justify left bottom))
     (uuid "9961097e-e5ad-5e42-a152-2f1462000245"))
-  (text "Shield board: DIP parts in sockets, no 62256. The card slot board connects to J1 with a ribbon cable."
+  (text "Shield board: DIP parts in sockets, no 62256. The card slot unit plugs into J1 (keyed MIL socket)."
     (at 20 34.62 0)
     (effects
       (font

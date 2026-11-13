@@ -126,6 +126,44 @@ def make_arduino_footprint():
         f.write('(fp_lib_table\n  (version 7)\n  (lib (name "FSU")(type "KiCad")(uri "${KIPRJMOD}/FSU.pretty")(options "")'
                 '(descr "FUJISOKU SRAM Utility shield"))\n)\n')
 
+# J1: キー付きの MIL メスソケット (基板用 2x20、2.54 mm)
+FP_SOCKET = 'MIL_Socket_2x20_P2.54mm_Vertical'
+
+def make_socket_footprint():
+    """穴の並びと番号は Connector_IDC:IDC-Header_2x20_P2.54mm_Vertical と同じ
+    (1 番 (0, 0)、2 番 (2.54, 0)、3 番 (0, 2.54) …)。キーは奇数ピンの列の側 (シールドでは奥 = U1 側)。
+    挿さるスロットユニットの L 型ボックスヘッダの外形を F.Fab に描き、コートヤードもその大きさにする
+    (ヘッダの口はシールドから約 2 mm 上に来るので、その下に背の高い部品を置かない)"""
+    stroke = lambda w: [A('stroke'), [A('width'), w], [A('type'), A('solid')]]
+    font = [A('effects'), [A('font'), [A('size'), 1, 1], [A('thickness'), 0.15]]]
+    def rect(x0, y0, x1, y1, layer, w):
+        return [A('fp_rect'), [A('start'), x0, y0], [A('end'), x1, y1], stroke(w), [A('fill'), A('none')],
+                [A('layer'), layer], [A('tstamp'), uid('fp')]]
+    out = [A('footprint'), FP_SOCKET, [A('version'), A('20221018')], [A('generator'), A('pcbnew')], [A('layer'), 'F.Cu'],
+           [A('descr'), 'MIL (IDC) 2x20 female socket for PCB, 2.54 mm, keyed (mates with a 2x20 box header, '
+                        'e.g. Hirose HIF3BA-40D-2.54R). Pads and numbering as Connector_IDC:IDC-Header_2x20_P2.54mm_Vertical. '
+                        'Key on the odd-pin side. F.Fab also shows the mated right-angle box header.'],
+           [A('tags'), 'MIL IDC socket female 2x20 keyed'], [A('attr'), A('through_hole')],
+           [A('fp_text'), A('reference'), 'REF**', [A('at'), 1.27, -6.2], [A('layer'), 'F.SilkS'], font, [A('tstamp'), uid('fp')]],
+           [A('fp_text'), A('value'), FP_SOCKET, [A('at'), 1.27, 54.6], [A('layer'), 'F.Fab'], font, [A('tstamp'), uid('fp')]]]
+    bx0, bx1, by0, by1 = 1.27 - 3.1, 1.27 + 3.1, 24.13 - 27.94, 24.13 + 27.94       # ソケット本体 6.2 x 55.88
+    out += [rect(bx0, by0, bx1, by1, 'F.Fab', 0.1), rect(bx0 - 0.11, by0 - 0.11, bx1 + 0.11, by1 + 0.11, 'F.SilkS', 0.12)]
+    out += [rect(bx0 - 1.0, 22.13, bx0, 26.13, 'F.Fab', 0.1),                         # キー
+            rect(bx0 - 1.11, 22.02, bx0 - 0.11, 26.24, 'F.SilkS', 0.12)]
+    hx0, hx1, hy0, hy1 = 1.27 - 4.425, 1.27 + 4.425, 24.13 - 29.21, 24.13 + 29.21    # 挿さるボックスヘッダ 8.85 x 58.42
+    out += [rect(hx0, hy0, hx1, hy1, 'F.Fab', 0.1), rect(hx0 - 0.25, hy0 - 0.25, hx1 + 0.25, hy1 + 0.25, 'F.CrtYd', 0.05)]
+    out.append([A('fp_poly'), [A('pts'), [A('xy'), -3.3, -0.6], [A('xy'), -3.3, 0.6], [A('xy'), -2.4, 0]],    # 1 番ピンの印
+                stroke(0.12), [A('fill'), A('solid')], [A('layer'), 'F.SilkS'], [A('tstamp'), uid('fp')]])
+    for k in range(20):
+        for col in range(2):
+            n = 2 * k + col + 1
+            pad = [A('pad'), str(n), A('thru_hole'), A('roundrect') if n == 1 else A('circle'), [A('at'), col * 2.54, k * 2.54],
+                   [A('size'), 1.7, 1.7], [A('drill'), 1.0], [A('layers'), '*.Cu', '*.Mask']]
+            if n == 1: pad.append([A('roundrect_rratio'), 0.147059])
+            out.append(pad + [[A('tstamp'), uid('fp')]])
+    with open(os.path.join(SH, 'FSU.pretty', FP_SOCKET + '.kicad_mod'), 'w', encoding='utf-8') as f:
+        f.write(dump(out) + '\n')
+
 # ---------------------------------------------------------------------------------------------
 # 2. ネットリスト
 # ---------------------------------------------------------------------------------------------
@@ -187,7 +225,7 @@ def write_project():
 # 避ける場所: DC ジャックの上 (x < 13.5, y < 13.5)、ICSP の上 (x > 61.5, 22 < y < 34)、取り付け穴の周り
 LAYOUT = {
     'A1': (0, 0, 0),
-    'J1': (55.88, 26.67, 270),     # カード用 40 ピン。1 番 (F2) が右端
+    'J1': (55.88, 26.67, 270),     # カード用 40 ピンのメスソケット。1 番 (F2) が右端、キーは奥 (U1 側)
     'U1': (50.80, 44.45, 270),     # MCP23S17 ch6 (アドレス)。1 番ピンが右上
     'U2': (25.40, 7.62, 90),       # MCP23S17 ch7 (データ・制御)
     'U3': (5.08, 36.83, 90),       # 23LC512
@@ -294,6 +332,7 @@ def finish_text(board):
     for i, s in enumerate(['GND', '5V', 'SDA', 'SCL']):
         silk(s, 63.6, 20.32 - 2.54 * i, 0.8, just='right')
     silk('LCD', 65.41, 22.3, 0.8)
+    silk('KEY', 31.75, 30.7, 0.8)                     # J1 のキー (奥)
     silk('CARD', 61.9, 28.9, 0.8, just='left')
     silk('1=F2', 61.9, 26.67, 0.8, just='left')
     silk('2=F1', 61.9, 24.13, 0.8, just='left')
@@ -301,7 +340,7 @@ def finish_text(board):
     B = pcbnew.B_SilkS
     silk('FUJISOKU SRAM Utility shield rev 1.0', 34.3, 33.6, 1.0, B, bold=True)
     silk('github.com/cheeky-smokey/FUJISOKU-SRAM-Utility', 34.3, 31.6, 0.8, B)
-    silk('J1: straight 40-pin ribbon to the card slot board', 40.6, 21.6, 0.8, B)
+    silk('J1: slot unit plugs in directly (keyed, key = U1 side)', 40.6, 21.6, 0.8, B)
     silk('pin 1=F2 2=F1 3=F4 4=F3 ... 37=F38 38=F37', 40.6, 20.0, 0.8, B)
     silk('39/40 NC.  5 V only, no level shifting', 40.6, 18.4, 0.8, B)
 
@@ -504,6 +543,7 @@ def main():
     import pcbnew
     os.makedirs(SH, exist_ok=True)
     make_arduino_footprint()
+    make_socket_footprint()
     comps, pinnet = read_netlist()
     write_project()
     # Freerouting は実行ごとに結果が少し変わり、まれに 1 本残すことがあるので、全部つながるまでやり直す

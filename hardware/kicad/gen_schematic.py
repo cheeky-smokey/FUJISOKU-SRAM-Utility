@@ -8,7 +8,8 @@ docs/hardware.md の結線表どおりに、ピンごとに短い線と名前 (�
 使い方: python3 gen_schematic.py [--shield] [KiCad のシンボルライブラリのフォルダ]
         (既定は /usr/share/kicad/symbols。KiCad 7 以降)
   --shield  Arduino UNO R4 シールド基板用の回路図を shield/ に作る。
-            カードは 40 ピンのボックスヘッダ (J1) からリボンケーブルでスロット基板へ。
+            カードのスロットユニット (U-BOX のスロット + 変換基板 + L 型ボックスヘッダ) を
+            J1 (キー付きの MIL メスソケット、キーは奥 = U1 側) に直接挿す。
             62256 は載せない。部品は DIP (ソケット) のフットプリントを割り当てる。
 """
 import os, re, sys, uuid, json
@@ -27,7 +28,7 @@ FP = {
     'U1': 'Package_DIP:DIP-28_W7.62mm_Socket',
     'U2': 'Package_DIP:DIP-28_W7.62mm_Socket',
     'U3': 'Package_DIP:DIP-8_W7.62mm_Socket',
-    'J1': 'Connector_IDC:IDC-Header_2x20_P2.54mm_Vertical',
+    'J1': 'FSU:MIL_Socket_2x20_P2.54mm_Vertical',   # shield/FSU.pretty (gen_pcb.py が作る)
     'J2': 'Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical',
     'J3': 'Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical',
     'R1': 'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal',
@@ -362,10 +363,10 @@ def header_to_card(p):
     return p + 1 if p % 2 else p - 1
 
 if SHIELD:
-    # 40 ピン (2x20) ボックスヘッダ。ストレートのリボンケーブルでスロット基板の 40 ピンヘッダへ
+    # 40 ピン (2x20) のキー付き MIL メスソケット。スロットユニットの L 型ボックスヘッダを直接挿す
     jdef = get_def('Connector_Generic:Conn_02x20_Odd_Even')
     JX, JY = 318, 128
-    symbol('Connector_Generic:Conn_02x20_Odd_Even', 'J1', '40-pin box header to card slot board', JX, JY,
+    symbol('Connector_Generic:Conn_02x20_Odd_Even', 'J1', '40-pin MIL socket (keyed) for slot unit', JX, JY,
            ref_at=(JX + 1.27, JY - 26.67, ''), val_at=(JX + 1.27, JY + 29.21, ''))
     hdr = {str(p): (card[str(header_to_card(p))] if header_to_card(p) else 'NC') for p in range(1, 41)}
     connect(jdef, JX, JY, hdr, stub=7.62)
@@ -374,7 +375,7 @@ if SHIELD:
         text('F%d' % header_to_card(p), px - 6.6 if d[0] < 0 else px + 1.2, py - 0.5, size=1.0)
     for i, line in enumerate(['Header pin 1 = F2, 2 = F1, 3 = F4, 4 = F3 ... 37 = F38, 38 = F37',
                               '(pin 2k-1 = F2k, pin 2k = F2k-1). Pins 39, 40 not connected.',
-                              'Straight 40-pin IDC ribbon cable to the slot board, pin 1 to pin 1.',
+                              'The slot unit (right-angle box header) plugs in directly. Key toward U1.',
                               'F34 A18 / F35 A19 tied to GND (must not be left open).',
                               'F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card.']):
         text(line, JX - 22, JY + 33 + i * 2.54)
@@ -453,7 +454,7 @@ notes = ['Single 5 V supply from the Arduino 5V pin. All parts are 5 V, no level
          'SPI (D13 SCK, D12 MISO, D11 MOSI) is shared by both MCP23S17, the SPI SRAM and the SD card module.',
          'Labels with the same name are connected. Source: docs/hardware.md, FUJISOKU_SRAM_COPY/config.h (v2.8).']
 if SHIELD:
-    notes.append('Shield board: DIP parts in sockets, no 62256. The card slot board connects to J1 with a ribbon cable.')
+    notes.append('Shield board: DIP parts in sockets, no 62256. The card slot unit plugs into J1 (keyed MIL socket).')
 text('FUJISOKU SRAM Utility - Arduino UNO R4 shield' if SHIELD else 'FUJISOKU SRAM Utility - schematic', 20, 22, size=2.5, bold=True)
 for i, line in enumerate(notes):
     text(line, 20, 27 + i * 2.54)
