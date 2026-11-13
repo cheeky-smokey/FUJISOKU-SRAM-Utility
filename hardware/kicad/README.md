@@ -23,7 +23,7 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 | A1 | Arduino UNO R4 | KiCad の UNO R3 の形（ピン配置は同じ） |
 | U1 | MCP23S17 ch6 | アドレス A0〜A15。A2:A0 = 110 |
 | U2 | MCP23S17 ch7 | データ D0〜D7、制御線、A16/A17。A2:A0 = 111 |
-| J1 | FUJISOKU カードのスロット（F1〜F38） | ピン番号 n = カードのピン Fn |
+| J1 | FUJISOKU カードのスロット（F1〜F38） | ピン番号 n = カードのピン Fn。F34（A18）・F35（A19）は GND |
 | R1 | 1 MΩ | BATT-DET（A2）のプルダウン |
 | U3 | 23LC512（オプション） | SPI SRAM、/CS = D6 |
 | U4 | 62256（オプション） | 動作確認用の SRAM、/CS = CE2（GPB0） |
@@ -49,8 +49,8 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
   |---|---|---|---|---|---|---|---|---|---|---|---|
   | カード | F2 | F1 | F4 | F3 | F6 | F5 | … | F38 | F37 | 空き | 空き |
 
-  （2k−1 番 = F2k、2k 番 = F2k−1）
-- 配線は自動配線（Freerouting）で、表と裏に GND のベタを敷いています。ビアは 6 個です。
+  （2k−1 番 = F2k、2k 番 = F2k−1）。F34（A18、33 番）と F35（A19、36 番）は基板上で GND につないでいます（開放は不可）。
+- 配線は自動配線（Freerouting）で、表と裏に GND のベタを敷いています。ビアは 10 個です。
 - 確認済み: DRC（設計ルールの確認）でエラーと未配線は 0、基板の銅のつながりを `check_netlist.py --shield` で仕様書の結線表と照合。
 
 ### ファイル（`shield/`）
@@ -110,7 +110,7 @@ kicad-cli sch export netlist --format kicadsexpr -o /tmp/fsu.net FUJISOKU_SRAM_U
 python3 check_netlist.py /tmp/fsu.net          # 結線を確かめる (OK と出れば仕様書どおり)
 ```
 
-`check_netlist.py` は、カードのピン・MCP23S17・Arduino・SPI の各部品・62256 のつながりと、+5V・GND、未接続のピン（MCP の INT、ch7 GPB5、カードの A18/A19 など）を、仕様書の表と照らし合わせます。
+`check_netlist.py` は、カードのピン・MCP23S17・Arduino・SPI の各部品・62256 のつながりと、+5V・GND、GND に固定するカードの F34（A18）・F35（A19）、未接続のピン（MCP の INT、ch7 GPB5 など）を、仕様書の表と照らし合わせます。
 
 シールド基板は次のとおりです。`gen_pcb.py` には KiCad の標準フットプリント（`kicad-footprints`）、Java と [Freerouting](https://github.com/freerouting/freerouting) 1.9 が要ります（`FREEROUTING_JAR` で jar の場所を指定。画面の無い環境では `xvfb-run` を使う）。
 

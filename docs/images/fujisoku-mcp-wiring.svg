@@ -120,8 +120,8 @@
 
   <!-- notes beside the unused rows (right) -->
   <g font-size="10" fill="#555555">
-    <text x="652" y="446">not driven (A0-A17 only)</text>
-    <text x="652" y="474">not driven (A0-A17 only)</text>
+    <text x="652" y="446">tied to GND (not open)</text>
+    <text x="652" y="474">tied to GND (not open)</text>
     <text x="652" y="530">to Arduino D2 (card detect)</text>
   </g>
 
@@ -151,7 +151,7 @@
     <text x="20" y="600" font-weight="bold" fill="#111111">Notes</text>
     <text x="20" y="620">1. Data lines are D0-D7 = ch7 GPA0-GPA7 (D2 = GPA2). The article's table shows D2 and D3 both on GPA3; confirmed as a typo.</text>
     <text x="20" y="638">2. The pin-out table has no row for F28; the wiring table gives F28 = A12 (ch6 GPB4).</text>
-    <text x="20" y="656">3. The MCP chips drive A0-A17 only. The pin-out article says the pattern processor (PE1) outputs up to A15 and leaves A16-A19 unconnected.</text>
+    <text x="20" y="656">3. The MCP chips drive A0-A17 only; A18/A19 (F34/F35) are tied to GND, never left open. The pin-out article says the pattern processor (PE1) outputs up to A15 and leaves A16-A19 unconnected.</text>
     <text x="20" y="674">4. In the card sizes of the pin-out article, 128 KB leaves A17-A19 NC, 256 KB leaves A18-A19 NC, 512 KB leaves A19 NC.</text>
     <text x="20" y="692">5. The card is estimated to be a Fujisoku BS32D1-A (32 KB); the article says this is not an official statement.</text>
     <text x="20" y="710">6. Single 5 V supply, no level shifting. Card power: F3/F36 = Vcc (5 V), F1/F38 = GND, each pair joined inside the card.</text>

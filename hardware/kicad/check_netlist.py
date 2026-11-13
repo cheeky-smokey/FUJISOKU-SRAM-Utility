@@ -77,7 +77,7 @@ same(('A1', '14'), ('J3', '4'), net='SCL', exact=True)
 # 電源
 p5 = [('A1','5'),('U1','9'),('U1','16'),('U1','17'),('U2','9'),('U2','15'),('U2','16'),('U2','17'),('U3','8'),('U3','7'),
       *U4('28'),F(3),F(36),('J2','2'),('J3','2'),('C1','1'),('C2','1'),('C3','1'),('C4','1')]
-gnd = [('A1','6'),('A1','7'),('A1','29'),('U1','10'),('U1','15'),('U2','10'),('U3','4'),*U4('14'),F(1),F(38),
+gnd = [('A1','6'),('A1','7'),('A1','29'),('U1','10'),('U1','15'),('U2','10'),('U3','4'),*U4('14'),F(1),F(38),F(34),F(35),
        ('J2','1'),('J3','1'),('R1','2'),('C1','2'),('C2','2'),('C3','2'),('C4','2')]
 same(*p5, net='+5V')
 same(*gnd, net='GND')
@@ -85,8 +85,9 @@ extra5 = {p for p in nets[where[p5[0]]] if p not in p5 and not p[0].startswith('
 extrag = {p for p in nets[where[gnd[0]]] if p not in gnd and not p[0].startswith('#')}
 if extra5: errors.append(('extra +5V', sorted(extra5)))
 if extrag: errors.append(('extra GND', sorted(extrag)))
-# 未接続のはずのピン (MCP の INT、GPB5、カードの A18/A19 など) が他とつながっていないこと
-nc = [('U1','19'),('U1','20'),('U2','19'),('U2','20'),('U2','6'),F(34),F(35),('A1','18'),('U3','3')]
+# 未接続のはずのピン (MCP の INT、GPB5 など) が他とつながっていないこと。
+# カードの F34 (A18) / F35 (A19) は GND (上の gnd に入れてある。開放は不可)
+nc = [('U1','19'),('U1','20'),('U2','19'),('U2','20'),('U2','6'),('A1','18'),('U3','3')]
 if SHIELD: nc += [('U2','3'),('J1','39'),('J1','40')]   # 62256 /OE は使わない、ヘッダの 39/40 は空き
 for p in nc:
     if p in where and len(nets[where[p]]) > 1: errors.append(('should be unconnected', p, nets[where[p]]))

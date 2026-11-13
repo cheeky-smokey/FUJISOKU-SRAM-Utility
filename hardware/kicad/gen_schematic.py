@@ -352,7 +352,8 @@ strap(md, 180, 185, {'15': '+5V', '16': '+5V', '17': '+5V'})  # A2:A0 = 111
 card = {'1': 'GND', '2': 'BATT_DET', '3': '+5V', '4': '~{CE1}', '5': 'CE2', '6': '~{WE}', '7': '~{OE_CARD}'}
 card.update({str(8 + i): DATA[i] for i in range(8)})       # F8-F15 = D0-D7
 card.update({str(16 + i): ADDR[i] for i in range(16)})     # F16-F31 = A0-A15
-card.update({'32': 'ADDR16', '33': 'ADDR17', '34': 'NC', '35': 'NC', '36': '+5V', '37': '~{CARD_DET}', '38': 'GND'})
+# F34 (A18) と F35 (A19) は MCP につながず GND に固定する (開放は不可)
+card.update({'32': 'ADDR16', '33': 'ADDR17', '34': 'GND', '35': 'GND', '36': '+5V', '37': '~{CARD_DET}', '38': 'GND'})
 
 def header_to_card(p):
     """シールドの 40 ピンヘッダの p 番ピンにつながるカードの F 番号 (39, 40 は空き)。
@@ -374,7 +375,7 @@ if SHIELD:
     for i, line in enumerate(['Header pin 1 = F2, 2 = F1, 3 = F4, 4 = F3 ... 37 = F38, 38 = F37',
                               '(pin 2k-1 = F2k, pin 2k = F2k-1). Pins 39, 40 not connected.',
                               'Straight 40-pin IDC ribbon cable to the slot board, pin 1 to pin 1.',
-                              'F34 A18 / F35 A19 not connected.',
+                              'F34 A18 / F35 A19 tied to GND (must not be left open).',
                               'F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card.']):
         text(line, JX - 22, JY + 33 + i * 2.54)
 else:
@@ -383,7 +384,7 @@ else:
     symbol('Connector_Generic:Conn_01x38', 'J1', 'FUJISOKU card slot (F1-F38)', JX, JY,
            ref_at=(JX - 3, JY - 50.8, 'left'), val_at=(JX - 3, JY + 53.34, 'left'))
     connect(jdef, JX, JY, card, stub=2.54)
-    for i, line in enumerate(['Pin n = card pin Fn. F34 A18 / F35 A19 not connected.',
+    for i, line in enumerate(['Pin n = card pin Fn. F34 A18 / F35 A19 tied to GND (not open).',
                               'F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card.',
                               'Slot made with 2.54 mm <-> 1.27 mm adapters (docs/hardware.md 12.1).']):
         text(line, JX - 3, JY + 56.5 + i * 2.54)

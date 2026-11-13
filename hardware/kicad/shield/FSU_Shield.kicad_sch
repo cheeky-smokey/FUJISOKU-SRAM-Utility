@@ -4794,9 +4794,50 @@
         (size 1.27 1.27))
       (justify left bottom))
     (uuid "f17654eb-80fc-5fa8-9df9-4727cd0294a1"))
-  (no_connect
-    (at 312.92 145.78)
-    (uuid "542f82ad-a8ac-57d0-88f0-2111438da885"))
+  (wire
+    (pts
+      (xy 312.92 145.78)
+      (xy 305.3 145.78))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "f598c64f-c563-5789-b078-bff20d776887"))
+  (symbol
+    (lib_id "power:GND")
+    (at 305.3 145.78 270)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "916d55bc-f8e0-5391-8766-c7d797d297c9")
+    (property "Reference" "#PWR012"
+      (at 305.3 145.78 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Value" "GND"
+      (at 300.49 145.78 90)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify right)))
+    (property "Footprint" ""
+      (at 305.3 145.78 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Datasheet" ""
+      (at 305.3 145.78 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (pin "1"
+      (uuid "917a2467-23f7-56d2-b03c-517013d5f6d8"))
+    (instances
+      (project "FSU_Shield"
+        (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
+          (reference "#PWR012")
+          (unit 1)))))
   (wire
     (pts
       (xy 325.62 145.78)
@@ -4804,14 +4845,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "9a489b20-da58-5db8-bcd4-8a30e0cbf702"))
+    (uuid "096b2988-af5e-53bc-8c64-adfa69dad0ee"))
   (label "ADDR17"
     (at 333.24 145.78 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "b59c9e05-6d15-5eba-9fdf-b3be7e6d3137"))
+    (uuid "1a6bcb4d-39fa-5de3-8b66-23d9aedc637b"))
   (wire
     (pts
       (xy 312.92 148.32)
@@ -4819,7 +4860,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "096b2988-af5e-53bc-8c64-adfa69dad0ee"))
+    (uuid "b612ff16-3878-5521-9a3b-02463504e016"))
   (symbol
     (lib_id "power:+5V")
     (at 305.3 148.32 90)
@@ -4827,8 +4868,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "714f1e6e-febc-5871-8274-7b4f322410e6")
-    (property "Reference" "#PWR012"
+    (uuid "b03fed94-82c2-59d9-a692-230c3a19b83c")
+    (property "Reference" "#PWR013"
       (at 305.3 148.32 0)
       (effects
         (font
@@ -4850,15 +4891,56 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "376acef2-2856-5749-bcba-4bb949424677"))
+      (uuid "db473f50-a25a-5590-bd27-9e45889427f4"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR012")
+          (reference "#PWR013")
           (unit 1)))))
-  (no_connect
-    (at 325.62 148.32)
-    (uuid "fc08b1fb-5244-5d04-80a7-98528f31dfc0"))
+  (wire
+    (pts
+      (xy 325.62 148.32)
+      (xy 333.24 148.32))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "4cf13230-b593-5e5f-a968-9b5045c58388"))
+  (symbol
+    (lib_id "power:GND")
+    (at 333.24 148.32 90)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "2323332b-1899-5fa5-939c-efa65acb0bc1")
+    (property "Reference" "#PWR014"
+      (at 333.24 148.32 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Value" "GND"
+      (at 338.05 148.32 270)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left)))
+    (property "Footprint" ""
+      (at 333.24 148.32 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Datasheet" ""
+      (at 333.24 148.32 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (pin "1"
+      (uuid "a31561fb-f044-5fa2-bcd0-6867a5c9b9a0"))
+    (instances
+      (project "FSU_Shield"
+        (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
+          (reference "#PWR014")
+          (unit 1)))))
   (wire
     (pts
       (xy 312.92 150.86)
@@ -4866,7 +4948,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "91ebb2a2-7869-5753-b8d9-a6c23342385c"))
+    (uuid "eca0e782-e960-5cb2-9d23-3b789cb21a8a"))
   (symbol
     (lib_id "power:GND")
     (at 305.3 150.86 270)
@@ -4874,8 +4956,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "5d461702-07a7-505b-9ffc-be5e3e89a8d5")
-    (property "Reference" "#PWR013"
+    (uuid "b5a0ba1b-a000-58d0-8752-5cdacff7aa56")
+    (property "Reference" "#PWR015"
       (at 305.3 150.86 0)
       (effects
         (font
@@ -4897,11 +4979,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "cb47b22d-7fff-5c12-b245-92b65460f695"))
+      (uuid "6e8cb5dd-38c3-50df-8a8e-e290791507e8"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR013")
+          (reference "#PWR015")
           (unit 1)))))
   (wire
     (pts
@@ -4910,321 +4992,321 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "a5471c34-7cb4-54fd-831b-4103cfa80cd3"))
+    (uuid "e584f623-c2ee-515e-b2a2-0f5adf70e9f3"))
   (label "~{CARD_DET}"
     (at 333.24 150.86 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "3725bc17-2fef-5d8d-8f02-49232e6526fe"))
+    (uuid "42c02edc-3367-51c7-b12d-e951d00159bf"))
   (no_connect
     (at 312.92 153.4)
-    (uuid "e2db1bff-74f0-5812-a113-1faf3a5ba54f"))
+    (uuid "5262ac1d-1c09-516d-9caa-2b557fec455e"))
   (no_connect
     (at 325.62 153.4)
-    (uuid "324c7423-4b4b-58e0-8c2e-7f9c43fd1b7c"))
+    (uuid "acfeaa0f-8a24-5caf-ae50-dd9e4289221b"))
   (text "F2"
     (at 306.32 104.64 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "397355bd-bd28-534c-b0b4-84a8e6cd68fd"))
+    (uuid "15d246a3-a678-5970-a5b5-88682d0b9e91"))
   (text "F1"
     (at 326.82 104.64 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "b4faeffe-4d9f-54da-84c2-9b048898f347"))
+    (uuid "96122c5c-de59-5706-8a38-b60131e7cb03"))
   (text "F4"
     (at 306.32 107.18 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "ff944459-4570-54d4-becd-35067763aa64"))
+    (uuid "1cda82c0-1add-5e65-9d42-5621765fc5df"))
   (text "F3"
     (at 326.82 107.18 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "dfc8d39e-a2b0-5f07-a71e-e945d5c4b48c"))
+    (uuid "ae1fff5a-5751-5f74-b725-d76069ed0797"))
   (text "F6"
     (at 306.32 109.72 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "15d246a3-a678-5970-a5b5-88682d0b9e91"))
+    (uuid "57d1b765-589b-5aaa-93f5-94387149cce5"))
   (text "F5"
     (at 326.82 109.72 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "96122c5c-de59-5706-8a38-b60131e7cb03"))
+    (uuid "04f61b5e-97a0-5b26-af90-ff0f3d309ff6"))
   (text "F8"
     (at 306.32 112.26 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "1cda82c0-1add-5e65-9d42-5621765fc5df"))
+    (uuid "9fa4cc98-fa7e-55c0-b3f7-85e1be44f767"))
   (text "F7"
     (at 326.82 112.26 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "ae1fff5a-5751-5f74-b725-d76069ed0797"))
+    (uuid "acc5fe80-824d-50f5-96f9-ab71eecd503a"))
   (text "F10"
     (at 306.32 114.8 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "57d1b765-589b-5aaa-93f5-94387149cce5"))
+    (uuid "6c9634cc-09c2-51a9-ac22-8e10c74c33e0"))
   (text "F9"
     (at 326.82 114.8 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "04f61b5e-97a0-5b26-af90-ff0f3d309ff6"))
+    (uuid "3eb06fd1-36a4-5e50-bb53-7718d8b8382f"))
   (text "F12"
     (at 306.32 117.34 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "9fa4cc98-fa7e-55c0-b3f7-85e1be44f767"))
+    (uuid "8a5b3e4b-8dc0-5199-9ed4-ef08e124a4c9"))
   (text "F11"
     (at 326.82 117.34 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "acc5fe80-824d-50f5-96f9-ab71eecd503a"))
+    (uuid "20263eb9-98cf-5c5d-b841-4398537bc1df"))
   (text "F14"
     (at 306.32 119.88 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "6c9634cc-09c2-51a9-ac22-8e10c74c33e0"))
+    (uuid "021737d7-ae6b-597d-9cef-c79942b3a061"))
   (text "F13"
     (at 326.82 119.88 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "3eb06fd1-36a4-5e50-bb53-7718d8b8382f"))
+    (uuid "abd5b459-f6cd-541c-8d29-562c39cdff63"))
   (text "F16"
     (at 306.32 122.42 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "8a5b3e4b-8dc0-5199-9ed4-ef08e124a4c9"))
+    (uuid "ec8cb8b7-1b26-527b-bdd3-773b11638eb4"))
   (text "F15"
     (at 326.82 122.42 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "20263eb9-98cf-5c5d-b841-4398537bc1df"))
+    (uuid "724d6c83-1e2e-5ef1-9db5-ebe281267b77"))
   (text "F18"
     (at 306.32 124.96 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "021737d7-ae6b-597d-9cef-c79942b3a061"))
+    (uuid "d83aa9bd-655c-52a2-88c7-84ac8a1a33ac"))
   (text "F17"
     (at 326.82 124.96 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "abd5b459-f6cd-541c-8d29-562c39cdff63"))
+    (uuid "7b2757df-44d0-57ee-a1fb-53cdc00b824a"))
   (text "F20"
     (at 306.32 127.5 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "ec8cb8b7-1b26-527b-bdd3-773b11638eb4"))
+    (uuid "d10b5cf3-d749-5f8f-8e0b-a293e2cb136c"))
   (text "F19"
     (at 326.82 127.5 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "724d6c83-1e2e-5ef1-9db5-ebe281267b77"))
+    (uuid "05b1a13f-10f5-54eb-b50e-0b4698eff05b"))
   (text "F22"
     (at 306.32 130.04 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "d83aa9bd-655c-52a2-88c7-84ac8a1a33ac"))
+    (uuid "8b21c5c2-e3f7-5ab2-9fa8-8b90c61f27f3"))
   (text "F21"
     (at 326.82 130.04 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "7b2757df-44d0-57ee-a1fb-53cdc00b824a"))
+    (uuid "b8e385a5-4155-5532-adcd-090e3f42545b"))
   (text "F24"
     (at 306.32 132.58 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "d10b5cf3-d749-5f8f-8e0b-a293e2cb136c"))
+    (uuid "62f9ae18-fcd1-510c-921f-8722d3959c14"))
   (text "F23"
     (at 326.82 132.58 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "05b1a13f-10f5-54eb-b50e-0b4698eff05b"))
+    (uuid "74e1e35f-f0a7-5161-b91f-5dc07341485e"))
   (text "F26"
     (at 306.32 135.12 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "8b21c5c2-e3f7-5ab2-9fa8-8b90c61f27f3"))
+    (uuid "141b5624-5034-5e7d-aff8-6be11c2c9b67"))
   (text "F25"
     (at 326.82 135.12 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "b8e385a5-4155-5532-adcd-090e3f42545b"))
+    (uuid "a21c0cf5-d7bf-55b7-888d-4799494ddaa3"))
   (text "F28"
     (at 306.32 137.66 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "62f9ae18-fcd1-510c-921f-8722d3959c14"))
+    (uuid "f055b758-3418-5a11-a43c-15a169bc3384"))
   (text "F27"
     (at 326.82 137.66 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "74e1e35f-f0a7-5161-b91f-5dc07341485e"))
+    (uuid "c5ecc83d-2f5a-5a94-aceb-51f677c92d8b"))
   (text "F30"
     (at 306.32 140.2 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "141b5624-5034-5e7d-aff8-6be11c2c9b67"))
+    (uuid "8748ed77-5356-5605-b443-9f0c905daa6d"))
   (text "F29"
     (at 326.82 140.2 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "a21c0cf5-d7bf-55b7-888d-4799494ddaa3"))
+    (uuid "e563fe3d-c1f2-52b4-beaf-1df7494883bb"))
   (text "F32"
     (at 306.32 142.74 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "f055b758-3418-5a11-a43c-15a169bc3384"))
+    (uuid "b8eef0e9-8127-517b-bbab-b228343c1384"))
   (text "F31"
     (at 326.82 142.74 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "c5ecc83d-2f5a-5a94-aceb-51f677c92d8b"))
+    (uuid "6dbf3d01-63e3-5695-b2da-194659d1e5c4"))
   (text "F34"
     (at 306.32 145.28 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "8748ed77-5356-5605-b443-9f0c905daa6d"))
+    (uuid "17566fb4-4e32-5d27-8ca5-a9619b54f1fc"))
   (text "F33"
     (at 326.82 145.28 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "e563fe3d-c1f2-52b4-beaf-1df7494883bb"))
+    (uuid "72535414-5541-5bd7-98d1-ae9c39efd975"))
   (text "F36"
     (at 306.32 147.82 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "b8eef0e9-8127-517b-bbab-b228343c1384"))
+    (uuid "c0e4cedd-6887-5061-acdc-77479a865e92"))
   (text "F35"
     (at 326.82 147.82 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "6dbf3d01-63e3-5695-b2da-194659d1e5c4"))
+    (uuid "68fcb85a-d365-5821-a61f-56942c592f6f"))
   (text "F38"
     (at 306.32 150.36 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "17566fb4-4e32-5d27-8ca5-a9619b54f1fc"))
+    (uuid "35821b88-355d-5af7-a07d-faa7a2f0b104"))
   (text "F37"
     (at 326.82 150.36 0)
     (effects
       (font
         (size 1 1))
       (justify left bottom))
-    (uuid "72535414-5541-5bd7-98d1-ae9c39efd975"))
+    (uuid "3434fb9e-4680-59ca-86ff-29f09cd5cb35"))
   (text "Header pin 1 = F2, 2 = F1, 3 = F4, 4 = F3 ... 37 = F38, 38 = F37"
     (at 296 161 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "c0e4cedd-6887-5061-acdc-77479a865e92"))
+    (uuid "0ed5514b-f90f-5a2b-ba19-25c091a1a028"))
   (text "(pin 2k-1 = F2k, pin 2k = F2k-1). Pins 39, 40 not connected."
     (at 296 163.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "68fcb85a-d365-5821-a61f-56942c592f6f"))
+    (uuid "accef00a-e6df-56a4-ab60-4be7e81c54ca"))
   (text "Straight 40-pin IDC ribbon cable to the slot board, pin 1 to pin 1."
     (at 296 166.08 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "35821b88-355d-5af7-a07d-faa7a2f0b104"))
-  (text "F34 A18 / F35 A19 not connected."
+    (uuid "392b7ac2-0a02-5f48-af83-11b79dab849e"))
+  (text "F34 A18 / F35 A19 tied to GND (must not be left open)."
     (at 296 168.62 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "3434fb9e-4680-59ca-86ff-29f09cd5cb35"))
+    (uuid "72be44fc-b1ab-5978-aef2-1019ba9d4d24"))
   (text "F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card."
     (at 296 171.16 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "0ed5514b-f90f-5a2b-ba19-25c091a1a028"))
+    (uuid "a54677f3-f296-5a97-b3eb-bae6008efda4"))
   (symbol
     (lib_id "Device:R")
     (at 262 212 0)
@@ -5232,7 +5314,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "70a45d15-4fed-54f9-b9bf-0a86c54b3913")
+    (uuid "ee0933de-082c-50de-89e4-40282b2a5deb")
     (property "Reference" "R1"
       (at 264.54 210.73 0)
       (effects
@@ -5256,9 +5338,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "e348951f-f35a-5001-819a-5f388632e3fb"))
+      (uuid "e1a46a76-5119-5813-ba2d-68ce8832353b"))
     (pin "2"
-      (uuid "f9ebcacd-5ef5-560f-9d01-fbed736131f9"))
+      (uuid "40496517-168e-551c-97e9-5966db3df79d"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -5271,14 +5353,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "cef11b9f-e640-5987-bdcd-49033114f246"))
+    (uuid "3098dac9-ca78-5cdb-9651-e9fe2d37ba37"))
   (label "BATT_DET"
     (at 262 205.65 90)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "f33c38c4-20e8-5a07-87c4-8e7180e9d165"))
+    (uuid "f1b51848-a237-5de4-8556-0fda529cc298"))
   (wire
     (pts
       (xy 262 215.81)
@@ -5286,7 +5368,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "8ab81b3b-5818-556f-b7c8-68a90b1d4a1b"))
+    (uuid "c14926ac-fa51-5017-a0d1-0e9f7b3f2f8e"))
   (symbol
     (lib_id "power:GND")
     (at 262 218.35 0)
@@ -5294,8 +5376,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "9b6d0f82-5cb3-5cb1-a1bf-55204452a6e3")
-    (property "Reference" "#PWR014"
+    (uuid "af68b083-b164-5898-822c-ac8bb500b4c4")
+    (property "Reference" "#PWR016"
       (at 262 218.35 0)
       (effects
         (font
@@ -5316,11 +5398,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "74ad1cd5-7994-5770-b231-98bf18b3829e"))
+      (uuid "d6224e0b-bc06-5923-b2d2-412385f1089d"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR014")
+          (reference "#PWR016")
           (unit 1)))))
   (text "BATT-DET pull-down: no battery 0.24 V, new battery 2.75 V"
     (at 250 227.24 0)
@@ -5328,7 +5410,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "6bdc5e0f-4db0-506a-bace-873c6ef3a06c"))
+    (uuid "1743d4b3-bdce-5661-9026-fa55e40388e5"))
   (symbol
     (lib_id "FSU:23LC512")
     (at 70 175 0)
@@ -5336,7 +5418,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4002e51e-c2f2-56a9-a43a-41d042fcfa22")
+    (uuid "964af081-1658-5e80-9e3e-9cc299a16a85")
     (property "Reference" "U3"
       (at 62.38 166.11 0)
       (effects
@@ -5360,21 +5442,21 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "3404ed34-aad4-500d-9371-235158987ac4"))
+      (uuid "4f264fc1-0e05-5fdd-ae06-e2dc4772df0e"))
     (pin "2"
-      (uuid "5b152e47-f2c8-5d62-bee1-d2aa4ab5030b"))
+      (uuid "69d86136-43cf-53bf-9b6c-fca0e128d012"))
     (pin "3"
-      (uuid "2969e4f7-cbd7-5079-8782-30767513bd8b"))
+      (uuid "76c942a4-506d-53ff-87ba-fb5ec033064f"))
     (pin "4"
-      (uuid "4cb42baa-d2c8-546c-b458-78d9fced405b"))
+      (uuid "da2b1702-32bf-5550-9a91-8de15bf66e57"))
     (pin "5"
-      (uuid "287bd60f-d5ac-5ac7-94e3-a98b5af736c3"))
+      (uuid "5e055705-3a11-5e15-8398-5ce78eb07437"))
     (pin "6"
-      (uuid "5d22b365-3258-5714-8855-cffdf256ed0a"))
+      (uuid "48e2a0ae-5359-5ce6-b572-450960be14a1"))
     (pin "7"
-      (uuid "813fcd9f-2cc6-5740-9df7-6417c0b2cb78"))
+      (uuid "5296fe5c-0aa9-53ae-8307-4ba267412e3c"))
     (pin "8"
-      (uuid "f9967cea-c6f5-51ec-a8e6-f5acc4f51dee"))
+      (uuid "3d4929e3-6e36-5a86-b3db-1430770e734e"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -5387,14 +5469,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "02a224d2-b0a9-5254-9879-c5c3ca17f683"))
+    (uuid "2d8e6c59-94ad-58ae-bac6-da8751ba3eee"))
   (label "~{CS_SRAM}"
     (at 57.3 169.92 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "acfa31a0-a5ef-5ad1-85b8-a5c5d3082e6c"))
+    (uuid "ae7eb86b-58cb-5f51-aba1-47da0a97f911"))
   (wire
     (pts
       (xy 80.16 169.92)
@@ -5402,17 +5484,17 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "172c603b-193c-5f9f-8b13-2e4eb57e1f8d"))
+    (uuid "416ff929-a913-59ab-91d6-3d84c88db3f8"))
   (label "MISO"
     (at 82.7 169.92 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "3a422050-e6b1-5695-a0ac-8a6f6323aa99"))
+    (uuid "effb2452-bdbf-56c9-b5c0-9501f2e901ce"))
   (no_connect
     (at 59.84 180.08)
-    (uuid "625f039e-f166-5fe7-a1b1-a239deb679af"))
+    (uuid "c3f60cf4-5ecc-5a78-b63c-f3bf41b9d218"))
   (wire
     (pts
       (xy 70 185.16)
@@ -5420,7 +5502,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "fde0270a-2fc1-5e4a-938f-278d83b3db92"))
+    (uuid "1f0224c9-6030-5c5f-87ad-5746be60b888"))
   (symbol
     (lib_id "power:GND")
     (at 70 187.7 0)
@@ -5428,8 +5510,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "f17a2360-f98d-5071-b437-694b9e368be7")
-    (property "Reference" "#PWR015"
+    (uuid "902cbf2d-3bb9-586c-aa61-e96c4ed67ec3")
+    (property "Reference" "#PWR017"
       (at 70 187.7 0)
       (effects
         (font
@@ -5450,11 +5532,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "d97272a0-c9a7-5304-b69a-3f9aa590c299"))
+      (uuid "da37d6a9-7bb5-5dfd-ad54-8fc83d81ef9e"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR015")
+          (reference "#PWR017")
           (unit 1)))))
   (wire
     (pts
@@ -5463,14 +5545,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "ff15b8d3-84df-55b6-b83f-d50ccac81c97"))
+    (uuid "b6cddc46-4ddb-5748-ac3a-7e409dc3935f"))
   (label "MOSI"
     (at 57.3 175 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "1e8a053f-2ffd-5fb3-801f-3f41dc3fa891"))
+    (uuid "247336f2-66f3-5ad5-9be1-18c1b6006c30"))
   (wire
     (pts
       (xy 59.84 172.46)
@@ -5478,14 +5560,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "10ff7dc0-5d0e-5eb1-8d2d-e6521a75ef42"))
+    (uuid "45f607de-4f6b-5032-b5d2-271568648c5f"))
   (label "SCK"
     (at 57.3 172.46 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "cb2101f9-1dd9-5167-89bd-1805be50f3e7"))
+    (uuid "43bc6fe9-6a6b-5573-926a-763c836ceed4"))
   (wire
     (pts
       (xy 59.84 177.54)
@@ -5493,7 +5575,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "b6cddc46-4ddb-5748-ac3a-7e409dc3935f"))
+    (uuid "2df51f97-3997-55d1-ad12-b5e65aba3a32"))
   (symbol
     (lib_id "power:+5V")
     (at 57.3 177.54 90)
@@ -5501,8 +5583,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "18412548-1e91-540b-b45e-0f5745209858")
-    (property "Reference" "#PWR016"
+    (uuid "ff3f46e0-6290-5a3e-8e5c-d9fb1a8ac206")
+    (property "Reference" "#PWR018"
       (at 57.3 177.54 0)
       (effects
         (font
@@ -5524,11 +5606,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ba1b32d5-3e98-583b-b4d1-7f81eebf6986"))
+      (uuid "acea6e03-c693-58e1-9a25-c9c0f7c5b1b5"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR016")
+          (reference "#PWR018")
           (unit 1)))))
   (wire
     (pts
@@ -5537,7 +5619,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "efc4d6d4-1343-5592-9553-3b2b8fe5b5b8"))
+    (uuid "6beb60b7-4da9-5137-b000-e9f22cc8ce73"))
   (symbol
     (lib_id "power:+5V")
     (at 70 162.3 0)
@@ -5545,8 +5627,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "c001917f-f27e-5d87-9c2b-fb608a244854")
-    (property "Reference" "#PWR017"
+    (uuid "6501c1e1-2650-5878-a5f8-521da1a2dc4f")
+    (property "Reference" "#PWR019"
       (at 70 162.3 0)
       (effects
         (font
@@ -5567,11 +5649,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "f27f42cf-2e84-58b2-8410-46de933e38ae"))
+      (uuid "e3f2144e-fed8-56d5-9a43-cbf87de917b5"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR017")
+          (reference "#PWR019")
           (unit 1)))))
   (text "USE_SPI_SRAM (auto-detected)"
     (at 62.38 200.4 0)
@@ -5579,7 +5661,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "ee343c19-f4f2-59a8-8af6-de6f0bfa585d"))
+    (uuid "6cb408a9-5d93-5c13-bf31-1b00ade9e920"))
   (symbol
     (lib_id "Connector_Generic:Conn_01x06")
     (at 75 222 0)
@@ -5587,7 +5669,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "d562d2d1-be57-5ede-806a-12796bba55fc")
+    (uuid "ffd63aa4-4667-53e6-9ca3-0fa3ed07b546")
     (property "Reference" "J2"
       (at 72 213.11 0)
       (effects
@@ -5611,17 +5693,17 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "8e4a961b-ae10-5137-8806-0c761a50b293"))
+      (uuid "cb58da1e-bedc-5a24-a3b4-f6028b0a7c71"))
     (pin "2"
-      (uuid "10e105e2-a4bd-5d77-8d57-5d1a3f10d394"))
+      (uuid "330f19e5-d0e4-515e-8383-1f8787f1e405"))
     (pin "3"
-      (uuid "652dec1a-3e8e-5823-8d86-5c9b6f3be101"))
+      (uuid "70b52fc0-7f8b-5ca8-afe4-d1f0ce7cc038"))
     (pin "4"
-      (uuid "624921f1-cc81-56d7-885b-beea97dbdaea"))
+      (uuid "af6e891a-f9d1-57d3-8fe3-0c4798098b3f"))
     (pin "5"
-      (uuid "9b715789-e927-538c-b6fd-5d63e9eee466"))
+      (uuid "d6c12504-06cd-5c08-b8ec-50a0c2a11c3d"))
     (pin "6"
-      (uuid "b0f53dbf-9954-53fa-8d07-ea81e57da787"))
+      (uuid "84833fa6-8d37-5e94-b7f9-ee926a55a09f"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -5634,7 +5716,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "02d423c7-10c3-5ed2-8cb6-8acb222b472d"))
+    (uuid "6b6635ab-b869-5bd8-b718-f9e923b8a676"))
   (symbol
     (lib_id "power:GND")
     (at 67.38 216.92 270)
@@ -5642,8 +5724,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "a6a5a0e9-b2e4-55f9-954b-ec7652de3a65")
-    (property "Reference" "#PWR018"
+    (uuid "5659efa0-6f64-5921-98e1-08f8a8229f80")
+    (property "Reference" "#PWR020"
       (at 67.38 216.92 0)
       (effects
         (font
@@ -5665,11 +5747,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "6f812406-329f-50f1-b41f-0316412aa77d"))
+      (uuid "bdffce53-ff46-513d-b9df-c12c144eb2c1"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR018")
+          (reference "#PWR020")
           (unit 1)))))
   (wire
     (pts
@@ -5678,7 +5760,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "b492c2f7-2463-51d2-9673-71e0ec3718fb"))
+    (uuid "a4e8c136-84ef-5388-bca2-4ff966fa47cc"))
   (symbol
     (lib_id "power:+5V")
     (at 67.38 219.46 90)
@@ -5686,8 +5768,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "018ef7c6-ff9e-565c-aa0f-c7a41681608e")
-    (property "Reference" "#PWR019"
+    (uuid "9ade2ef2-e676-5674-afee-b8773ab38492")
+    (property "Reference" "#PWR021"
       (at 67.38 219.46 0)
       (effects
         (font
@@ -5709,11 +5791,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "663584d3-01ab-5103-9644-241d9db42a8a"))
+      (uuid "975cb2b9-fd89-595e-9d22-77f171554f52"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR019")
+          (reference "#PWR021")
           (unit 1)))))
   (wire
     (pts
@@ -5722,39 +5804,9 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "788b9113-8883-5d7b-a840-56c34f287da6"))
+    (uuid "3af878fa-7dad-5549-b0b6-3b5682cf048e"))
   (label "MISO"
     (at 67.38 222 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "98819d30-59d2-547e-929e-211cc8f9e0f5"))
-  (wire
-    (pts
-      (xy 69.92 224.54)
-      (xy 67.38 224.54))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "3f3efb69-83db-5762-934a-126938e44098"))
-  (label "MOSI"
-    (at 67.38 224.54 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "3a5f46fd-2756-5488-95a7-43db19452a4a"))
-  (wire
-    (pts
-      (xy 69.92 227.08)
-      (xy 67.38 227.08))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "3af878fa-7dad-5549-b0b6-3b5682cf048e"))
-  (label "SCK"
-    (at 67.38 227.08 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5762,33 +5814,63 @@
     (uuid "0177a1d4-447f-5949-b9b5-20991606b4a3"))
   (wire
     (pts
+      (xy 69.92 224.54)
+      (xy 67.38 224.54))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "93feb72e-0676-52c8-9b32-40263ede0a3d"))
+  (label "MOSI"
+    (at 67.38 224.54 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "358f7b51-f597-5d2d-b82d-23c094545334"))
+  (wire
+    (pts
+      (xy 69.92 227.08)
+      (xy 67.38 227.08))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "ebef8643-ed70-505b-b82a-75f9bfdc347a"))
+  (label "SCK"
+    (at 67.38 227.08 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "7491f41c-bc65-5de3-82d4-1f03d195c4d2"))
+  (wire
+    (pts
       (xy 69.92 229.62)
       (xy 67.38 229.62))
     (stroke
       (width 0)
       (type default))
-    (uuid "93feb72e-0676-52c8-9b32-40263ede0a3d"))
+    (uuid "9d3e45e7-013d-5d57-9966-1c165d32f8e4"))
   (label "~{CS_SD}"
     (at 67.38 229.62 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "358f7b51-f597-5d2d-b82d-23c094545334"))
+    (uuid "32656584-ead4-5266-bfd0-fbd80556df3d"))
   (text "USE_SD. 3.3 V regulator + level shifter on module"
     (at 79 224.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "3520ede4-9976-5aac-89dd-b62b3cc29dad"))
+    (uuid "2eddb314-0515-54d9-a52a-9b5898f69ab7"))
   (text "(pin order differs by module)"
     (at 79 227.08 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "e0069d4b-e35f-585e-817d-104679fc6b71"))
+    (uuid "40841b81-9dc1-57af-b866-c0949bebef67"))
   (symbol
     (lib_id "Connector_Generic:Conn_01x04")
     (at 75 250 0)
@@ -5796,7 +5878,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "8dd9b245-13e6-56b1-a4c4-2c2b97eba6c2")
+    (uuid "5e52c2b4-f0ed-527b-99d7-f3dff05aff12")
     (property "Reference" "J3"
       (at 72 243.65 0)
       (effects
@@ -5820,13 +5902,13 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "b5d4b047-d9bf-5aa0-ad9e-cecbfb07c28e"))
+      (uuid "35a493b2-4f65-57b7-9534-693403c79279"))
     (pin "2"
-      (uuid "42aa71d9-a52d-5235-9c39-53a721e7f176"))
+      (uuid "23fa9010-5032-5e8f-97cd-965c840df832"))
     (pin "3"
-      (uuid "b550b714-f925-5629-b1c3-4b38220f9670"))
+      (uuid "d50332c9-7213-5116-9705-0d8ba68e491f"))
     (pin "4"
-      (uuid "ff40dbbd-6b9e-5c8a-b4f4-bc977608e99d"))
+      (uuid "1cac8bca-9013-5667-8830-edab3f1df2d6"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -5839,7 +5921,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "3bd2392a-22c6-5ea1-9d1e-283fca16e9e9"))
+    (uuid "f136bff0-318c-5113-8fc8-05aa60059e7d"))
   (symbol
     (lib_id "power:GND")
     (at 67.38 247.46 270)
@@ -5847,8 +5929,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "612bf3f2-6cc4-5fc1-b59a-4147dadf4735")
-    (property "Reference" "#PWR020"
+    (uuid "2a6b9189-0330-556f-87b4-df4833c9d7cd")
+    (property "Reference" "#PWR022"
       (at 67.38 247.46 0)
       (effects
         (font
@@ -5870,11 +5952,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "be8ed5a5-f355-5f07-8d2d-b5b50d6c8fd1"))
+      (uuid "ab732d99-d9c9-5b61-b3d4-c017c076079b"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR020")
+          (reference "#PWR022")
           (unit 1)))))
   (wire
     (pts
@@ -5883,7 +5965,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "0aa46fdb-78d1-5c13-ac86-1c72528e10ee"))
+    (uuid "c0196958-b165-5f84-8af5-e6838980a7ba"))
   (symbol
     (lib_id "power:+5V")
     (at 67.38 250 90)
@@ -5891,8 +5973,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "9de95e03-b776-5ad5-ab2f-c3f72597fb6b")
-    (property "Reference" "#PWR021"
+    (uuid "76f41a23-f87c-5058-9f4d-c0824c5e0e55")
+    (property "Reference" "#PWR023"
       (at 67.38 250 0)
       (effects
         (font
@@ -5914,11 +5996,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "4c38469e-3a16-534c-a9f1-161fc58c1699"))
+      (uuid "e80bf784-116d-55cf-872a-7f16b7e958fb"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR021")
+          (reference "#PWR023")
           (unit 1)))))
   (wire
     (pts
@@ -5927,14 +6009,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "ed54f413-89c9-5471-8a0c-4a166b1283b0"))
+    (uuid "e1dce95e-d47f-55a7-b432-8b5b108ea785"))
   (label "SDA"
     (at 67.38 252.54 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "c6b5c2d9-8e19-52aa-8d87-f1d348e473e7"))
+    (uuid "ea60f2bc-127f-512f-8a66-b28e45fb8ba3"))
   (wire
     (pts
       (xy 69.92 255.08)
@@ -5942,21 +6024,21 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "2a8114b4-ad81-52d0-aba2-c2994c1ccf8f"))
+    (uuid "5a74426c-fc91-5724-95a1-961130179112"))
   (label "SCL"
     (at 67.38 255.08 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "f1585189-78e2-5b6a-afa7-ff35379aa35b"))
+    (uuid "4769cbfb-1a24-52c3-9f45-f5ed14a55389"))
   (text "USE_LCD (auto-detected)"
     (at 79 252.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "4fd8e762-df56-522c-85f1-1f2f28f800ab"))
+    (uuid "f3685c13-44b6-5aaa-aceb-31e7f2b8ebda"))
   (symbol
     (lib_id "Device:C")
     (at 165 250 0)
@@ -5964,7 +6046,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "a77f48eb-6dfd-5d68-9925-cae7c307c7c7")
+    (uuid "ed41bd59-f439-5b9b-9bba-868c6290cd97")
     (property "Reference" "C1"
       (at 167.54 248.73 0)
       (effects
@@ -5988,9 +6070,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "e8861d3c-4877-5d4d-9342-871a9daabf49"))
+      (uuid "c756253f-6e6f-529f-93e6-449a712f1e90"))
     (pin "2"
-      (uuid "f6733a60-bf8e-517e-ae94-cdaa3e978953"))
+      (uuid "06be0f8e-2337-5027-8178-2b1559345858"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -6003,7 +6085,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "290c4e3e-86b7-53b4-8999-407d7d81e9c5"))
+    (uuid "d4790eba-640f-5dde-aab9-7e0b90481108"))
   (symbol
     (lib_id "power:+5V")
     (at 165 243.65 0)
@@ -6011,8 +6093,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "2435a17a-53d4-5c20-8530-568f75cc663b")
-    (property "Reference" "#PWR022"
+    (uuid "8e817eb3-bbd0-52b3-b28d-b96d6a265331")
+    (property "Reference" "#PWR024"
       (at 165 243.65 0)
       (effects
         (font
@@ -6033,11 +6115,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "61e89635-66a8-59fa-9631-a77b26957fb4"))
+      (uuid "b5958926-33d4-51f8-8ac7-2dee453c4106"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR022")
+          (reference "#PWR024")
           (unit 1)))))
   (wire
     (pts
@@ -6046,7 +6128,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "d19e5d02-a3f4-518d-a0ff-6bd71832e488"))
+    (uuid "7d173392-6c26-576a-9055-e2d12365affb"))
   (symbol
     (lib_id "power:GND")
     (at 165 256.35 0)
@@ -6054,8 +6136,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "f9bb2d1a-8095-5e12-b0d1-40fbce92f6b9")
-    (property "Reference" "#PWR023"
+    (uuid "a5f04af9-a22c-54f0-9c4d-5c39590d9667")
+    (property "Reference" "#PWR025"
       (at 165 256.35 0)
       (effects
         (font
@@ -6076,11 +6158,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "c4233095-7f38-53e4-a576-25726d8044e8"))
+      (uuid "88681f90-b9b1-5efe-b338-36206d3bbfdc"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR023")
+          (reference "#PWR025")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -6089,7 +6171,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4b2dfb5c-c616-5a56-a928-1711aaea2995")
+    (uuid "7f534909-a13b-5cc3-9035-d67110365aab")
     (property "Reference" "C2"
       (at 180.24 248.73 0)
       (effects
@@ -6113,9 +6195,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "c2956c1d-c990-5bb0-83a0-bfd8bd81cf90"))
+      (uuid "3af97163-03ef-5d68-b468-9232b0c299ad"))
     (pin "2"
-      (uuid "53560414-7df3-5c07-8dfe-2f76cabf246b"))
+      (uuid "ab77ba56-6efa-5525-90df-5806aa1a38f5"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -6128,7 +6210,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "ccb50a71-8387-5fc2-b170-82696ffae42b"))
+    (uuid "9d411006-01da-5851-95da-3d79b4804573"))
   (symbol
     (lib_id "power:+5V")
     (at 177.7 243.65 0)
@@ -6136,8 +6218,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "8e9719d6-373d-51d5-ae07-2ec47b9ab15b")
-    (property "Reference" "#PWR024"
+    (uuid "3c12e72f-b26e-5467-9660-0e8c45c833d6")
+    (property "Reference" "#PWR026"
       (at 177.7 243.65 0)
       (effects
         (font
@@ -6158,11 +6240,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "0d196b6f-bfe4-5175-9721-dc054416e36c"))
+      (uuid "00e18452-d791-5e85-8c7f-8bfe44b13d52"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR024")
+          (reference "#PWR026")
           (unit 1)))))
   (wire
     (pts
@@ -6171,7 +6253,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "eb238f64-ccf1-5e68-9c7b-a516a3ea0fb8"))
+    (uuid "e7590a71-e764-571d-9afa-6316bcb81a7e"))
   (symbol
     (lib_id "power:GND")
     (at 177.7 256.35 0)
@@ -6179,8 +6261,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "c799eb4f-95a4-5472-a5e9-b2aac043e52b")
-    (property "Reference" "#PWR025"
+    (uuid "516f4701-e48a-5ca4-a008-ce80fcd58dfa")
+    (property "Reference" "#PWR027"
       (at 177.7 256.35 0)
       (effects
         (font
@@ -6201,11 +6283,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "7eb3fe61-56d5-54c2-b2b0-c67f79788958"))
+      (uuid "f517f2e0-1849-5abf-9e69-ace0250b7d60"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR025")
+          (reference "#PWR027")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -6214,7 +6296,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "3399937f-af79-57a5-9f99-f890f8c88a03")
+    (uuid "574527c2-a7ef-531b-8ee3-42ce0c110d4f")
     (property "Reference" "C3"
       (at 192.94 248.73 0)
       (effects
@@ -6238,9 +6320,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "a9ab73a9-3bbc-5861-8809-f4baa55ddc80"))
+      (uuid "53304080-1bc7-58a2-a6c4-0017ba874b3a"))
     (pin "2"
-      (uuid "a1acac72-e444-55da-b588-c11a58e0f40a"))
+      (uuid "6b24484c-a1b7-5e66-8536-9ad889c96616"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -6253,7 +6335,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "3167ff55-d443-5176-a6e8-baf112c2d8b6"))
+    (uuid "44690107-622c-5c22-8c37-69d6d0eaf092"))
   (symbol
     (lib_id "power:+5V")
     (at 190.4 243.65 0)
@@ -6261,8 +6343,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "a405388a-19d8-5530-8c39-e013e587558c")
-    (property "Reference" "#PWR026"
+    (uuid "5877d494-24fe-55ee-b04c-89f309f4dcaf")
+    (property "Reference" "#PWR028"
       (at 190.4 243.65 0)
       (effects
         (font
@@ -6283,11 +6365,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "95b95028-3f81-5419-8527-87b4af9b8f54"))
+      (uuid "87634a2c-b000-5cf8-9fab-0ddf336dd91a"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR026")
+          (reference "#PWR028")
           (unit 1)))))
   (wire
     (pts
@@ -6296,7 +6378,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "9c42bb82-148a-59b0-b043-712bf86d6dc1"))
+    (uuid "e65a5a09-3e4f-5aff-88ff-74c9b9694e7b"))
   (symbol
     (lib_id "power:GND")
     (at 190.4 256.35 0)
@@ -6304,8 +6386,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "fc09eb42-3130-5356-aeb9-c13660d80725")
-    (property "Reference" "#PWR027"
+    (uuid "ac6341db-01e1-549e-9e4f-f2da5b541af2")
+    (property "Reference" "#PWR029"
       (at 190.4 256.35 0)
       (effects
         (font
@@ -6326,11 +6408,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "d091d269-64bf-573f-96c5-9e32be0acfe9"))
+      (uuid "cdd5a29b-8b31-5e98-8d53-ff04411b63b1"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR027")
+          (reference "#PWR029")
           (unit 1)))))
   (symbol
     (lib_id "Device:C_Polarized")
@@ -6339,7 +6421,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "f39ab495-89ff-5b6a-ae81-20552454967a")
+    (uuid "4e313969-1ed4-5205-a8b0-6bf01460d9c6")
     (property "Reference" "C4"
       (at 205.64 248.73 0)
       (effects
@@ -6363,9 +6445,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ef2fb4e5-afe3-5ed1-a38b-4e56f421c9ef"))
+      (uuid "314ca7f9-c8e0-504d-b964-d0a8113420bd"))
     (pin "2"
-      (uuid "068172b9-510e-529c-821c-df4ddda5427a"))
+      (uuid "88706aa7-51e7-5d96-9ac1-f4c6944bd429"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -6378,7 +6460,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "32ab37c2-767f-59f4-b8e8-f1a7fd49a947"))
+    (uuid "784225ea-c151-5a17-83fa-cdb382b2b11b"))
   (symbol
     (lib_id "power:+5V")
     (at 203.1 243.65 0)
@@ -6386,8 +6468,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4a585705-4940-5506-813e-9d00b2d8fa2a")
-    (property "Reference" "#PWR028"
+    (uuid "990fd01f-e316-531d-a673-856fb21862b6")
+    (property "Reference" "#PWR030"
       (at 203.1 243.65 0)
       (effects
         (font
@@ -6408,11 +6490,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "47152da7-df4b-50f7-a8b5-d4c700db1778"))
+      (uuid "19cbc51f-5ac0-5498-bc4c-012ad53a7ba8"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR028")
+          (reference "#PWR030")
           (unit 1)))))
   (wire
     (pts
@@ -6421,7 +6503,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "85132fb4-ca3d-5ff6-a1c5-61583b5a4433"))
+    (uuid "e6ee0bce-a1b4-5580-9802-f3d2b82dcff0"))
   (symbol
     (lib_id "power:GND")
     (at 203.1 256.35 0)
@@ -6429,8 +6511,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4c4f312a-c9cf-5118-8dd1-64e0ce969ef4")
-    (property "Reference" "#PWR029"
+    (uuid "ed7d9e20-c432-5e44-b4cf-c3085ceba5ce")
+    (property "Reference" "#PWR031"
       (at 203.1 256.35 0)
       (effects
         (font
@@ -6451,11 +6533,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "8ef91495-5bd4-5130-bb8d-41e27ab7470c"))
+      (uuid "d780e092-9d4d-5247-8f28-f3a780462875"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR029")
+          (reference "#PWR031")
           (unit 1)))))
   (text "Bypass capacitors: C1 U1, C2 U2, C3 U3 (0.1u ceramic). C4 10u bulk near J1 (card supply)"
     (at 160 266.7 0)
@@ -6463,7 +6545,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "bc4da732-8625-5d50-85f2-9a219079f895"))
+    (uuid "4b06a3cb-1838-5430-ab0d-827ba712c589"))
   (symbol
     (lib_id "power:PWR_FLAG")
     (at 225 250 0)
@@ -6471,7 +6553,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "5b0c6b7e-5d0b-506e-8ad1-7be960ac5afa")
+    (uuid "0a06beb6-bd79-5b8b-83f3-b7be5207bcbe")
     (property "Reference" "#FLG01"
       (at 225 250 0)
       (effects
@@ -6493,7 +6575,7 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ce17bbfd-9c31-5b37-bd37-86f291357bfa"))
+      (uuid "48766cb1-effc-54fc-9ce2-b400b018ca79"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
@@ -6506,7 +6588,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "19a570b9-121c-5552-99c3-5459e940f6fd"))
+    (uuid "0605d6dc-e3e0-5597-866e-83b2e870d7b1"))
   (symbol
     (lib_id "power:GND")
     (at 225 252.54 0)
@@ -6514,8 +6596,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "d764651f-9ec6-596f-97c6-d8b0a82c5748")
-    (property "Reference" "#PWR030"
+    (uuid "9668d569-43f4-5e9e-874f-f6b547d77860")
+    (property "Reference" "#PWR032"
       (at 225 252.54 0)
       (effects
         (font
@@ -6536,11 +6618,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "3582a924-1003-5875-a3e4-d15c067daacf"))
+      (uuid "3c695e15-a621-5ccd-a1b6-9f3818b358b4"))
     (instances
       (project "FSU_Shield"
         (path "/8f7f6bd1-43fe-5fd8-86a0-23dc8f3dbf1c"
-          (reference "#PWR030")
+          (reference "#PWR032")
           (unit 1)))))
   (text "FUJISOKU SRAM Utility - Arduino UNO R4 shield"
     (at 20 22 0)
@@ -6548,35 +6630,35 @@
       (font
         (size 2.5 2.5) bold)
       (justify left bottom))
-    (uuid "3df30c98-8d03-5f02-8db8-5b9932272c13"))
+    (uuid "d5881a8c-9d9b-59c6-b34c-d27426894ee0"))
   (text "Single 5 V supply from the Arduino 5V pin. All parts are 5 V, no level shifting."
     (at 20 27 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "077928f0-dc51-5294-8c61-a4ff6bfc9e11"))
+    (uuid "6ad8e416-b09b-5b5a-a5eb-a4d126d8edac"))
   (text "SPI (D13 SCK, D12 MISO, D11 MOSI) is shared by both MCP23S17, the SPI SRAM and the SD card module."
     (at 20 29.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "242e8b47-68fb-5055-98ab-fecb2cc08861"))
+    (uuid "d6fd2b28-d686-560e-8f01-ce9a1e72a442"))
   (text "Labels with the same name are connected. Source: docs/hardware.md, FUJISOKU_SRAM_COPY/config.h (v2.8)."
     (at 20 32.08 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "8c8dcdff-e65a-508e-995a-66b47c81bb32"))
+    (uuid "9961097e-e5ad-5e42-a152-2f1462000245"))
   (text "Shield board: DIP parts in sockets, no 62256. The card slot board connects to J1 with a ribbon cable."
     (at 20 34.62 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "d5881a8c-9d9b-59c6-b34c-d27426894ee0"))
+    (uuid "94e8ae33-147a-5120-9c32-8af8609baca6"))
   (sheet_instances
     (path "/"
       (page "1"))))

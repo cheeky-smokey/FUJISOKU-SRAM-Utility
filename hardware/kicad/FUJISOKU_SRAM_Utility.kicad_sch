@@ -5039,12 +5039,94 @@
         (size 1.27 1.27))
       (justify right bottom))
     (uuid "99e60e9f-bed8-5f31-8b07-b60cdcc30266"))
-  (no_connect
-    (at 294.92 166.1)
-    (uuid "5e3ebb4f-9a3f-5241-9a5b-fa656c07917d"))
-  (no_connect
-    (at 294.92 168.64)
-    (uuid "c0d031ea-ac67-5b74-ad77-d2d720e24bf7"))
+  (wire
+    (pts
+      (xy 294.92 166.1)
+      (xy 292.38 166.1))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "714b1564-c246-53dc-a3b3-699b028f6640"))
+  (symbol
+    (lib_id "power:GND")
+    (at 292.38 166.1 270)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "5037dba4-cb28-5b46-900e-0f5cc8d74c5a")
+    (property "Reference" "#PWR012"
+      (at 292.38 166.1 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Value" "GND"
+      (at 287.57 166.1 90)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify right)))
+    (property "Footprint" ""
+      (at 292.38 166.1 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Datasheet" ""
+      (at 292.38 166.1 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (pin "1"
+      (uuid "5cd05a77-f9f7-5eb4-8233-99b5acbfbb58"))
+    (instances
+      (project "FUJISOKU_SRAM_Utility"
+        (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
+          (reference "#PWR012")
+          (unit 1)))))
+  (wire
+    (pts
+      (xy 294.92 168.64)
+      (xy 292.38 168.64))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "8407538b-4b3a-5f62-af4f-d9b1d6b82548"))
+  (symbol
+    (lib_id "power:GND")
+    (at 292.38 168.64 270)
+    (unit 1)
+    (in_bom yes)
+    (on_board yes)
+    (dnp no)
+    (uuid "fd4220a8-1c46-5d10-b75b-1c1804fb796e")
+    (property "Reference" "#PWR013"
+      (at 292.38 168.64 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Value" "GND"
+      (at 287.57 168.64 90)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify right)))
+    (property "Footprint" ""
+      (at 292.38 168.64 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (property "Datasheet" ""
+      (at 292.38 168.64 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide))
+    (pin "1"
+      (uuid "1b3d0631-3c92-5bdd-8ccb-62df8cde82e5"))
+    (instances
+      (project "FUJISOKU_SRAM_Utility"
+        (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
+          (reference "#PWR013")
+          (unit 1)))))
   (wire
     (pts
       (xy 294.92 171.18)
@@ -5052,7 +5134,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "d11a9f7d-d006-5311-869a-74bf9ddc6b59"))
+    (uuid "53b57f7f-6326-55c3-bf98-afb454fecfa2"))
   (symbol
     (lib_id "power:+5V")
     (at 292.38 171.18 90)
@@ -5060,8 +5142,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "b0b08b66-6fd4-5670-8410-4193118fdc9c")
-    (property "Reference" "#PWR012"
+    (uuid "cb964e45-c3a5-582a-8ae2-3487f9bbd298")
+    (property "Reference" "#PWR014"
       (at 292.38 171.18 0)
       (effects
         (font
@@ -5083,11 +5165,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "3d20bed2-1bdd-57d7-b012-9093cd0cf171"))
+      (uuid "761199dc-625d-5d18-b784-fea7ef58d556"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR012")
+          (reference "#PWR014")
           (unit 1)))))
   (wire
     (pts
@@ -5096,14 +5178,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "34f2be2e-4a5a-5008-b1ca-8163b9beb0ea"))
+    (uuid "a3c0559a-debf-58d3-88f5-cbe5e6b63136"))
   (label "~{CARD_DET}"
     (at 292.38 173.72 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "4ece5395-8b13-578c-bf54-745d9b17db86"))
+    (uuid "33923213-708c-5df5-bfa5-01813f3662b8"))
   (wire
     (pts
       (xy 294.92 176.26)
@@ -5111,7 +5193,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "a4c6eae7-f27e-5e55-8524-f5084cfb9bab"))
+    (uuid "3775800b-b417-58da-9f43-a349fc78b034"))
   (symbol
     (lib_id "power:GND")
     (at 292.38 176.26 270)
@@ -5119,8 +5201,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4f993e7b-fc41-5d1b-a395-8f48fa5783e3")
-    (property "Reference" "#PWR013"
+    (uuid "115b7e4e-1218-5302-a13d-0ebb69f3eab4")
+    (property "Reference" "#PWR015"
       (at 292.38 176.26 0)
       (effects
         (font
@@ -5142,33 +5224,33 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "698b8aec-38bc-53fc-b72d-6d5f6a0dc80a"))
+      (uuid "e43ae210-52f1-5082-9050-eefe32b2d5b5"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR013")
+          (reference "#PWR015")
           (unit 1)))))
-  (text "Pin n = card pin Fn. F34 A18 / F35 A19 not connected."
+  (text "Pin n = card pin Fn. F34 A18 / F35 A19 tied to GND (not open)."
     (at 297 184.5 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "3dcb3b52-5605-5519-bc9d-1f5d43f0e128"))
+    (uuid "96731a86-bc6d-5819-b9f2-af4413368279"))
   (text "F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card."
     (at 297 187.04 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "86ae9f4a-75e1-5bbe-9d27-94c8fcc440d9"))
+    (uuid "21788056-31c9-5924-b013-bb0ebe17f29b"))
   (text "Slot made with 2.54 mm <-> 1.27 mm adapters (docs/hardware.md 12.1)."
     (at 297 189.58 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "a4b90a3f-bc70-5853-a3c0-da85c7699ed3"))
+    (uuid "aa92f40a-f877-53a8-9b9f-436b42b7aad3"))
   (symbol
     (lib_id "Device:R")
     (at 262 212 0)
@@ -5176,7 +5258,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4a2f7346-0f70-5a84-bce8-715567a59db3")
+    (uuid "85fb2d6b-8f89-5673-a256-95d1d952d2fe")
     (property "Reference" "R1"
       (at 264.54 210.73 0)
       (effects
@@ -5200,9 +5282,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "f78620e4-d560-59ea-9cd5-65cc701857fa"))
+      (uuid "895b66b1-3fc7-5c4f-93b5-117ac593484c"))
     (pin "2"
-      (uuid "73a8c56a-0c9d-5c69-abde-39f6ba4368e8"))
+      (uuid "89c50798-9b3a-5589-9b9f-128f739b0c7c"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -5215,14 +5297,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "04719a7e-5618-5480-81a4-7c2b066a8975"))
+    (uuid "8a2b2689-367b-5c90-99b1-d2c0273eef53"))
   (label "BATT_DET"
     (at 262 205.65 90)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "801b45f7-dbc3-588d-9a03-27bab3d8ce24"))
+    (uuid "a4a405e0-0642-5105-98e0-2ad87953f90f"))
   (wire
     (pts
       (xy 262 215.81)
@@ -5230,7 +5312,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "4fccca00-ccab-5271-a683-f82be8186083"))
+    (uuid "314a8f54-2765-5c39-bbf6-d4458b46ae2e"))
   (symbol
     (lib_id "power:GND")
     (at 262 218.35 0)
@@ -5238,8 +5320,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "f8059a8d-626d-590d-8f24-5c4fe94474b1")
-    (property "Reference" "#PWR014"
+    (uuid "87d920ce-1d74-5536-b937-3c67d689766f")
+    (property "Reference" "#PWR016"
       (at 262 218.35 0)
       (effects
         (font
@@ -5260,11 +5342,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "884d0c61-aad4-5853-b6c7-f724890621a1"))
+      (uuid "ec88087a-72e1-5a4c-8233-4a818c2d2098"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR014")
+          (reference "#PWR016")
           (unit 1)))))
   (text "BATT-DET pull-down: no battery 0.24 V, new battery 2.75 V"
     (at 250 227.24 0)
@@ -5272,7 +5354,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "579b1850-eaeb-5a4c-a76f-cef91af34e09"))
+    (uuid "c1a64798-80e1-544e-848d-c86ac912fa7e"))
   (symbol
     (lib_id "FSU:23LC512")
     (at 70 175 0)
@@ -5280,7 +5362,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "1ad47a23-1772-5b61-9cce-fe5e2d08b3b2")
+    (uuid "44f4db8c-68e1-57f3-86a3-d059172ec69e")
     (property "Reference" "U3"
       (at 62.38 166.11 0)
       (effects
@@ -5304,21 +5386,21 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "a22425ab-b5eb-51b6-84ee-2136ebfe38f8"))
+      (uuid "960c7662-20c7-55eb-b7bb-7aaedde95052"))
     (pin "2"
-      (uuid "e5e65bb6-6569-5f20-b185-e6ac6b880b4a"))
+      (uuid "b607fbe7-208f-548c-8402-f7ad5ddd9c37"))
     (pin "3"
-      (uuid "b550c0de-da9c-509d-b07a-12cc93783c06"))
+      (uuid "2e4fecf8-a324-5657-91d2-77bf816df2fa"))
     (pin "4"
-      (uuid "634729f5-6b34-54e8-a7f3-7efa771f45bf"))
+      (uuid "48399f71-ffe4-5b88-a39c-83dbe1fb650d"))
     (pin "5"
-      (uuid "71aacb8f-a22a-5f0a-89c9-ef89e050f0c6"))
+      (uuid "7e3c0824-1935-57c3-b1bc-b1707345177e"))
     (pin "6"
-      (uuid "d6bd56bf-cfcd-5dac-80bd-476052f4a252"))
+      (uuid "cdc594cd-3bef-516f-a809-20a89de56d49"))
     (pin "7"
-      (uuid "93d52585-86fd-5d27-a7bd-d19137a5c16f"))
+      (uuid "3c8e8c55-b413-520e-98b4-b3b0e5419808"))
     (pin "8"
-      (uuid "0223de93-1212-58f0-ae47-b8780de857a9"))
+      (uuid "485c65c2-c5f3-53d2-a8fe-8842ec117829"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -5331,14 +5413,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "52900070-0180-5094-bd40-47581a2c108c"))
+    (uuid "f6591c9d-df63-535e-a44b-251291f586c0"))
   (label "~{CS_SRAM}"
     (at 57.3 169.92 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "3769b394-f876-5329-b442-589c08a5e3e1"))
+    (uuid "49f4142e-0f3c-525b-aa9a-729968f5c74f"))
   (wire
     (pts
       (xy 80.16 169.92)
@@ -5346,17 +5428,17 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "dd58db25-4b2d-5afe-8b1b-af6571c3a7cd"))
+    (uuid "f669883b-f197-5928-955c-bf47098b0719"))
   (label "MISO"
     (at 82.7 169.92 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "a2ef7147-54fc-5d7c-bf7c-2b3db5d3a199"))
+    (uuid "789f8545-5fe3-552f-a03d-c75328ff9af3"))
   (no_connect
     (at 59.84 180.08)
-    (uuid "aec7261f-926d-5df4-bf0a-27a55183e1b7"))
+    (uuid "92d0796d-30e3-5f70-bd9b-9adec1deb890"))
   (wire
     (pts
       (xy 70 185.16)
@@ -5364,7 +5446,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "478f4dfe-1c6b-523d-b43d-b36be164d4da"))
+    (uuid "1edeef71-51a7-5187-8c90-307ad9d5e066"))
   (symbol
     (lib_id "power:GND")
     (at 70 187.7 0)
@@ -5372,8 +5454,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "955c5cc0-b144-5b97-bd18-ccdc33b261dc")
-    (property "Reference" "#PWR015"
+    (uuid "f2d1a945-aaa4-5e47-bc47-8b0cafbcbdd9")
+    (property "Reference" "#PWR017"
       (at 70 187.7 0)
       (effects
         (font
@@ -5394,11 +5476,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "71db7a6d-6e5d-5611-aaa6-83ee3df8402e"))
+      (uuid "d31a22b2-390f-5a5c-b427-b0d0247e242f"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR015")
+          (reference "#PWR017")
           (unit 1)))))
   (wire
     (pts
@@ -5407,14 +5489,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "ff0d58ee-1ec2-5fe4-8faa-f8b15be1feca"))
+    (uuid "55a56974-e8e1-50f9-9aa3-b4e833616888"))
   (label "MOSI"
     (at 57.3 175 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "87f03b3a-ad36-5460-91ae-e4de547070dc"))
+    (uuid "416c7f2c-6ead-53a1-bfee-22deb8af9e97"))
   (wire
     (pts
       (xy 59.84 172.46)
@@ -5422,14 +5504,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "1f245e67-de8e-5092-a4ba-14e4f63d035b"))
+    (uuid "6a9defee-852d-5c9e-9a30-5c6c81ffa486"))
   (label "SCK"
     (at 57.3 172.46 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "7261aa2d-29e3-56f9-8a8e-e0d546e97069"))
+    (uuid "b6e2532e-66c9-5e35-8f40-9e740b906d08"))
   (wire
     (pts
       (xy 59.84 177.54)
@@ -5437,7 +5519,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "55a56974-e8e1-50f9-9aa3-b4e833616888"))
+    (uuid "1144f4e2-ec11-503b-b08d-f99f8c1750c2"))
   (symbol
     (lib_id "power:+5V")
     (at 57.3 177.54 90)
@@ -5445,8 +5527,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4e73da8c-8ac1-5460-b5c2-9a47f333f300")
-    (property "Reference" "#PWR016"
+    (uuid "5f79c6e5-5acd-58d4-bcbc-aa68b001bda7")
+    (property "Reference" "#PWR018"
       (at 57.3 177.54 0)
       (effects
         (font
@@ -5468,11 +5550,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ddd02de4-adda-50b2-a80b-2bbb3f46bb57"))
+      (uuid "2098d654-b899-5510-a5cf-b92ca8c350fc"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR016")
+          (reference "#PWR018")
           (unit 1)))))
   (wire
     (pts
@@ -5481,7 +5563,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "581ae7a9-0c32-5082-817d-2315f8556e64"))
+    (uuid "948defa4-6a9a-578d-a3ed-f2da3d7e04f6"))
   (symbol
     (lib_id "power:+5V")
     (at 70 162.3 0)
@@ -5489,8 +5571,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "db6ad06d-3189-5eb0-8216-dd200715065d")
-    (property "Reference" "#PWR017"
+    (uuid "686c6546-c505-55cf-aab3-d1c7157ceba8")
+    (property "Reference" "#PWR019"
       (at 70 162.3 0)
       (effects
         (font
@@ -5511,11 +5593,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "6eab3e7c-248f-5026-8719-5f4c734a3af2"))
+      (uuid "5d5570bf-0931-5cab-a632-5531c2c860a4"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR017")
+          (reference "#PWR019")
           (unit 1)))))
   (text "USE_SPI_SRAM (auto-detected)"
     (at 62.38 200.4 0)
@@ -5523,7 +5605,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "6231dab7-b267-5692-85ab-f51077207deb"))
+    (uuid "765a5695-f863-5e48-b2bb-93b5340f1891"))
   (symbol
     (lib_id "Memory_RAM:KM62256CLP")
     (at 360 105 0)
@@ -5531,7 +5613,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "53b7a403-a29b-5b93-a9b5-fede9919edb7")
+    (uuid "043d24e1-8fe6-59c3-929d-2c4b4e144e2a")
     (property "Reference" "U4"
       (at 349.84 83.41 0)
       (effects
@@ -5555,61 +5637,61 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "dd13b287-a43d-573e-bd7a-8b596bd917b5"))
+      (uuid "163d2050-e680-54b7-85cd-a1a62a9c1672"))
     (pin "2"
-      (uuid "a74ad2ef-3c79-55de-b046-967ce9f6e2f8"))
+      (uuid "315ffc31-704b-54f3-a5be-336d3a74c843"))
     (pin "3"
-      (uuid "b37d5b2c-535a-51d3-8bfb-015e6b14dd18"))
+      (uuid "fe302549-0ef5-5fc3-9227-285d5724d343"))
     (pin "4"
-      (uuid "24ea2bce-f2b6-5b96-b5a1-5a2b193c9b40"))
+      (uuid "e448579a-0a94-598e-b8f7-66dfd333e2b3"))
     (pin "5"
-      (uuid "b7770e1d-b663-5ec4-8944-2a7254f8d984"))
+      (uuid "788526c7-28c8-5c79-8808-3dc97d2455d4"))
     (pin "6"
-      (uuid "a0313899-150b-5ab6-895b-6fc99c45584c"))
+      (uuid "c2f44491-3fdf-58c7-9a80-955ebaa2a918"))
     (pin "7"
-      (uuid "7d84b083-9265-58a8-b817-6379bb96f837"))
+      (uuid "9c20f64c-6ea2-54ba-8466-e2681408c3fc"))
     (pin "8"
-      (uuid "d28a5637-5371-5466-8726-e534f1e598ec"))
+      (uuid "b27ec5a7-122e-547e-b9f2-a575db373288"))
     (pin "9"
-      (uuid "c7e8e4db-9bfe-52f1-93b5-aa7c46bb3a2f"))
+      (uuid "1f63f2f9-578c-5494-a478-b469ed78b243"))
     (pin "10"
-      (uuid "27a87e1e-47b5-5c6d-b2a0-f2d97e623233"))
+      (uuid "ea1bc6b4-51e6-54dc-9032-1944ce9ccfca"))
     (pin "11"
-      (uuid "23ca66d6-ee81-5709-b8fb-0aa8a8aee401"))
+      (uuid "11b2a108-2c7a-55cf-ba99-0327b4a0066a"))
     (pin "12"
-      (uuid "2745858c-839b-5407-a140-3f499ff8e886"))
+      (uuid "8ed79dad-3667-5600-8fdb-c244e24963cb"))
     (pin "13"
-      (uuid "f34df084-d851-5a4c-8540-c5d9bc9e4b5b"))
+      (uuid "bfbbb486-52a5-59e2-b88e-5792c795deeb"))
     (pin "14"
-      (uuid "5ab1c096-4304-5f78-a275-1f9159a2668e"))
+      (uuid "3ec3bac4-c31b-5f0d-9403-ad444ea170ae"))
     (pin "15"
-      (uuid "723b5137-2645-5a27-b08c-bb4c906ab687"))
+      (uuid "85a3c2dd-e80d-5481-8c18-1d36f8067ea5"))
     (pin "16"
-      (uuid "df952cfe-041b-5f65-a45e-fe31114d7df4"))
+      (uuid "b3b69b6d-b25d-5651-8832-8feb89461623"))
     (pin "17"
-      (uuid "d1de9f0b-446a-55c5-81b3-1d7260f2c883"))
+      (uuid "8e98ca0d-e473-5eca-a78a-330a73e58d09"))
     (pin "18"
-      (uuid "619a7f7e-14ba-5886-8e5a-fed28c5e3ed8"))
+      (uuid "5e64e569-dc78-545b-af37-f11c866839e0"))
     (pin "19"
-      (uuid "844235b1-3fbd-5c92-8049-9d2367439eb0"))
+      (uuid "0e148d3d-1710-5f6d-8183-a848974d9431"))
     (pin "20"
-      (uuid "e0860f34-bdde-57da-9e5b-a4d485a7b5fc"))
+      (uuid "b5c17e9a-5758-5474-a28d-ce1e39af1354"))
     (pin "21"
-      (uuid "8e2b94d6-b209-59b4-82f9-19c4296e92fd"))
+      (uuid "18a7502b-3649-59fb-b4de-aa33a8d12357"))
     (pin "22"
-      (uuid "840c751d-c105-5a49-ad58-c48307fb3248"))
+      (uuid "7fbbc1be-ef93-5a8d-af04-6999b94c0471"))
     (pin "23"
-      (uuid "91adb5ff-28c1-5054-9ad8-540dd1b9d04f"))
+      (uuid "ea8734c7-94ff-5ea3-a7ee-8843b4fb56be"))
     (pin "24"
-      (uuid "2ed47a38-5191-54eb-a076-4ccd44874501"))
+      (uuid "8df7b7ea-0caf-575d-867c-21430385ec08"))
     (pin "25"
-      (uuid "765502c9-0611-5d64-83f5-0edcc6896fe3"))
+      (uuid "6302ed98-6452-51ac-8397-07ae4f00c2f9"))
     (pin "26"
-      (uuid "3b5b6ebc-e54d-56b5-974e-1d1532c29c19"))
+      (uuid "806caaa5-0f66-5fb6-9fca-037d251d9a69"))
     (pin "27"
-      (uuid "fcc8e5d1-8c99-599a-be48-19f8c620b081"))
+      (uuid "d2569a08-a3d7-560d-8982-ce68b8278355"))
     (pin "28"
-      (uuid "60b2f94e-c3ee-53af-a3a0-6052880b28f1"))
+      (uuid "1a57b028-7f88-5e4c-91fe-212fafa65164"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -5622,39 +5704,9 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "9c238096-db26-59ff-a693-534409ff4167"))
+    (uuid "a09b35b8-b5d5-51f1-b6ca-69d81744e1a9"))
   (label "ADDR14"
     (at 344.76 122.78 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "3b3c0784-9dd2-55b4-a298-f0e7b657459b"))
-  (wire
-    (pts
-      (xy 347.3 117.7)
-      (xy 344.76 117.7))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "db735aea-e4a1-5afb-9290-fc76205c0e48"))
-  (label "ADDR12"
-    (at 344.76 117.7 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "18d39d78-b253-5583-82e5-227c8b2c3a42"))
-  (wire
-    (pts
-      (xy 347.3 105)
-      (xy 344.76 105))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "a09b35b8-b5d5-51f1-b6ca-69d81744e1a9"))
-  (label "ADDR7"
-    (at 344.76 105 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5662,14 +5714,14 @@
     (uuid "a2b14f54-57d4-57bb-8705-6e06e1346a28"))
   (wire
     (pts
-      (xy 347.3 102.46)
-      (xy 344.76 102.46))
+      (xy 347.3 117.7)
+      (xy 344.76 117.7))
     (stroke
       (width 0)
       (type default))
     (uuid "8ce8fc7c-585a-50eb-9911-c63c5d56821b"))
-  (label "ADDR6"
-    (at 344.76 102.46 180)
+  (label "ADDR12"
+    (at 344.76 117.7 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5677,14 +5729,14 @@
     (uuid "b91213f2-2a4d-5642-870d-58214e7384c1"))
   (wire
     (pts
-      (xy 347.3 99.92)
-      (xy 344.76 99.92))
+      (xy 347.3 105)
+      (xy 344.76 105))
     (stroke
       (width 0)
       (type default))
     (uuid "08a917b5-06fb-5d89-9ff3-c8297dcfbf47"))
-  (label "ADDR5"
-    (at 344.76 99.92 180)
+  (label "ADDR7"
+    (at 344.76 105 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5692,14 +5744,14 @@
     (uuid "8b6b8f5f-df95-5366-9a68-bf404848ab83"))
   (wire
     (pts
-      (xy 347.3 97.38)
-      (xy 344.76 97.38))
+      (xy 347.3 102.46)
+      (xy 344.76 102.46))
     (stroke
       (width 0)
       (type default))
     (uuid "5add5ffe-1c6d-5430-9fad-05a953531a26"))
-  (label "ADDR4"
-    (at 344.76 97.38 180)
+  (label "ADDR6"
+    (at 344.76 102.46 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5707,14 +5759,14 @@
     (uuid "2c2d3ad0-86d2-5846-8b15-99c53e76f2c4"))
   (wire
     (pts
-      (xy 347.3 94.84)
-      (xy 344.76 94.84))
+      (xy 347.3 99.92)
+      (xy 344.76 99.92))
     (stroke
       (width 0)
       (type default))
     (uuid "dec70268-6bb2-5fd2-b038-67d4fd1ddbee"))
-  (label "ADDR3"
-    (at 344.76 94.84 180)
+  (label "ADDR5"
+    (at 344.76 99.92 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5722,14 +5774,14 @@
     (uuid "7ff4e95c-19e5-5972-96a4-5e934aa9fade"))
   (wire
     (pts
-      (xy 347.3 92.3)
-      (xy 344.76 92.3))
+      (xy 347.3 97.38)
+      (xy 344.76 97.38))
     (stroke
       (width 0)
       (type default))
     (uuid "2d7b120f-4b4c-5c73-b4fd-8f3c7178fc69"))
-  (label "ADDR2"
-    (at 344.76 92.3 180)
+  (label "ADDR4"
+    (at 344.76 97.38 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5737,14 +5789,14 @@
     (uuid "d4f5c2e0-7de9-5acc-bf6b-9ccbbade50cf"))
   (wire
     (pts
-      (xy 347.3 89.76)
-      (xy 344.76 89.76))
+      (xy 347.3 94.84)
+      (xy 344.76 94.84))
     (stroke
       (width 0)
       (type default))
     (uuid "8f74fab6-f7a2-5631-a2a1-705a845329ad"))
-  (label "ADDR1"
-    (at 344.76 89.76 180)
+  (label "ADDR3"
+    (at 344.76 94.84 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5752,14 +5804,14 @@
     (uuid "bc67cf60-867d-5392-8842-92dd14bc45c5"))
   (wire
     (pts
-      (xy 347.3 87.22)
-      (xy 344.76 87.22))
+      (xy 347.3 92.3)
+      (xy 344.76 92.3))
     (stroke
       (width 0)
       (type default))
     (uuid "010edaa7-4f97-5c7a-9fa4-9ffb6f1f260d"))
-  (label "ADDR0"
-    (at 344.76 87.22 180)
+  (label "ADDR2"
+    (at 344.76 92.3 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5767,14 +5819,14 @@
     (uuid "927b2707-e549-5c87-a11b-382ba089f5f3"))
   (wire
     (pts
-      (xy 347.3 112.62)
-      (xy 344.76 112.62))
+      (xy 347.3 89.76)
+      (xy 344.76 89.76))
     (stroke
       (width 0)
       (type default))
     (uuid "ca520877-59bf-59d7-9d55-1c71a9317d01"))
-  (label "ADDR10"
-    (at 344.76 112.62 180)
+  (label "ADDR1"
+    (at 344.76 89.76 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5782,14 +5834,14 @@
     (uuid "474bbafb-ffd0-551c-996b-a1550c130f20"))
   (wire
     (pts
-      (xy 347.3 115.16)
-      (xy 344.76 115.16))
+      (xy 347.3 87.22)
+      (xy 344.76 87.22))
     (stroke
       (width 0)
       (type default))
     (uuid "5a81f94d-d2ad-56eb-ae1a-cbae012dad12"))
-  (label "ADDR11"
-    (at 344.76 115.16 180)
+  (label "ADDR0"
+    (at 344.76 87.22 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5797,14 +5849,14 @@
     (uuid "134f633f-f874-5996-825c-eeaed7e90497"))
   (wire
     (pts
-      (xy 347.3 110.08)
-      (xy 344.76 110.08))
+      (xy 347.3 112.62)
+      (xy 344.76 112.62))
     (stroke
       (width 0)
       (type default))
     (uuid "149f7431-60af-5550-88ee-ca361c485164"))
-  (label "ADDR9"
-    (at 344.76 110.08 180)
+  (label "ADDR10"
+    (at 344.76 112.62 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5812,14 +5864,14 @@
     (uuid "dd903703-9c5a-5ec0-b3f2-b3c20d3161c7"))
   (wire
     (pts
-      (xy 347.3 107.54)
-      (xy 344.76 107.54))
+      (xy 347.3 115.16)
+      (xy 344.76 115.16))
     (stroke
       (width 0)
       (type default))
     (uuid "dee8be36-482e-5b3b-b3f1-dceccca56982"))
-  (label "ADDR8"
-    (at 344.76 107.54 180)
+  (label "ADDR11"
+    (at 344.76 115.16 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5827,14 +5879,14 @@
     (uuid "57285c28-2a26-5200-8148-c335f28ea30f"))
   (wire
     (pts
-      (xy 347.3 120.24)
-      (xy 344.76 120.24))
+      (xy 347.3 110.08)
+      (xy 344.76 110.08))
     (stroke
       (width 0)
       (type default))
     (uuid "be6f37a5-891c-542c-a10f-0a5ac17333ff"))
-  (label "ADDR13"
-    (at 344.76 120.24 180)
+  (label "ADDR9"
+    (at 344.76 110.08 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -5842,44 +5894,44 @@
     (uuid "e1a3f6b4-0038-5a8f-8b98-4623a36ee84a"))
   (wire
     (pts
+      (xy 347.3 107.54)
+      (xy 344.76 107.54))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "2e093e03-2580-5b5b-9055-b62f8b780617"))
+  (label "ADDR8"
+    (at 344.76 107.54 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "c3218a2f-62cc-5019-bab2-a37f3bb54082"))
+  (wire
+    (pts
+      (xy 347.3 120.24)
+      (xy 344.76 120.24))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "952cf300-d2a8-5312-825e-bac3a1f61a03"))
+  (label "ADDR13"
+    (at 344.76 120.24 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "c2af207b-c911-52d6-9ac5-35bc568e2aae"))
+  (wire
+    (pts
       (xy 372.7 87.22)
       (xy 375.24 87.22))
     (stroke
       (width 0)
       (type default))
-    (uuid "2e093e03-2580-5b5b-9055-b62f8b780617"))
+    (uuid "d35ab0d8-39ab-53f2-8639-638729a9b020"))
   (label "DATA0"
     (at 375.24 87.22 0)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "c3218a2f-62cc-5019-bab2-a37f3bb54082"))
-  (wire
-    (pts
-      (xy 372.7 89.76)
-      (xy 375.24 89.76))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "952cf300-d2a8-5312-825e-bac3a1f61a03"))
-  (label "DATA1"
-    (at 375.24 89.76 0)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "c2af207b-c911-52d6-9ac5-35bc568e2aae"))
-  (wire
-    (pts
-      (xy 372.7 92.3)
-      (xy 375.24 92.3))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "d35ab0d8-39ab-53f2-8639-638729a9b020"))
-  (label "DATA2"
-    (at 375.24 92.3 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5887,14 +5939,14 @@
     (uuid "68cc1dd3-07b7-5c9e-ba8a-db60d13572f2"))
   (wire
     (pts
-      (xy 372.7 94.84)
-      (xy 375.24 94.84))
+      (xy 372.7 89.76)
+      (xy 375.24 89.76))
     (stroke
       (width 0)
       (type default))
     (uuid "ef2ef081-49c6-5ed5-a6f3-94105eb845cc"))
-  (label "DATA3"
-    (at 375.24 94.84 0)
+  (label "DATA1"
+    (at 375.24 89.76 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5902,14 +5954,14 @@
     (uuid "26cbe347-68ac-506b-94bb-2b69d4ac4f10"))
   (wire
     (pts
-      (xy 372.7 97.38)
-      (xy 375.24 97.38))
+      (xy 372.7 92.3)
+      (xy 375.24 92.3))
     (stroke
       (width 0)
       (type default))
     (uuid "7251f782-0a74-507f-befe-acd3811e721b"))
-  (label "DATA4"
-    (at 375.24 97.38 0)
+  (label "DATA2"
+    (at 375.24 92.3 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5917,14 +5969,14 @@
     (uuid "85f91433-1af9-5112-9ef7-a74200bc437a"))
   (wire
     (pts
-      (xy 372.7 99.92)
-      (xy 375.24 99.92))
+      (xy 372.7 94.84)
+      (xy 375.24 94.84))
     (stroke
       (width 0)
       (type default))
     (uuid "bd06b2bb-02bc-595c-b2a6-471ee4ddd666"))
-  (label "DATA5"
-    (at 375.24 99.92 0)
+  (label "DATA3"
+    (at 375.24 94.84 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5932,14 +5984,14 @@
     (uuid "558870db-3409-5720-8a3e-1a5d9e4bcfde"))
   (wire
     (pts
-      (xy 372.7 102.46)
-      (xy 375.24 102.46))
+      (xy 372.7 97.38)
+      (xy 375.24 97.38))
     (stroke
       (width 0)
       (type default))
     (uuid "e19c71fa-47b9-5c83-83bd-66a19369ae46"))
-  (label "DATA6"
-    (at 375.24 102.46 0)
+  (label "DATA4"
+    (at 375.24 97.38 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5947,14 +5999,14 @@
     (uuid "88920a31-1e4d-5d1f-8cf9-b5b1c33a1ab4"))
   (wire
     (pts
-      (xy 372.7 105)
-      (xy 375.24 105))
+      (xy 372.7 99.92)
+      (xy 375.24 99.92))
     (stroke
       (width 0)
       (type default))
     (uuid "90909fee-4640-5225-b303-664bab47baaa"))
-  (label "DATA7"
-    (at 375.24 105 0)
+  (label "DATA5"
+    (at 375.24 99.92 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5962,14 +6014,14 @@
     (uuid "0d43765e-1607-5a36-81b2-b3dc493a02ae"))
   (wire
     (pts
-      (xy 372.7 110.08)
-      (xy 375.24 110.08))
+      (xy 372.7 102.46)
+      (xy 375.24 102.46))
     (stroke
       (width 0)
       (type default))
     (uuid "7360d56a-6126-5975-8e0c-6e787829592e"))
-  (label "CE2"
-    (at 375.24 110.08 0)
+  (label "DATA6"
+    (at 375.24 102.46 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5977,14 +6029,14 @@
     (uuid "1fe2dc90-9e02-5206-9cac-8cdae8723b07"))
   (wire
     (pts
-      (xy 372.7 115.16)
-      (xy 375.24 115.16))
+      (xy 372.7 105)
+      (xy 375.24 105))
     (stroke
       (width 0)
       (type default))
     (uuid "829729f3-d1ba-5f77-8549-dbd32634166c"))
-  (label "~{OE_62256}"
-    (at 375.24 115.16 0)
+  (label "DATA7"
+    (at 375.24 105 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -5992,14 +6044,14 @@
     (uuid "da34fac2-c5ba-5293-b3f2-66924492110a"))
   (wire
     (pts
-      (xy 372.7 117.7)
-      (xy 375.24 117.7))
+      (xy 372.7 110.08)
+      (xy 375.24 110.08))
     (stroke
       (width 0)
       (type default))
     (uuid "ebe11704-cad3-5f9d-b614-2ae4e7a17bf4"))
-  (label "~{WE}"
-    (at 375.24 117.7 0)
+  (label "CE2"
+    (at 375.24 110.08 0)
     (effects
       (font
         (size 1.27 1.27))
@@ -6007,12 +6059,42 @@
     (uuid "b1804357-2ac8-5228-88dc-0cd65f952a09"))
   (wire
     (pts
+      (xy 372.7 115.16)
+      (xy 375.24 115.16))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "4a18e22f-a7ee-54a8-82ed-afed3f80769e"))
+  (label "~{OE_62256}"
+    (at 375.24 115.16 0)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify left bottom))
+    (uuid "8586d2bf-b14e-5e3d-9acc-b38f3548d781"))
+  (wire
+    (pts
+      (xy 372.7 117.7)
+      (xy 375.24 117.7))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "f67f4783-b17e-5579-a11c-2245dbf9f72c"))
+  (label "~{WE}"
+    (at 375.24 117.7 0)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify left bottom))
+    (uuid "fcda67dc-83cd-56c1-b620-4dd046fbd828"))
+  (wire
+    (pts
       (xy 360 127.86)
       (xy 360 130.4))
     (stroke
       (width 0)
       (type default))
-    (uuid "4a18e22f-a7ee-54a8-82ed-afed3f80769e"))
+    (uuid "916050e1-4333-5e2b-abd0-a3bee8d55738"))
   (symbol
     (lib_id "power:GND")
     (at 360 130.4 0)
@@ -6020,8 +6102,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "4a05dbbd-031f-5cd3-9327-870fefac4943")
-    (property "Reference" "#PWR018"
+    (uuid "18f87b69-7a38-52bd-bb0e-b82e32e6165b")
+    (property "Reference" "#PWR020"
       (at 360 130.4 0)
       (effects
         (font
@@ -6042,11 +6124,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "01170e98-ea55-5778-a509-f055d77d95c1"))
+      (uuid "cc58e603-bbbd-52c3-8735-e0c6ac7a3fae"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR018")
+          (reference "#PWR020")
           (unit 1)))))
   (wire
     (pts
@@ -6055,7 +6137,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "678660c5-62ef-5273-b54b-c143c5813d26"))
+    (uuid "f706c40b-e699-53ca-b5fc-006908100832"))
   (symbol
     (lib_id "power:+5V")
     (at 360 79.6 0)
@@ -6063,8 +6145,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "b074415a-07ce-52e6-a237-ebcb4335d119")
-    (property "Reference" "#PWR019"
+    (uuid "a2b359e7-a9b3-537c-a16c-54851885875e")
+    (property "Reference" "#PWR021"
       (at 360 79.6 0)
       (effects
         (font
@@ -6085,11 +6167,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "511da02c-3c97-54dc-b2a7-38721c7c5074"))
+      (uuid "2f723621-dc7a-58b3-b807-811d2ef2e85b"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR019")
+          (reference "#PWR021")
           (unit 1)))))
   (text "USE_SRAM62256. /CS = CE2 (GPB0)"
     (at 349.84 143.1 0)
@@ -6097,14 +6179,14 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "ab2f4346-52f1-5907-befe-e3baf0bed6bd"))
+    (uuid "a8506ab0-964f-5be4-a3ed-32f72bf46c0c"))
   (text "Test SRAM for \"test p\""
     (at 349.84 145.64 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "f53c7ca1-9ee7-55ea-bcf5-ad8357b5a895"))
+    (uuid "785556fa-bae4-5b88-9ae9-ae742441018c"))
   (symbol
     (lib_id "Connector_Generic:Conn_01x06")
     (at 75 222 0)
@@ -6112,7 +6194,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "28f2fd5d-860c-5eba-844f-8572fe694747")
+    (uuid "cc9b675a-ec6e-5078-96cc-8da3d88f0c63")
     (property "Reference" "J2"
       (at 72 213.11 0)
       (effects
@@ -6136,17 +6218,17 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "7f3ba274-029c-5184-923c-6e566e8afb20"))
+      (uuid "c3364b0b-c87d-5ad9-aeae-361c0cf5385f"))
     (pin "2"
-      (uuid "0aaa1920-5365-524d-aa2b-1d7277378a46"))
+      (uuid "f2b97f86-c1bc-59bd-b8c8-8f540dc9179b"))
     (pin "3"
-      (uuid "1d89d500-e9d2-5b44-ba4d-6675648a726b"))
+      (uuid "2fbd8b49-95bd-58b1-bf3f-9e8fce8bad70"))
     (pin "4"
-      (uuid "f5bb35ae-b497-59b2-9a78-376a9d581b82"))
+      (uuid "9536acc6-6fa0-5d47-be2a-4e47441adece"))
     (pin "5"
-      (uuid "632fc996-c5b8-5716-baf7-571069c3ba93"))
+      (uuid "2ceadded-4308-5d29-9785-971bff6862f5"))
     (pin "6"
-      (uuid "1ef0e3f7-09d5-557c-805d-f78fccdf04d7"))
+      (uuid "dfe24761-af88-5c80-a94e-b9a91eb76eb4"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6159,7 +6241,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "ca0a37b2-d3a2-5304-ac6e-027958aa1366"))
+    (uuid "d6b18975-792b-52f4-890a-a34577b36203"))
   (symbol
     (lib_id "power:GND")
     (at 67.38 216.92 270)
@@ -6167,8 +6249,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "87b8dc00-19b2-5297-b224-739f46e90ee8")
-    (property "Reference" "#PWR020"
+    (uuid "7318a029-986d-5c92-a653-8ec680ce52f2")
+    (property "Reference" "#PWR022"
       (at 67.38 216.92 0)
       (effects
         (font
@@ -6190,11 +6272,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "f3c9ac3d-1b2e-5396-ba79-2967b6c4c2ff"))
+      (uuid "4a1c98f3-6bb3-5e40-9cfd-02862fe640da"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR020")
+          (reference "#PWR022")
           (unit 1)))))
   (wire
     (pts
@@ -6203,7 +6285,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "c14bf91f-3549-5cfa-a18a-66593eb93b84"))
+    (uuid "fab0c8f3-71ff-544f-8643-d4cac3a80fed"))
   (symbol
     (lib_id "power:+5V")
     (at 67.38 219.46 90)
@@ -6211,8 +6293,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "22a3ea72-45e0-552f-8543-194b3d2cbc94")
-    (property "Reference" "#PWR021"
+    (uuid "da577259-3dad-54c1-aee8-cd0b3558b0a2")
+    (property "Reference" "#PWR023"
       (at 67.38 219.46 0)
       (effects
         (font
@@ -6234,11 +6316,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "6ee7a809-517f-54f0-b5e7-fac706d2bfc4"))
+      (uuid "ebee48f1-2a2e-544e-8d06-cc374cbabbfc"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR021")
+          (reference "#PWR023")
           (unit 1)))))
   (wire
     (pts
@@ -6247,39 +6329,9 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "5f1f6f24-ed49-56f1-b017-14c7f56a4924"))
+    (uuid "c64b375e-25dd-52e2-859b-e8b53e2c7717"))
   (label "MISO"
     (at 67.38 222 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "4f94aed9-1313-5a6d-b86f-b42841147c6c"))
-  (wire
-    (pts
-      (xy 69.92 224.54)
-      (xy 67.38 224.54))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "7e941362-6007-5520-94e0-b58661587cfb"))
-  (label "MOSI"
-    (at 67.38 224.54 180)
-    (effects
-      (font
-        (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "efbf88a7-d67e-5135-9fbb-e46b57689d5a"))
-  (wire
-    (pts
-      (xy 69.92 227.08)
-      (xy 67.38 227.08))
-    (stroke
-      (width 0)
-      (type default))
-    (uuid "c64b375e-25dd-52e2-859b-e8b53e2c7717"))
-  (label "SCK"
-    (at 67.38 227.08 180)
     (effects
       (font
         (size 1.27 1.27))
@@ -6287,33 +6339,63 @@
     (uuid "210f953d-be72-50cd-bde1-f811b9f58eb8"))
   (wire
     (pts
+      (xy 69.92 224.54)
+      (xy 67.38 224.54))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "1755843a-cac6-572c-9cb6-2fa970059553"))
+  (label "MOSI"
+    (at 67.38 224.54 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "fe6fa042-8c5b-5b5b-ad02-7c68a4ac8e03"))
+  (wire
+    (pts
+      (xy 69.92 227.08)
+      (xy 67.38 227.08))
+    (stroke
+      (width 0)
+      (type default))
+    (uuid "21806394-c1ff-5b3e-a6c8-3547c4565a7d"))
+  (label "SCK"
+    (at 67.38 227.08 180)
+    (effects
+      (font
+        (size 1.27 1.27))
+      (justify right bottom))
+    (uuid "d637ce4f-2c03-53c9-aa72-b3acb9f2bf26"))
+  (wire
+    (pts
       (xy 69.92 229.62)
       (xy 67.38 229.62))
     (stroke
       (width 0)
       (type default))
-    (uuid "1755843a-cac6-572c-9cb6-2fa970059553"))
+    (uuid "bd55d2b9-76fa-5cc6-be94-6d8b9fe5638b"))
   (label "~{CS_SD}"
     (at 67.38 229.62 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "fe6fa042-8c5b-5b5b-ad02-7c68a4ac8e03"))
+    (uuid "72570529-c2d0-5ccc-a17f-1527c160ae28"))
   (text "USE_SD. 3.3 V regulator + level shifter on module"
     (at 79 224.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "ad797ebb-b7f5-5d76-b00f-b82f5e7ce722"))
+    (uuid "6fc5dd20-dae7-5915-a9f6-fce94de9aead"))
   (text "(pin order differs by module)"
     (at 79 227.08 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "fc3a4133-1b9b-57dc-9c89-dbab7fbadb3a"))
+    (uuid "101d60b5-0968-532f-afa9-4f9492eb5c5e"))
   (symbol
     (lib_id "Connector_Generic:Conn_01x04")
     (at 75 250 0)
@@ -6321,7 +6403,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "62881e9a-7646-5688-a41f-0fe893a9bc32")
+    (uuid "f60ea72c-eb1c-58d0-89ca-ad9ee8c1ce3f")
     (property "Reference" "J3"
       (at 72 243.65 0)
       (effects
@@ -6345,13 +6427,13 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "0a3840f9-7cd5-511a-82ec-ded4c5eda176"))
+      (uuid "bf63f8b5-a47e-5720-b43d-1e3e76c42667"))
     (pin "2"
-      (uuid "234a4a3f-3239-5f36-968e-aa7dbd1ec597"))
+      (uuid "580453ba-98ff-5bfd-b05b-ce1918a480c9"))
     (pin "3"
-      (uuid "bb9a9c76-9261-5ca4-a85d-da86bdf9bb38"))
+      (uuid "7b608c1c-ec6e-584b-8740-06fa84ca4389"))
     (pin "4"
-      (uuid "16655868-b4d6-5937-acfc-4ed1a083e06c"))
+      (uuid "98d4dde3-a225-5dd8-81fe-8e9a0855a609"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6364,7 +6446,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "7890ce8d-fe30-59d2-ac69-0d34905a2449"))
+    (uuid "563cc547-96e4-5391-b5d0-3d18b01454b5"))
   (symbol
     (lib_id "power:GND")
     (at 67.38 247.46 270)
@@ -6372,8 +6454,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "c55a6047-bb88-5f3b-87dc-67eeeb45f2f3")
-    (property "Reference" "#PWR022"
+    (uuid "5ea8d7ec-5779-571e-a445-520f7ec59488")
+    (property "Reference" "#PWR024"
       (at 67.38 247.46 0)
       (effects
         (font
@@ -6395,11 +6477,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "37713ee0-a35b-55cb-8867-0e2f00e8d5f0"))
+      (uuid "38c6995b-dda0-5f93-97e7-acafdc4af9e4"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR022")
+          (reference "#PWR024")
           (unit 1)))))
   (wire
     (pts
@@ -6408,7 +6490,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "7f7eddca-fddb-5d86-95c1-6f98d7df69ab"))
+    (uuid "110f52bc-3928-53ce-88c0-afb5275dc08e"))
   (symbol
     (lib_id "power:+5V")
     (at 67.38 250 90)
@@ -6416,8 +6498,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "96aa3af5-daa6-5f33-8c19-4b06a611956a")
-    (property "Reference" "#PWR023"
+    (uuid "0a0df0ff-51e7-5796-a25d-d9491523cf8a")
+    (property "Reference" "#PWR025"
       (at 67.38 250 0)
       (effects
         (font
@@ -6439,11 +6521,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "25f37d43-f9ea-586b-83c7-02979e04c1d8"))
+      (uuid "1b85fa9f-abb4-5e9d-8168-9dc79a7c56fc"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR023")
+          (reference "#PWR025")
           (unit 1)))))
   (wire
     (pts
@@ -6452,14 +6534,14 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "2cba2d88-5db8-524e-b988-846942d8616b"))
+    (uuid "d87b9be1-37c1-5165-80fb-2f0998d023fa"))
   (label "SDA"
     (at 67.38 252.54 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "36e77da3-4692-5d67-8e68-3cb0cc56fc4d"))
+    (uuid "1a314964-fa9b-52c3-8a48-03e0e6dd0343"))
   (wire
     (pts
       (xy 69.92 255.08)
@@ -6467,21 +6549,21 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "2e88e409-e718-55c7-9fda-d91dc69638d6"))
+    (uuid "766c3ea5-3a3d-5a06-9854-aa345b75cd60"))
   (label "SCL"
     (at 67.38 255.08 180)
     (effects
       (font
         (size 1.27 1.27))
       (justify right bottom))
-    (uuid "7461bd57-2112-5fbf-a802-6c1f1790b316"))
+    (uuid "fecbaf72-bf00-52d6-9460-a233e5bf3d18"))
   (text "USE_LCD (auto-detected)"
     (at 79 252.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "34922e03-a3d3-5251-8e77-8038fd37aaff"))
+    (uuid "e6ab6fd4-e95c-5a2f-b170-7a3ee978fe3c"))
   (symbol
     (lib_id "Device:C")
     (at 165 250 0)
@@ -6489,7 +6571,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "db0206f4-7de8-5eda-a61c-e048d342ad98")
+    (uuid "1ad6a1bd-e545-56a4-90bf-54138cddee81")
     (property "Reference" "C1"
       (at 167.54 248.73 0)
       (effects
@@ -6513,9 +6595,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "75beadef-fc5a-554c-a8b6-a295bff5c359"))
+      (uuid "46ebf7da-0868-5622-88e3-7756adbf3906"))
     (pin "2"
-      (uuid "9b3fcf88-db10-5fd0-bbfd-38e011a2dbdf"))
+      (uuid "02aa5e1e-4014-521a-b0a2-dfad2cbc5018"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6528,7 +6610,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "bfdb74f5-eb62-501e-b7b9-8cda8f51fe4d"))
+    (uuid "b15e52ed-f19d-59dc-842e-91c0eaf42426"))
   (symbol
     (lib_id "power:+5V")
     (at 165 243.65 0)
@@ -6536,8 +6618,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "056cf7bc-f204-55a0-8e52-8e4e2cb9594e")
-    (property "Reference" "#PWR024"
+    (uuid "a9e2f652-49f5-5c58-8f87-d8b38adf2659")
+    (property "Reference" "#PWR026"
       (at 165 243.65 0)
       (effects
         (font
@@ -6558,11 +6640,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ea90b40f-3c30-59e7-9f25-49aa79f58098"))
+      (uuid "166b9b39-65bf-5144-a8f9-7074b4fa975d"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR024")
+          (reference "#PWR026")
           (unit 1)))))
   (wire
     (pts
@@ -6571,7 +6653,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "13896580-68b6-57fc-84f4-61b01f2bb9d1"))
+    (uuid "9b994c90-8c9b-5ebf-8ad0-eb8b0b170bee"))
   (symbol
     (lib_id "power:GND")
     (at 165 256.35 0)
@@ -6579,8 +6661,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "eba45f5f-4ce9-556c-b74d-8c82cf13977a")
-    (property "Reference" "#PWR025"
+    (uuid "e2326be8-9497-5fd9-bdd7-b9551319bb9b")
+    (property "Reference" "#PWR027"
       (at 165 256.35 0)
       (effects
         (font
@@ -6601,11 +6683,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "34f60c2e-cbd8-58df-a212-545bd19718d3"))
+      (uuid "a1f0dc13-a4a6-5488-a0c3-b7d92b452572"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR025")
+          (reference "#PWR027")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -6614,7 +6696,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "515a630c-fbbb-52ba-8f00-d4dc5105ec8b")
+    (uuid "0a456ac9-3c77-51d9-afbe-7d1524bf9672")
     (property "Reference" "C2"
       (at 180.24 248.73 0)
       (effects
@@ -6638,9 +6720,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "f2dd1009-5a3e-58f7-9eb2-6fe2fa31e03b"))
+      (uuid "32757697-a65c-5e09-8d4b-c927f2b1fe54"))
     (pin "2"
-      (uuid "816efc0f-a7e1-53f1-b6aa-a6430d15f4f3"))
+      (uuid "5e34ae02-b674-5910-a7da-d83031d35bc8"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6653,7 +6735,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "3001ff03-16ae-56ff-bdd9-a6d2473d87d5"))
+    (uuid "5e9ec0ee-e0d1-580e-9132-64c8aabfa93c"))
   (symbol
     (lib_id "power:+5V")
     (at 177.7 243.65 0)
@@ -6661,8 +6743,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "432ab5e1-e884-55bd-97fa-18d65fc4c656")
-    (property "Reference" "#PWR026"
+    (uuid "6aa81bd7-d4b5-5dd9-bffe-22d4740fe0bc")
+    (property "Reference" "#PWR028"
       (at 177.7 243.65 0)
       (effects
         (font
@@ -6683,11 +6765,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "a703a732-fb13-5483-95d2-e280c5baade9"))
+      (uuid "72f1e612-ff07-5b6b-99d9-b5ee87538ffe"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR026")
+          (reference "#PWR028")
           (unit 1)))))
   (wire
     (pts
@@ -6696,7 +6778,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "c3bef846-0e53-5b57-af7f-48069c78f65a"))
+    (uuid "45c18e68-69fc-5719-9d91-52d8a47f4e8f"))
   (symbol
     (lib_id "power:GND")
     (at 177.7 256.35 0)
@@ -6704,8 +6786,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "e1d7ea98-42c9-5306-ac72-5d6732a277b9")
-    (property "Reference" "#PWR027"
+    (uuid "c3b66c18-3abc-563c-aa7f-228d84a9da34")
+    (property "Reference" "#PWR029"
       (at 177.7 256.35 0)
       (effects
         (font
@@ -6726,11 +6808,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "db09e8af-052e-59cd-822d-2edf3aea48e2"))
+      (uuid "bca54836-824c-5734-afbb-71c5cecda666"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR027")
+          (reference "#PWR029")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -6739,7 +6821,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "be2f5208-bb65-5551-a050-c315133d5ca7")
+    (uuid "4c0d83c9-a256-5cdf-891b-93e331a5dd23")
     (property "Reference" "C3"
       (at 192.94 248.73 0)
       (effects
@@ -6763,9 +6845,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "074fba3e-6f79-543a-ac91-baa3b3f5f905"))
+      (uuid "ec754b3f-3da5-5f32-b986-129758fa7939"))
     (pin "2"
-      (uuid "03f06989-ad5d-5a6a-a4b8-9ca62493e496"))
+      (uuid "2b1af04e-8b9d-550a-8fe7-b5023eea30ba"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6778,7 +6860,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "404e7c88-27d9-5216-956f-86c219217594"))
+    (uuid "c517bb66-7c0c-5163-827c-2ce44cfe1744"))
   (symbol
     (lib_id "power:+5V")
     (at 190.4 243.65 0)
@@ -6786,8 +6868,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "ce399154-4a93-57f6-85da-a82f7259bf86")
-    (property "Reference" "#PWR028"
+    (uuid "d09f85ad-2277-5cbe-ba1b-bc2fb0c3d2fa")
+    (property "Reference" "#PWR030"
       (at 190.4 243.65 0)
       (effects
         (font
@@ -6808,11 +6890,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "281c3eff-0f70-50f3-a7d4-815ea50e4a35"))
+      (uuid "49fa4bf6-7b29-5918-a750-47e0ad4b7e5a"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR028")
+          (reference "#PWR030")
           (unit 1)))))
   (wire
     (pts
@@ -6821,7 +6903,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "574a174d-6dd2-5c81-bf2f-cc62bd3ec4bf"))
+    (uuid "42fcfa75-196a-5689-a44b-0b9c99fcf138"))
   (symbol
     (lib_id "power:GND")
     (at 190.4 256.35 0)
@@ -6829,8 +6911,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "f0e98e5b-43b3-5771-9045-e3efd06bc0d8")
-    (property "Reference" "#PWR029"
+    (uuid "cfb6c7f8-5527-54a8-bf85-891eb8adc21d")
+    (property "Reference" "#PWR031"
       (at 190.4 256.35 0)
       (effects
         (font
@@ -6851,11 +6933,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "ddcd97d0-3b4a-5577-b14b-310d6ff6b9b4"))
+      (uuid "0410f226-9051-53b6-8063-83b7dc28787e"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR029")
+          (reference "#PWR031")
           (unit 1)))))
   (symbol
     (lib_id "Device:C")
@@ -6864,7 +6946,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "9dcd361a-dcda-5b39-8eb7-7f75cfea811c")
+    (uuid "26c9aba2-90b8-5a3d-9b00-dd9d92a998f3")
     (property "Reference" "C4"
       (at 205.64 248.73 0)
       (effects
@@ -6888,9 +6970,9 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "3a29be9e-8251-586c-9d8f-26074c76ea0e"))
+      (uuid "2a3338a0-06fb-5829-a97f-c33193ef04d9"))
     (pin "2"
-      (uuid "90d2a658-61e8-5955-babb-dd70aebe2899"))
+      (uuid "7e86bc86-93fc-599a-9f37-3466cffd98c2"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -6903,7 +6985,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "614bbd9f-7f22-5f36-b6ff-a48e97d1a8fe"))
+    (uuid "a3af4f75-bc58-5935-b11f-fd572277cd78"))
   (symbol
     (lib_id "power:+5V")
     (at 203.1 243.65 0)
@@ -6911,8 +6993,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "32fdb0db-d4fc-565c-8a44-45d4180ee95a")
-    (property "Reference" "#PWR030"
+    (uuid "abc67647-2427-56a0-9658-4c02b853eb64")
+    (property "Reference" "#PWR032"
       (at 203.1 243.65 0)
       (effects
         (font
@@ -6933,11 +7015,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "091ae463-ea0a-5da2-bf9b-ad39804be8a1"))
+      (uuid "ba1984bf-e517-5714-a192-4b6e275c05ee"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR030")
+          (reference "#PWR032")
           (unit 1)))))
   (wire
     (pts
@@ -6946,7 +7028,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "bc679490-0bd6-51f6-8729-ff7193ebfb5c"))
+    (uuid "2b816a7d-c7d7-5e86-be6c-1b6c3502e155"))
   (symbol
     (lib_id "power:GND")
     (at 203.1 256.35 0)
@@ -6954,8 +7036,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "d33113c0-cb90-5c16-92cf-3f603366aa4b")
-    (property "Reference" "#PWR031"
+    (uuid "81a82e01-8c97-5203-810d-834f1151da70")
+    (property "Reference" "#PWR033"
       (at 203.1 256.35 0)
       (effects
         (font
@@ -6976,11 +7058,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "b0994854-97d4-57f7-bc61-f9fbd059da8c"))
+      (uuid "ef48a208-46d5-526b-9596-d5682101d35d"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR031")
+          (reference "#PWR033")
           (unit 1)))))
   (text "Bypass capacitors (recommended), one near each IC: C1 U1, C2 U2, C3 U3, C4 U4"
     (at 160 266.7 0)
@@ -6988,7 +7070,7 @@
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "27156a63-801b-5bef-8542-8c046de717a1"))
+    (uuid "cc473e67-c4d0-5426-9f89-9faa15353ddc"))
   (symbol
     (lib_id "power:PWR_FLAG")
     (at 225 250 0)
@@ -6996,7 +7078,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "6b1631e7-cccc-59ca-92ef-d0249203b007")
+    (uuid "5df39c9b-3a9b-5cc2-9e3f-e2f193956919")
     (property "Reference" "#FLG01"
       (at 225 250 0)
       (effects
@@ -7018,7 +7100,7 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "03b45d58-302c-59d4-a56e-e7df8606d7b7"))
+      (uuid "6bb347fc-31f3-525b-9190-eb741646ef19"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
@@ -7031,7 +7113,7 @@
     (stroke
       (width 0)
       (type default))
-    (uuid "02cc3a73-b673-5823-b3ad-2b38e12b2b21"))
+    (uuid "bd78b38c-6b03-5fd8-bf55-9e0407914fa9"))
   (symbol
     (lib_id "power:GND")
     (at 225 252.54 0)
@@ -7039,8 +7121,8 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid "2ada9066-338a-5f93-b6e8-318d2fa31550")
-    (property "Reference" "#PWR032"
+    (uuid "58d0c216-43ff-59d6-a3c1-09c9d6a8b628")
+    (property "Reference" "#PWR034"
       (at 225 252.54 0)
       (effects
         (font
@@ -7061,11 +7143,11 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid "9334ff32-f3d0-55c4-a69e-50ff6196942b"))
+      (uuid "9abf61cf-9e43-56c2-af72-bcc4ea506a6c"))
     (instances
       (project "FUJISOKU_SRAM_Utility"
         (path "/a66cb278-25ce-5aef-87e9-b43c7785baf9"
-          (reference "#PWR032")
+          (reference "#PWR034")
           (unit 1)))))
   (text "FUJISOKU SRAM Utility - schematic"
     (at 20 22 0)
@@ -7073,28 +7155,28 @@
       (font
         (size 2.5 2.5) bold)
       (justify left bottom))
-    (uuid "a80b3d43-d707-5895-ae15-29ec000ee2e7"))
+    (uuid "f9d0a722-8027-5524-8f48-e4c4a578439a"))
   (text "Single 5 V supply from the Arduino 5V pin. All parts are 5 V, no level shifting."
     (at 20 27 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "961db46c-a459-5b2a-bfd8-7f94461b02fc"))
+    (uuid "8ba798d8-70ac-5401-b6cf-db98e41a1a53"))
   (text "SPI (D13 SCK, D12 MISO, D11 MOSI) is shared by both MCP23S17, the SPI SRAM and the SD card module."
     (at 20 29.54 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "d5235999-f266-541b-9079-1f3d43b2cba8"))
+    (uuid "3d360642-e03d-5c56-9a24-d8c3cf1b0bb5"))
   (text "Labels with the same name are connected. Source: docs/hardware.md, FUJISOKU_SRAM_COPY/config.h (v2.8)."
     (at 20 32.08 0)
     (effects
       (font
         (size 1.27 1.27))
       (justify left bottom))
-    (uuid "dc04573b-2c9f-5f15-83cb-e7a4fe9b65ee"))
+    (uuid "9e814bae-5252-5243-ab0e-cc07ee00d1ff"))
   (sheet_instances
     (path "/"
       (page "1"))))
