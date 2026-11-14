@@ -83,15 +83,13 @@ test('Web Serial の無いブラウザ: 案内を出し、ファイル同士の�
 test('接続: バージョン・SD の状態・本体 LCD の表示が出る', async () => {
   const app = await connected();
   const { page } = app;
-  assert.equal(await page.textContent('#fwVer'), 'v2.8');
+  assert.equal(await page.textContent('#fwVer'), 'v3.0');
   assert.equal(await page.isHidden('#t-sd'), false);
   assert.equal(await page.textContent('#lcdState'), 'あり (20×4)');
-  assert.equal(await page.textContent('#ramState'), '使わない');
-  assert.equal(await page.isHidden('#tools62256'), true);
   assert.equal(await page.textContent('#sdState'), '使えます');
   await page.waitForFunction(() => !!lcdBytes);
   const t = await lcdText(page);
-  assert.equal(t[0], 'FUJISOKU SRAM   v2.8');
+  assert.equal(t[0], 'FUJISOKU SRAM   v3.0');
   assert.equal(t[1].trim(), 'Card:OK   Bat:3.00V');
   assert.equal(t[2].trim(), 'SD:OK      PC:OK');
   await page.screenshot({ path: path.join(SHOTS, 'connected.png') });
@@ -171,11 +169,16 @@ test('カードに書き込み: 全部書く (保存なし)、確認でやめれ
   const app = await connected({ card: pattern(5) });
   const { page, fw } = app;
   await page.click('#t-write');
+  const dropShows = (re) => page.waitForFunction((src) => new RegExp(src).test(document.querySelector('#dropWrite').textContent), re.source);
   await fileInput(page, '#fileWrite', 'short.bin', Buffer.alloc(1000));
+  await dropShows(/short\.bin/);
   assert.equal(await page.isDisabled('#btnWrite'), true);
-  assert.match(await page.textContent('#dropWrite'), /32,768〜262,144 バイト \(32KB〜256KB\) のファイルを選んでください/);
-  await fileInput(page, '#fileWrite', 'huge.bin', Buffer.alloc(0x40000 + 1));
+  assert.match(await page.textContent('#dropWrite'), /32,768〜1,048,576 バイト \(32KB〜1MB\) のファイルを選んでください/);
+  await fileInput(page, '#fileWrite', 'huge.bin', Buffer.alloc(0x100000 + 1));
+  await dropShows(/huge\.bin/);
   assert.equal(await page.isDisabled('#btnWrite'), true);
+  await fileInput(page, '#fileWrite', 'max.bin', Buffer.alloc(0x100000));
+  await page.waitForFunction(() => !document.querySelector('#btnWrite').disabled);  // 1MB のファイルは選べる
   const img = pattern(6);
   await fileInput(page, '#fileWrite', 'p6.bin', img);
   await page.uncheck('#optBackup');
@@ -205,6 +208,7 @@ test('PC に保存: 読み込む大きさのボタン (既定 32KB)。64KB で�
   let app = await connected({ card, fwArgs: ['--card-kb', '64'] });
   let { page } = app;
   assert.equal(await page.isChecked('input[name="readSize"][value="32768"]'), true, '既定は 32KB');
+  assert.equal(await page.locator('input[name="readSize"]').count(), 6, '32KB / 64KB / 128KB / 256KB / 512KB / 1MB');
   assert.equal(await page.locator('input[name="readSize"]:disabled').count(), 0);
   await pickSize(page, '64KB');
   assert.equal(await page.isChecked('input[name="readSize"][value="65536"]'), true);
@@ -459,26 +463,15 @@ test('コマンド入力とログ', async () => {
   await app.close();
 });
 
-test('LCD なし・62256 ありの本体: LCD は「なし」と出て、62256 の操作が使える', async () => {
-  const app = await connected({ bin: path.join(OUT, 'fsu_sim_62256'), fwArgs: ['--no-lcd'], card: pattern(14) });
+test('LCD なしの本体: LCD は「なし」と出て、本体の表示内容は届く。62256 の操作は無い', async () => {
+  const app = await connected({ fwArgs: ['--no-lcd'], card: pattern(14) });
   const { page, fw } = app;
   assert.equal(await page.textContent('#lcdState'), 'なし (表示はここだけ)');
-  assert.equal(await page.textContent('#ramState'), '使う');
   await page.waitForFunction(() => !!lcdBytes);  // LCD が無くても本体の表示内容は届く
   await page.click('#t-tools');
-  assert.equal(await page.isHidden('#tools62256'), false);
-  await page.click('.action[data-cmd="test p"]');
-  await page.waitForFunction(() => /バス試験: 異常はありません/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
-  await fw.ctl('stuck addr 3 1');
-  await page.click('.action[data-cmd="test p"]');
-  await page.waitForFunction(() => /異常があります/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
-  assert.match(await page.textContent('#resTools'), /A3/);
-  await fw.ctl('stuck clear');
-  await page.click('.action[data-cmd="copy f p"]');
-  await page.waitForFunction(() => /完了しました/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
-  await page.click('.action[data-cmd="cmp f p"]');
-  await page.waitForFunction(() => /すべて一致/.test(document.querySelector('#resTools').textContent), null, { timeout: 60000 });
-  await page.screenshot({ path: path.join(SHOTS, 'tools62256.png'), fullPage: true });
+  const cmds = await page.$$eval('.action[data-cmd]', (els) => els.map((e) => e.dataset.cmd));
+  assert.ok(cmds.length > 0 && cmds.every((c) => !/\bp\b/.test(c)), cmds.join(','));
+  assert.doesNotMatch(await page.textContent('body'), /62256/);
   const d = await fw.diag();
   assert.equal(d.lcd_absent_writes, 0);
   noErrors(page);

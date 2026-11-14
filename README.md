@@ -2,15 +2,14 @@
 
 # FUJISOKU SRAM Utility
 
-**リリース版 v2.8**（Arduino UNO R4 と作者の基板で動作確認済み）。ダウンロードは [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) から。
+**このブランチ（`wo62256`）は v3.0 です。62256 を使わず、カードの F32〜F35（A16〜A19）を MCP23S17 ch7 の GPB4〜GPB7 につなぐ設計で、まだ実機では確かめていません。** v2.8 の基板とは ch7 ポート B の配線が違います（[docs/hardware.md §7](docs/hardware.md#7-ch7-ポート-b制御線と-a16a19)）。動作確認済みのリリース版 v2.8 は main ブランチと [Releases](https://github.com/cheeky-smokey/FUJISOKU-SRAM-Utility/releases) にあります。
 
-Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 256KB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
+Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC からは 1MB まで）を、Arduino UNO R4 で読み書きするツールです。MCP23S17 を 2 個使った GPIO エキスパンダでカードのアドレス・データ・制御線を直接動かし、PC・SD カード・SPI SRAM との間でコピーと照合をします。
 
 - **PC から操作**: ブラウザの Web アプリで、カードを PC に保存・PC のファイルをカードに書き込み・比較。
 - **表示**: 状態・処理の段階・進捗バー・結果を 20 文字 × 4 行で表示。同じ画面が Web アプリにも出るので、LCD はオプションです。
 - **SD カード（オプション）**: 本体だけでカード ⇄ SD のバックアップ・照合・書き戻し。SD カードは処理の合間に抜き差しでき、最初から入っていなくても止まりません。
 - **カードの検出と電池電圧**: カードが入っていなければ操作を止め、カードの電池電圧を LCD と Web アプリに表示します。1.70 V 以下で「少ない」（Low battery）、0.50 V 以下で「電池なし」と警告します。
-- **62256（オプション）**: 動作確認用の SRAM で、カードを使わずにバスの配線を試験できます。
 
 ![Web アプリ](docs/images/webapp.png)
 
@@ -24,11 +23,11 @@ Silver Reed 編み機のメモリカード（FUJISOKU SRAM、基本は 32KB。PC
 
 | タブ | できること |
 |---|---|
-| PC に保存 | カードを読み込んで `.bin` に保存。読み込む大きさは 32KB（既定）/ 64KB / 128KB / 256KB のボタンで選ぶ。2 回読んで一致を確かめる設定あり |
-| カードに書き込み | `.bin`（32KB〜256KB）をカードへ。32KB より大きいファイルは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。書き込む前の自動保存、変わった部分だけの書き込み、書き込み後の照合 |
+| PC に保存 | カードを読み込んで `.bin` に保存。読み込む大きさは 32KB（既定）/ 64KB / 128KB / 256KB / 512KB / 1MB のボタンで選ぶ。2 回読んで一致を確かめる設定あり |
+| カードに書き込み | `.bin`（32KB〜1MB）をカードへ。32KB より大きいファイルは「先頭 32KB だけ」か「すべて」かを警告で選ぶ。書き込む前の自動保存、変わった部分だけの書き込み、書き込み後の照合 |
 | 比較 | カードとファイル、またはファイル同士を比較。違いはメモリマップと 16 進表示に赤で出る |
 | SD カード | 本体の SD カードとの保存・照合・書き込み、ファイル一覧（SD を使う設定のときだけ表示） |
-| SPI SRAM・診断 | SPI SRAM とのコピー・比較・消去、SPI SRAM の自己診断（SPI SRAM を使う設定のとき）、カードの消去。62256 を使う設定なら、62256 でのバス試験など |
+| SPI SRAM・診断 | SPI SRAM とのコピー・比較・消去、SPI SRAM の自己診断（SPI SRAM を使う設定のとき）、カードの消去 |
 
 「カードに書き込み」「比較」のファイル欄は、クリックかドロップで選び直せ、右の × で外せます。
 
@@ -42,17 +41,15 @@ Web アプリの詳しい説明は [docs/webapp.md](docs/webapp.md)、シリア�
 | オプション | 20 × 4 キャラクタ LCD（HD44780 + PCF8574 の I2C バックパック。5V・GND・SDA = A4・SCL = A5） | `USE_LCD`（既定 1） |
 | オプション | SD カードモジュール（/CS は D7） | `USE_SD`（既定 0） |
 | オプション | SPI SRAM（23LC512。本体だけでのコピー・比較の一時置き場。/CS は D6） | `USE_SPI_SRAM`（既定 1。起動時に自動検出） |
-| オプション | 62256 並列 SRAM（動作確認用。カードと同じバスにつなぐ） | `USE_SRAM62256`（既定 0） |
 | 配線 | カードの検出（カードの F37 /CARD DET → D2） | `USE_CARD_DET`（既定 1） |
 | 配線 | 電池電圧（カードの F2 BATT-DET → A2。A2 と GND の間に 1 MΩ） | `USE_BATT_DET`（既定 1） |
 
-カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）、62256 なしです。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
+カードの吸い出し・書き込み・比較は Web アプリでできるので、必須なのは Arduino UNO R4、MCP23S17 × 2、スロットだけです。既定は SD カードなし、LCD と SPI SRAM はあり（どちらも見つからなければ飛ばして動く）です。オプション部品は `FUJISOKU_SRAM_COPY/config.h` の先頭で選びます。
 
 ```c
 #define USE_SD 0          // SD カードをつないだら 1 (SdFat ライブラリが要る)
 #define USE_LCD 1         // LCD をつながないなら 0 (LiquidCrystal I2C ライブラリも不要になる)
 #define USE_SPI_SRAM 1    // SPI SRAM をつながないなら 0 (1 のままでも、見つからなければ飛ばす)
-#define USE_SRAM62256 0   // 62256 をつないだら 1
 #define USE_CARD_DET 1    // D2 にカードの検出を配線していないなら 0
 #define USE_BATT_DET 1    // A2 にカードの電池電圧を配線していないなら 0
 #define BATT_NONE_MV 500  // これ以下は「電池なし」(No battery) [mV]
@@ -87,4 +84,4 @@ test/                       PC 上でスケッチを動かすシミュレータ�
 
 ## 確かめたこと
 
-スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、65 件の自動テスト（ファームウェア 31、表示 9、Web アプリ 25。SD・LCD・SPI SRAM・62256・カード検出のあり・なしの構成を含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作も v2.8 まで確認済みです。** 詳しくは [test/README.md](test/README.md) を参照してください。
+スケッチをそのまま PC でビルドし、MCP23S17・カード・SPI SRAM・SD カード・LCD を再現したシミュレータで動かして、64 件の自動テスト（ファームウェア 30、表示 9、Web アプリ 25。SD・LCD・SPI SRAM・カード検出のあり・なしの構成と、1MB のカードを含む）が通ることを確認しています。変更点は [docs/specification.md §12](docs/specification.md#12-変更履歴) にあります。本物の SdFat と LiquidCrystal I2C のヘッダに対する型チェックも通っています。**実機（Arduino UNO R4 と作者の基板）での動作は v2.8 まで確認済みです。v3.0 の新しい割り当ては、まだ実機で確かめていません。** 詳しくは [test/README.md](test/README.md) を参照してください。

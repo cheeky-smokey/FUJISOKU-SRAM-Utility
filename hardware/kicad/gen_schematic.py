@@ -10,7 +10,8 @@ docs/hardware.md の結線表どおりに、ピンごとに短い線と名前 (�
   --shield  Arduino UNO R4 シールド基板用の回路図を shield/ に作る。
             カードのスロットユニット (U-BOX のスロット + 変換基板 + L 型ボックスヘッダ) を
             J1 (キー付きの MIL メスソケット、キーは奥 = U1 側) に直接挿す。
-            62256 は載せない。部品は DIP (ソケット) のフットプリントを割り当てる。
+            部品は DIP (ソケット) のフットプリントを割り当てる。
+(v3.0 / ブランチ wo62256: 62256 は使わない。カードの F32-F35 = A16-A19 は U2 (ch7) の GPB4-GPB7)
 """
 import os, re, sys, uuid, json
 
@@ -341,20 +342,19 @@ strap(md, 180, 80, {'15': 'GND', '16': '+5V', '17': '+5V'})   # A0 = 0, A1 = 1, 
 # MCP23S17 ch7 (データ D0-D7 と制御線)。A2:A0 = 111
 c7 = dict(mcp_common)
 c7.update({str(21 + i): DATA[i] for i in range(8)})       # GPA0-7 = D0-D7
-c7.update({'1': 'CE2', '2': '~{OE_CARD}', '3': 'NC' if SHIELD else '~{OE_62256}', '4': '~{WE}', '5': '~{CE1}', '6': 'NC',
-           '7': 'ADDR16', '8': 'ADDR17'})
+# ch7 GPB (v3.0): B0 CE2、B1 /OE、B2 /CE1、B3 /WE、B4-B7 A16-A19
+c7.update({'1': 'CE2', '2': '~{OE_CARD}', '3': '~{CE1}', '4': '~{WE}', '5': 'ADDR16', '6': 'ADDR17',
+           '7': 'ADDR18', '8': 'ADDR19'})
 ic('Interface_Expansion:MCP23S17_SP', 'U2', 'MCP23S17 ch7 (data + control)', 180, 185, c7,
-   note=('Hardware address A2:A0 = 111 (ch7)\nGPA = D0-D7, GPB0 CE2, GPB1 card /OE,\nGPB2 not used (62256 /OE), GPB3 /WE, GPB4 /CE1, GPB5 unused, GPB6 A16, GPB7 A17'
-         if SHIELD else
-         'Hardware address A2:A0 = 111 (ch7)\nGPA = D0-D7, GPB0 CE2 (= 62256 /CS), GPB1 card /OE,\nGPB2 62256 /OE, GPB3 /WE, GPB4 /CE1, GPB5 unused, GPB6 A16, GPB7 A17'))
+   note='Hardware address A2:A0 = 111 (ch7)\nGPA = D0-D7, GPB0 CE2, GPB1 /OE, GPB2 /CE1, GPB3 /WE,\nGPB4 A16, GPB5 A17, GPB6 A18, GPB7 A19')
 strap(md, 180, 185, {'15': '+5V', '16': '+5V', '17': '+5V'})  # A2:A0 = 111
 
 # FUJISOKU カードのスロット (F1-F38)
 card = {'1': 'GND', '2': 'BATT_DET', '3': '+5V', '4': '~{CE1}', '5': 'CE2', '6': '~{WE}', '7': '~{OE_CARD}'}
 card.update({str(8 + i): DATA[i] for i in range(8)})       # F8-F15 = D0-D7
 card.update({str(16 + i): ADDR[i] for i in range(16)})     # F16-F31 = A0-A15
-# F34 (A18) と F35 (A19) は MCP につながず GND に固定する (開放は不可)
-card.update({'32': 'ADDR16', '33': 'ADDR17', '34': 'GND', '35': 'GND', '36': '+5V', '37': '~{CARD_DET}', '38': 'GND'})
+# F32-F35 (A16-A19) は U2 (ch7) の GPB4-GPB7
+card.update({'32': 'ADDR16', '33': 'ADDR17', '34': 'ADDR18', '35': 'ADDR19', '36': '+5V', '37': '~{CARD_DET}', '38': 'GND'})
 
 def header_to_card(p):
     """シールドの 40 ピンヘッダの p 番ピンにつながるカードの F 番号 (39, 40 は空き)。
@@ -376,7 +376,7 @@ if SHIELD:
     for i, line in enumerate(['Header pin 1 = F2, 2 = F1, 3 = F4, 4 = F3 ... 37 = F38, 38 = F37',
                               '(pin 2k-1 = F2k, pin 2k = F2k-1). Pins 39, 40 not connected.',
                               'The slot unit (right-angle box header) plugs in directly. Key toward U1.',
-                              'F34 A18 / F35 A19 tied to GND (must not be left open).',
+                              'F32-F35 = A16-A19 (U2 GPB4-GPB7). Cards up to 1 MB.',
                               'F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card.']):
         text(line, JX - 22, JY + 33 + i * 2.54)
 else:
@@ -385,7 +385,7 @@ else:
     symbol('Connector_Generic:Conn_01x38', 'J1', 'FUJISOKU card slot (F1-F38)', JX, JY,
            ref_at=(JX - 3, JY - 50.8, 'left'), val_at=(JX - 3, JY + 53.34, 'left'))
     connect(jdef, JX, JY, card, stub=2.54)
-    for i, line in enumerate(['Pin n = card pin Fn. F34 A18 / F35 A19 tied to GND (not open).',
+    for i, line in enumerate(['Pin n = card pin Fn. F32-F35 = A16-A19 (U2 GPB4-GPB7).',
                               'F3/F36 (Vcc) and F1/F38 (GND) are joined inside the card.',
                               'Slot made with 2.54 mm <-> 1.27 mm adapters (docs/hardware.md 12.1).']):
         text(line, JX - 3, JY + 56.5 + i * 2.54)
@@ -401,16 +401,6 @@ text('BATT-DET pull-down: no battery 0.24 V, new battery 2.75 V', RX - 12, RY + 
 ic('FSU:23LC512', 'U3', '23LC512 SPI SRAM (optional)', 70, 175, {
     '1': '~{CS_SRAM}', '2': 'MISO', '3': 'NC', '4': 'GND', '5': 'MOSI', '6': 'SCK', '7': '+5V', '8': '+5V'},
    note='USE_SPI_SRAM (auto-detected)')
-
-# 62256 (オプション、動作確認用。シールドには載せない)
-if not SHIELD:
-    pdef = get_def('Memory_RAM:KM62256CLP')
-    p = {'1': 'ADDR14', '2': 'ADDR12', '3': 'ADDR7', '4': 'ADDR6', '5': 'ADDR5', '6': 'ADDR4', '7': 'ADDR3', '8': 'ADDR2',
-         '9': 'ADDR1', '10': 'ADDR0', '21': 'ADDR10', '23': 'ADDR11', '24': 'ADDR9', '25': 'ADDR8', '26': 'ADDR13',
-         '11': 'DATA0', '12': 'DATA1', '13': 'DATA2', '15': 'DATA3', '16': 'DATA4', '17': 'DATA5', '18': 'DATA6', '19': 'DATA7',
-         '20': 'CE2', '22': '~{OE_62256}', '27': '~{WE}', '14': 'GND', '28': '+5V'}
-    ic('Memory_RAM:KM62256CLP', 'U4', '62256 parallel SRAM (optional)', 360, 105, p,
-       note='USE_SRAM62256. /CS = CE2 (GPB0)\nTest SRAM for "test p"')
 
 # SD カードモジュール (オプション、/CS = D7)
 sdef6 = get_def('Connector_Generic:Conn_01x06')
@@ -431,12 +421,8 @@ text('USE_LCD (auto-detected)', LX + 4, LY + 2.54)
 
 # パスコン (推奨値)
 cdef = get_def('Device:C')
-if SHIELD:
-    caps = [('C1', '0.1u', 'Device:C'), ('C2', '0.1u', 'Device:C'), ('C3', '0.1u', 'Device:C'), ('C4', '10u', 'Device:C_Polarized')]
-    cap_note = 'Bypass capacitors: C1 U1, C2 U2, C3 U3 (0.1u ceramic). C4 10u bulk near J1 (card supply)'
-else:
-    caps = [('C1', '0.1u', 'Device:C'), ('C2', '0.1u', 'Device:C'), ('C3', '0.1u', 'Device:C'), ('C4', '0.1u', 'Device:C')]
-    cap_note = 'Bypass capacitors (recommended), one near each IC: C1 U1, C2 U2, C3 U3, C4 U4'
+caps = [('C1', '0.1u', 'Device:C'), ('C2', '0.1u', 'Device:C'), ('C3', '0.1u', 'Device:C'), ('C4', '10u', 'Device:C_Polarized')]
+cap_note = 'Bypass capacitors: C1 U1, C2 U2, C3 U3 (0.1u ceramic). C4 10u bulk near the card (card supply)'
 for i, (ref, val, lib) in enumerate(caps):
     cx, cy = 165 + i * 12.7, 250
     symbol(lib, ref, val, cx, cy, ref_at=(cx + 2.54, cy - 1.27, 'left'), val_at=(cx + 2.54, cy + 1.27, 'left'))
@@ -452,9 +438,9 @@ power('GND', 225, 252.54, (0, 1))
 # 全体の注記
 notes = ['Single 5 V supply from the Arduino 5V pin. All parts are 5 V, no level shifting.',
          'SPI (D13 SCK, D12 MISO, D11 MOSI) is shared by both MCP23S17, the SPI SRAM and the SD card module.',
-         'Labels with the same name are connected. Source: docs/hardware.md, FUJISOKU_SRAM_COPY/config.h (v2.8).']
+         'Labels with the same name are connected. Source: docs/hardware.md, FUJISOKU_SRAM_COPY/config.h (v3.0).']
 if SHIELD:
-    notes.append('Shield board: DIP parts in sockets, no 62256. The card slot unit plugs into J1 (keyed MIL socket).')
+    notes.append('Shield board: DIP parts in sockets. The card slot unit plugs into J1 (keyed MIL socket).')
 text('FUJISOKU SRAM Utility - Arduino UNO R4 shield' if SHIELD else 'FUJISOKU SRAM Utility - schematic', 20, 22, size=2.5, bold=True)
 for i, line in enumerate(notes):
     text(line, 20, 27 + i * 2.54)
@@ -469,7 +455,7 @@ def lib_entry(lib_id, sdef):
 sch = [A('kicad_sch'), [A('version'), A('20230121')], [A('generator'), A('eeschema')], [A('uuid'), ROOT],
        [A('paper'), 'A3'],
        [A('title_block'), [A('title'), 'FUJISOKU SRAM Utility' + (' - UNO R4 shield' if SHIELD else '')],
-        [A('date'), '2026-11-13' if SHIELD else '2026-11-12'], [A('rev'), 'shield 1.0' if SHIELD else '2.8'],
+        [A('date'), '2026-11-14'], [A('rev'), 'shield 2.0' if SHIELD else '3.0'],
         [A('company'), 'github.com/cheeky-smokey/FUJISOKU-SRAM-Utility'],
         [A('comment'), 1, 'Arduino UNO R4 + MCP23S17 x 2 reader / writer for FUJISOKU SRAM memory cards'],
         [A('comment'), 2, 'Generated by hardware/kicad/gen_schematic.py%s from docs/hardware.md' % (' --shield' if SHIELD else '')]],

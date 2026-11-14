@@ -17,14 +17,10 @@ static char sd_fname[24];
 // 対象メモリの 1 バイト読み書き
 //   DEV_FUJISOKU  (f) : FUJISOKU メモリカード
 //   DEV_SPI_SRAM  (s) : SPI SRAM (一時置き場、USE_SPI_SRAM のときだけ)
-//   DEV_SRAM62256 (p) : 並列 SRAM 62256 (動作確認用、USE_SRAM62256 のときだけ)
 // 使えない対象は呼ぶ前に protocol.ino の dev_ready() ではじく
 // ---------------------------------------------------------------------
 uint8_t dev_read(uint8_t dev, uint32_t address) {
   if (dev == DEV_FUJISOKU) return read_fujisoku(address);
-#if USE_SRAM62256
-  if (dev == DEV_SRAM62256) return read_sram62256(address);
-#endif
 #if USE_SPI_SRAM
   if (dev == DEV_SPI_SRAM) return read_spi_sram_byte((uint16_t)address);
 #endif
@@ -33,9 +29,6 @@ uint8_t dev_read(uint8_t dev, uint32_t address) {
 
 void dev_write(uint8_t dev, uint32_t address, uint8_t dat) {
   if (dev == DEV_FUJISOKU) write_fujisoku(address, dat);
-#if USE_SRAM62256
-  else if (dev == DEV_SRAM62256) write_sram62256(address, dat);
-#endif
 #if USE_SPI_SRAM
   else if (dev == DEV_SPI_SRAM) write_spi_sram_byte((uint16_t)address, dat);
 #endif
@@ -53,13 +46,11 @@ const char *spi_sram_status() {
 // PC からの rd / wr / fill で使える大きさ
 uint32_t dev_size(uint8_t dev) {
   if (dev == DEV_FUJISOKU) return CARD_MAX_SIZE;
-  if (dev == DEV_SRAM62256) return SRAM62256_SIZE;
   return SPI_SRAM_SIZE;
 }
 
 const char *dev_name(uint8_t dev) {
   if (dev == DEV_FUJISOKU) return "Card";
-  if (dev == DEV_SRAM62256) return "62256";
   return "SPI SRAM";
 }
 
@@ -269,7 +260,7 @@ uint8_t op_sd_save(uint8_t dev, const char *base) {
   // 失敗・中断・SD の抜けがあっても、これまでのバックアップは壊れない。
   op_phase("Opening file");
   if (!myFile.open(SD_TMP_NAME, O_WRONLY | O_CREAT | O_TRUNC)) return op_sd_error("Cannot create file");
-  op_phase(dev == DEV_FUJISOKU ? "Reading card" : (dev == DEV_SRAM62256 ? "Reading 62256" : "Reading SPI SRAM"));
+  op_phase(dev == DEV_FUJISOKU ? "Reading card" : "Reading SPI SRAM");
   for (uint32_t a = 0; a < CARD_SIZE; a += BLOCK_BYTES) {
     for (uint16_t i = 0; i < BLOCK_BYTES; i++) blockbuf[i] = dev_read(dev, a + i);
     if (myFile.write(blockbuf, BLOCK_BYTES) != (int)BLOCK_BYTES) {
@@ -354,7 +345,7 @@ uint8_t op_sd_load(uint8_t dev, const char *base, bool verify_after) {
     snprintf(m, sizeof(m), "File is %lu bytes", (unsigned long)size);
     return op_finish(RES_ERR, "BADSIZE", m);
   }
-  op_phase(dev == DEV_FUJISOKU ? "Writing card" : (dev == DEV_SRAM62256 ? "Writing 62256" : "Writing SPI SRAM"));
+  op_phase(dev == DEV_FUJISOKU ? "Writing card" : "Writing SPI SRAM");
   for (uint32_t a = 0; a < CARD_SIZE; a += BLOCK_BYTES) {
     if (myFile.read(blockbuf, BLOCK_BYTES) != (int)BLOCK_BYTES) return op_sd_error("SD read error");
     for (uint16_t i = 0; i < BLOCK_BYTES; i++) dev_write(dev, a + i, blockbuf[i]);
@@ -485,54 +476,3 @@ uint8_t op_test_spi() {
   return op_finish(RES_NG, "", m);
 }
 #endif  // USE_SPI_SRAM
-
-#if USE_SRAM62256
-// ---------------------------------------------------------------------
-// test p: 62256 を使ったバスの配線試験 (カードを使わずに MCP23S17 と共通バスを確かめる)
-//   データ線   : 0x0000 に 1 ビットずつ立てた値などを書いて読み戻す
-//   アドレス線 : 0x0000 と 2^n (n = 0..14) の 16 か所で、ほかの場所に影響しないかを確かめる
-//                (線の H / L 固定やショートがあると、別の場所の値が変わる)
-// 62256 の中身は壊れる (動作確認用なので戻さない)
-// ---------------------------------------------------------------------
-uint8_t op_test_62256() {
-  static const uint8_t pats[] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x55, 0xAA, 0x00, 0xFF };
-  uint8_t bad_data = 0;
-  uint16_t bad_addr = 0;
-  char m[48];
-  op_start("test", "62256 TEST", "Bus check with 62256", 2);
-
-  op_phase("Data lines D0-D7");
-  for (uint8_t i = 0; i < sizeof(pats); i++) {
-    write_sram62256(0, pats[i]);
-    bad_data |= (uint8_t)(read_sram62256(0) ^ pats[i]);  // 違ったビット = 疑わしいデータ線
-  }
-  op_step(1);
-
-  // A_n が H / L に固定されていると、0 番地と 2^n 番地が同じ場所になる
-  op_phase("Address lines A0-A14");
-  for (uint8_t n = 0; n < 15; n++) write_sram62256(1UL << n, 0x55);
-  write_sram62256(0, 0xAA);
-  for (uint8_t n = 0; n < 15; n++)
-    if (read_sram62256(1UL << n) != 0x55) bad_addr |= (uint16_t)(1U << n);  // 0 番地への書き込みが 2^n 番地に出た
-  write_sram62256(0, 0x55);
-  for (uint8_t n = 0; n < 15; n++) {
-    write_sram62256(1UL << n, 0xAA);
-    if (read_sram62256(0) != 0x55) bad_addr |= (uint16_t)(1U << n);  // 2^n 番地への書き込みが 0 番地に出た
-    for (uint8_t k = 0; k < 15; k++)
-      if (k != n && read_sram62256(1UL << k) != 0x55) bad_addr |= (uint16_t)((1U << n) | (1U << k));  // A_n と A_k のショート
-    write_sram62256(1UL << n, 0x55);
-    op_poll_cancel();
-    if (op_cancel) return op_cancelled(1);
-  }
-  op_step(2);
-
-  Serial.print("T 62256 data_bad=0x");
-  if (bad_data < 0x10) Serial.print('0');
-  Serial.print(bad_data, HEX);
-  Serial.print(" addr_bad=0x");
-  Serial.println((unsigned long)bad_addr, HEX);
-  if (bad_data == 0 && bad_addr == 0) return op_finish(RES_OK, "", "D0-D7 OK A0-A14 OK");
-  snprintf(m, sizeof(m), "data bad=0x%02X addr bad=0x%04X", bad_data, bad_addr);
-  return op_finish(RES_NG, "", m);
-}
-#endif

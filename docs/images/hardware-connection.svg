@@ -6,8 +6,8 @@
   </defs>
   <rect width="1000" height="700" fill="#ffffff"/>
 
-  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v2.8 - hardware connection overview</text>
-  <text x="20" y="44" font-size="11" fill="#555555">solid boxes = required, dashed boxes = optional (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256 in config.h)</text>
+  <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">FUJISOKU SRAM Utility v3.0 - hardware connection overview</text>
+  <text x="20" y="44" font-size="11" fill="#555555">solid boxes = required, dashed boxes = optional (USE_SD / USE_LCD / USE_SPI_SRAM in config.h)</text>
 
   <!-- PC -->
   <rect x="20" y="60" width="200" height="74" rx="6" fill="#eef0fb" stroke="#2c3393" stroke-width="1.5"/>
@@ -96,11 +96,11 @@
   <rect x="640" y="360" width="340" height="132" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
   <text x="650" y="380" font-weight="bold" fill="#111111">MCP23S17 ch7  (data + control)</text>
   <text x="650" y="400" font-size="11" font-family="monospace" fill="#333333">GPA0-GPA7 = D0-D7         (F8-F15)</text>
-  <text x="650" y="416" font-size="11" font-family="monospace" fill="#333333">GPB0 CS2 (F5)    GPB1 /OE (F7)</text>
-  <text x="650" y="432" font-size="11" font-family="monospace" fill="#333333">GPB3 /WE (F6)    GPB4 /CE1 (F4)</text>
-  <text x="650" y="448" font-size="11" font-family="monospace" fill="#333333">GPB6 A16 (F32)   GPB7 A17 (F33)</text>
-  <text x="650" y="466" font-size="11" font-family="monospace" fill="#333333">GPB2 62256 /OE   GPB5 unused</text>
-  <text x="650" y="484" font-size="10" fill="#555555">GPB0 is also /CS of the 62256 (low = 62256)</text>
+  <text x="650" y="416" font-size="11" font-family="monospace" fill="#333333">GPB0 CE2 (F5)    GPB1 /OE (F7)</text>
+  <text x="650" y="432" font-size="11" font-family="monospace" fill="#333333">GPB2 /CE1 (F4)   GPB3 /WE (F6)</text>
+  <text x="650" y="448" font-size="11" font-family="monospace" fill="#333333">GPB4 A16 (F32)   GPB5 A17 (F33)</text>
+  <text x="650" y="466" font-size="11" font-family="monospace" fill="#333333">GPB6 A18 (F34)   GPB7 A19 (F35)</text>
+  <text x="650" y="484" font-size="10" fill="#555555">v3.0 (branch wo62256): no 62256</text>
 
   <!-- legend -->
   <rect x="20" y="360" width="300" height="140" rx="6" fill="#fafafa" stroke="#bbbbbb" stroke-width="1"/>
@@ -119,26 +119,20 @@
   <path d="M380,446 V526" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
   <text x="388" y="490" font-size="11" fill="#333333">A0-A15</text>
   <path d="M850,492 V526" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
-  <text x="858" y="514" font-size="11" fill="#333333">D0-D7, A16-A17, control</text>
+  <text x="858" y="514" font-size="11" fill="#333333">D0-D7, A16-A19, control</text>
 
   <rect x="340" y="528" width="640" height="26" rx="4" fill="#ffffff" stroke="#333333" stroke-width="2"/>
-  <text x="660" y="545" font-size="11" text-anchor="middle" fill="#111111">parallel bus: A0-A17, D0-D7, /CE1 CE2 /WE /OE</text>
+  <text x="660" y="545" font-size="11" text-anchor="middle" fill="#111111">parallel bus: A0-A19, D0-D7, /CE1 CE2 /WE /OE</text>
 
   <path d="M490,554 V586" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
-  <path d="M830,554 V586" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#arr)"/>
 
   <!-- memories -->
   <rect x="340" y="590" width="300" height="80" rx="6" fill="#e6f6ea" stroke="#1e7a3c" stroke-width="1.5"/>
   <text x="350" y="610" font-weight="bold" fill="#111111">FUJISOKU SRAM memory card</text>
   <text x="350" y="628" font-size="11" fill="#333333">38-pin slot F1-F38 (ZIP), see fujisoku-mcp-wiring.svg</text>
-  <text x="350" y="644" font-size="11" fill="#333333">32 KB on board; up to 256 KB (A0-A17) via PC</text>
-  <text x="350" y="660" font-size="10" fill="#555555">slot extender: 40-pin 2-row header + 1.27 mm adapter</text>
+  <text x="350" y="644" font-size="11" fill="#333333">32 KB on board; up to 1 MB (A0-A19) via PC</text>
+  <text x="350" y="660" font-size="10" fill="#555555">slot unit: U-BOX slot + 1.27 mm adapters + box header</text>
 
-  <rect x="680" y="590" width="300" height="80" rx="6" fill="#f0e9fa" stroke="#6b3fa0" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="690" y="610" font-weight="bold" fill="#111111">62256 parallel SRAM (optional)</text>
-  <text x="690" y="628" font-size="11" fill="#333333">A0-A14, D0-D7, /CS = GPB0, /OE = GPB2, /WE = GPB3</text>
-  <text x="690" y="644" font-size="11" fill="#333333">test SRAM: USE_SRAM62256 = 1, target p</text>
-  <text x="690" y="660" font-size="10" fill="#555555">"test p" checks D0-D7 and A0-A14</text>
 
   <text x="20" y="690" font-size="11" fill="#555555">Sources: note.com/cheekysmokey (card pin-out, MCP wiring, slot repair articles) and FUJISOKU_SRAM_COPY/config.h. Single 5 V supply; all parts are 5 V, no level shifting.</text>
 </svg>
