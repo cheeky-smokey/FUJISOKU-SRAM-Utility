@@ -336,7 +336,7 @@ def finish_text(board):
     silk('CARD', 61.9, 28.9, 0.8, just='left')
     silk('1=F2', 61.9, 26.67, 0.8, just='left')
     silk('2=F1', 61.9, 24.13, 0.8, just='left')
-    silk('Powered by Cheeky-Smokey', 1.6, 6.0, 1.0, just='left')   # 左下 (取り付け穴と C4 の間)
+    silk('Powered by\nCheeky-Smokey', 1.6, 6.4, 1.0, just='left')   # 左下 (取り付け穴の上、C4 の左)
     # 裏面: 名前と説明 (パッドの列の間のすき間に書く)
     B = pcbnew.B_SilkS
     silk('FUJISOKU SRAM Utility shield rev 2.0', 34.3, 33.6, 1.0, B, bold=True)
