@@ -13,9 +13,9 @@
   <text x="20" y="46" font-size="11" fill="#555555">Card pin-out and ch6 / ch7 GPA from the articles; ch7 GPB as used by the v3.0 sketch (branch wo62256, not yet checked on the board). MCP pin numbers are the 28-pin package pins.</text>
 
   <!-- column headings -->
-  <text x="130" y="82" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
-  <text x="530" y="82" text-anchor="middle" font-weight="bold" fill="#111111">FUJISOKU card connector</text>
-  <text x="900" y="290" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch6</text>
+  <text x="130" y="82" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch7 (U2)</text>
+  <text x="530" y="82" text-anchor="middle" font-weight="bold" fill="#111111">FUJISOKU card (via J1 / slot unit)</text>
+  <text x="900" y="290" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch6 (U1)</text>
 
   <!-- connector rows: y = 92 + (n-1)*28, height 26 -->
   <g stroke="#555555" stroke-width="1">
@@ -59,7 +59,7 @@
 
   <!-- ch7 box -->
   <rect x="20" y="170" width="220" height="310" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
-  <text x="30" y="190" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
+  <text x="30" y="190" font-weight="bold" fill="#111111">MCP23S17 ch7 (U2)</text>
   <text x="30" y="206" font-size="11" fill="#333333">data + control + A16-A19</text>
   <g font-size="11" font-family="monospace" fill="#333333">
     <text x="30" y="232">GPA0-GPA7 = D0-D7</text>
@@ -106,7 +106,7 @@
 
   <!-- ch6 box + wires -->
   <rect x="820" y="296" width="160" height="96" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
-  <text x="830" y="316" font-weight="bold" fill="#111111">MCP23S17 ch6</text>
+  <text x="830" y="316" font-weight="bold" fill="#111111">MCP23S17 ch6 (U1)</text>
   <text x="830" y="332" font-size="11" fill="#333333">address bus</text>
   <g font-size="11" font-family="monospace" fill="#333333">
     <text x="830" y="356">GPA0-7 = A0-A7</text>
