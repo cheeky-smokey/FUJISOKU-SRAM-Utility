@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-#define FSU_VERSION "2.8"
+#define FSU_VERSION "3.0"
 
 // =====================================================================
 // オプション部品 (1 = 使う、0 = 使わない)
@@ -63,12 +63,6 @@
 #define BATT_LOW_MV 1700
 #endif
 
-// 動作確認用の並列 SRAM 62256 (カードと同じバスにつなぐ)。
-//   1 にすると、コマンドの対象 p として読み書き・コピー・比較・バスの配線試験 (test p) に使える。
-#ifndef USE_SRAM62256
-#define USE_SRAM62256 0
-#endif
-
 // =====================================================================
 // 設定
 // =====================================================================
@@ -109,9 +103,8 @@
 // データ量・識別子
 // =====================================================================
 #define CARD_SIZE 0x8000UL       // 本体だけの処理 (コピー・比較・消去・SD) が扱う範囲 0x0000-0x7FFF (32 KB)
-#define CARD_MAX_SIZE 0x40000UL  // PC からの rd / wr / fill でカードに使える範囲 (A0-A17 = 256 KB)
+#define CARD_MAX_SIZE 0x100000UL // PC からの rd / wr / fill でカードに使える範囲 (A0-A19 = 1 MB)
 #define SPI_SRAM_SIZE 0x10000UL  // SPI SRAM 23LC512 (64 KB)
-#define SRAM62256_SIZE 0x8000UL  // 62256 (32 KB)
 #define CHUNK_BYTES 64           // PC とのやりとりの 1 行あたりのバイト数
 #define BLOCK_BYTES 256          // SD / コピー処理の 1 ブロック
 #define ERASE_VALUE 0xFF         // 消去で書く値
@@ -119,10 +112,9 @@
 // バックアップ中に使う一時ファイル名 (成功したら本来の名前に付け替える)
 #define SD_TMP_NAME "FSU_TMP.TMP"
 
-// 転送対象 (dev 引数)。コマンドでは f / s / p
+// 転送対象 (dev 引数)。コマンドでは f / s
 #define DEV_SPI_SRAM 0   // s: SPI SRAM (USE_SPI_SRAM のときだけ)
 #define DEV_FUJISOKU 1   // f: FUJISOKU カード
-#define DEV_SRAM62256 2  // p: 並列 SRAM 62256 (USE_SRAM62256 のときだけ)
 
 // SD カードの状態
 #define SD_STATE_UNKNOWN 0
@@ -139,7 +131,7 @@
 // Arduino のピン
 //   SPI: D13 SCK / D12 MISO / D11 MOSI (MCP23S17、SPI SRAM、SD カードで共有)
 //   I2C: A4 SDA / A5 SCL (LCD)
-//   D0、D1、D8、D9、D10、A1-A3 は未使用
+//   D0、D1、D3、D8、D9、D10、A0、A1、A3 は未使用
 // =====================================================================
 #define PIN_CS_SD 7        // SD カードの /CS。USE_SD = 0 でも High にしておく (モジュールが付いたままでも邪魔しない)
 #define PIN_CS_SPI_SRAM 6  // SPI SRAM の /CS。USE_SPI_SRAM = 0 でも High にしておく
@@ -182,35 +174,27 @@
 #define MCP_ALL_OUTPUT 0x00
 
 // =====================================================================
-// ch7 GPB: カードと 62256 の制御線 (ビット = 1 で High)
+// ch7 GPB: カードの制御線とアドレスの上位 (ビット = 1 で High)。v3.0 (62256 なし) の割り当て
 // =====================================================================
-//   B0  カードの CS2 (High で選択) と 62256 の /CS (Low で選択) を兼ねる
-//   B1  カードの /OE
-//   B2  62256 の /OE
-//   B3  /WE (カードと 62256 で共通)
-//   B4  カードの /CE1
-//   B5  未使用 (どこにもつながない。High のまま)
-//   B6  A16、B7 A17 (アドレスの上位。0x0000-0xFFFF では 0)
+//   B0  カードの CE2 (High で選択)              カードの F5
+//   B1  カードの /OE                            F7
+//   B2  カードの /CE1                           F4
+//   B3  カードの /WE                            F6
+//   B4  A16、B5 A17、B6 A18、B7 A19             F32、F33、F34、F35 (0x00000-0x0FFFF では 0)
 #define CTRL_CS2 0x01
 #define CTRL_CARD_nOE 0x02
-#define CTRL_62256_nOE 0x04
+#define CTRL_CARD_nCE1 0x04
 #define CTRL_nWE 0x08
-#define CTRL_CARD_nCE1 0x10
-#define CTRL_B5_UNUSED 0x20
-#define CTRL_A16 0x40
-#define CTRL_A17 0x80
+#define CTRL_ADDR_HI 0xF0      // A16-A19
+#define CTRL_ADDR_HI_SHIFT 12  // アドレスのビット 16-19 → B4-B7
 
-// 状態ごとの値 (A16 / A17 は 0。アドレスを出すときに足す)
-//   待機     0x3F: カードは /CE1 = H、62256 は /CS = H で、どちらも非選択
-//   カード選択 0x2F: /CE1 = L、CS2 = H
-//   カード解放 0x3E: /CE1 = H、CS2 = L (1 バイトごとの後始末。v1 と同じ)
-//                    B0 を兼ねているので 62256 が選ばれた状態になるが、/OE も /WE も H なのでバスには出てこない
-//   62256 選択 0x3E: /CS = L
-#define CTRL_IDLE (CTRL_CS2 | CTRL_CARD_nOE | CTRL_62256_nOE | CTRL_nWE | CTRL_CARD_nCE1 | CTRL_B5_UNUSED)
+// 状態ごとの値 (A16-A19 は 0。アドレスを出すときに足す)
+//   待機       0x0F: /CE1 = H、CS2 = H、/OE = H、/WE = H (非選択)
+//   カード選択 0x0B: /CE1 = L、CS2 = H
+//   カード解放 0x0E: /CE1 = H、CS2 = L (1 バイトごとの後始末。CE2 も下げて二重に非選択にする)
+#define CTRL_IDLE (CTRL_CS2 | CTRL_CARD_nOE | CTRL_CARD_nCE1 | CTRL_nWE)
 #define CTRL_CARD_SELECT (CTRL_IDLE & ~CTRL_CARD_nCE1)
 #define CTRL_CARD_RELEASE (CTRL_IDLE & ~CTRL_CS2)
-#define CTRL_62256_SELECT (CTRL_IDLE & ~CTRL_CS2)
-#define CTRL_62256_RELEASE CTRL_IDLE
 
 // =====================================================================
 // SPI SRAM 23LC512 (64 KB、/CS = D6)。本体だけの処理で使うのは 0x0000-0x7FFF

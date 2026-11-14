@@ -10,7 +10,7 @@
   <rect width="1000" height="790" fill="#ffffff"/>
 
   <text x="20" y="26" font-size="16" font-weight="bold" fill="#111111">MCP23S17 - FUJISOKU card wiring (38-pin card, F1-F38)</text>
-  <text x="20" y="46" font-size="11" fill="#555555">Card pin-out and ch6 / ch7 GPA from the articles; ch7 GPB as used by the sketch (confirmed on the board). MCP pin numbers are the 28-pin package pins.</text>
+  <text x="20" y="46" font-size="11" fill="#555555">Card pin-out and ch6 / ch7 GPA from the articles; ch7 GPB as used by the v3.0 sketch (branch wo62256, not yet checked on the board). MCP pin numbers are the 28-pin package pins.</text>
 
   <!-- column headings -->
   <text x="130" y="82" text-anchor="middle" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
@@ -31,8 +31,8 @@
     <rect x="420" y="344" width="220" height="26" fill="#e8f0fe"/>
     <rect x="420" y="372" width="220" height="26" fill="#e8f0fe"/>
     <rect x="420" y="400" width="220" height="26" fill="#e8f0fe"/>
-    <rect x="420" y="428" width="220" height="26" fill="#eeeeee"/>
-    <rect x="420" y="456" width="220" height="26" fill="#eeeeee"/>
+    <rect x="420" y="428" width="220" height="26" fill="#e8f0fe"/>
+    <rect x="420" y="456" width="220" height="26" fill="#e8f0fe"/>
     <rect x="420" y="484" width="220" height="26" fill="#fde8e8"/>
     <rect x="420" y="512" width="220" height="26" fill="#eeeeee"/>
     <rect x="420" y="540" width="220" height="26" fill="#fde8e8"/>
@@ -58,18 +58,17 @@
   </g>
 
   <!-- ch7 box -->
-  <rect x="20" y="170" width="220" height="262" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
+  <rect x="20" y="170" width="220" height="310" rx="6" fill="#fff4e0" stroke="#b36b00" stroke-width="1.5"/>
   <text x="30" y="190" font-weight="bold" fill="#111111">MCP23S17 ch7</text>
-  <text x="30" y="206" font-size="11" fill="#333333">data + control + A16/A17</text>
+  <text x="30" y="206" font-size="11" fill="#333333">data + control + A16-A19</text>
   <g font-size="11" font-family="monospace" fill="#333333">
     <text x="30" y="232">GPA0-GPA7 = D0-D7</text>
-    <text x="30" y="250">GPB0 = CS2 (62256 /CS)</text>
+    <text x="30" y="250">GPB0 = CE2</text>
     <text x="30" y="266">GPB1 = /OE</text>
-    <text x="30" y="282">GPB2 = 62256 /OE</text>
+    <text x="30" y="282">GPB2 = /CE1</text>
     <text x="30" y="298">GPB3 = /WE</text>
-    <text x="30" y="314">GPB4 = /CE1   GPB5 = unused</text>
-    <text x="30" y="330">GPB6 = A16</text>
-    <text x="30" y="346">GPB7 = A17</text>
+    <text x="30" y="314">GPB4 = A16   GPB5 = A17</text>
+    <text x="30" y="330">GPB6 = A18   GPB7 = A19</text>
   </g>
   <text x="30" y="376" font-size="10" fill="#555555">A2:A0 = 111 (address = channel 7),</text>
   <text x="30" y="390" font-size="10" fill="#555555">as in the sketch. VDD = 5 V,</text>
@@ -84,15 +83,19 @@
     <path d="M242,301 H418" marker-end="url(#arr)" marker-start="url(#arrS)"/>
     <path d="M240,385 H418" marker-end="url(#arr)"/>
     <path d="M240,413 H418" marker-end="url(#arr)"/>
+    <path d="M240,441 H418" marker-end="url(#arr)"/>
+    <path d="M240,469 H418" marker-end="url(#arr)"/>
   </g>
   <g font-size="10" fill="#333333" text-anchor="middle">
-    <text x="330" y="185">GPB4 (p5)</text>
+    <text x="330" y="185">GPB2 (p3)</text>
     <text x="330" y="213">GPB0 (p1)</text>
     <text x="330" y="241">GPB3 (p4)</text>
     <text x="330" y="269">GPB1 (p2)</text>
     <text x="330" y="297">GPA0-7 (p21-28)</text>
-    <text x="330" y="381">GPB6 (p7)</text>
-    <text x="330" y="409">GPB7 (p8)</text>
+    <text x="330" y="381">GPB4 (p5)</text>
+    <text x="330" y="409">GPB5 (p6)</text>
+    <text x="330" y="437">GPB6 (p7)</text>
+    <text x="330" y="465">GPB7 (p8)</text>
   </g>
   <!-- notes in the free area next to the power / unused rows (left) -->
   <g font-size="10" fill="#555555" text-anchor="end">
@@ -120,38 +123,36 @@
 
   <!-- notes beside the unused rows (right) -->
   <g font-size="10" fill="#555555">
-    <text x="652" y="446">tied to GND (not open)</text>
-    <text x="652" y="474">tied to GND (not open)</text>
     <text x="652" y="530">to Arduino D2 (card detect)</text>
   </g>
 
   <!-- ch7 GPIOB table -->
   <rect x="650" y="62" width="330" height="214" rx="6" fill="#f2f7ff" stroke="#1a4fa0" stroke-width="1.5"/>
-  <text x="660" y="82" font-weight="bold" fill="#1a4fa0">ch7 GPIOB (control lines)</text>
+  <text x="660" y="82" font-weight="bold" fill="#1a4fa0">ch7 GPIOB (control + A16-A19)</text>
   <g font-size="11" font-family="monospace" fill="#111111" font-weight="bold">
     <text x="660" y="104">bit</text>
     <text x="705" y="104">signal</text>
     <text x="850" y="104">card pin</text>
   </g>
   <g font-size="11" font-family="monospace" fill="#333333">
-    <text x="660" y="122">B0</text><text x="705" y="122">CS2  (= 62256 /CS)</text><text x="850" y="122">F5</text>
-    <text x="660" y="138">B1</text><text x="705" y="138">/OE  card</text><text x="850" y="138">F7</text>
-    <text x="660" y="154">B2</text><text x="705" y="154">/OE  62256</text><text x="850" y="154">-</text>
-    <text x="660" y="170">B3</text><text x="705" y="170">/WE  (shared)</text><text x="850" y="170">F6</text>
-    <text x="660" y="186">B4</text><text x="705" y="186">/CE1 card</text><text x="850" y="186">F4</text>
-    <text x="660" y="202">B5</text><text x="705" y="202">(unused, kept high)</text><text x="850" y="202">-</text>
-    <text x="660" y="218">B6</text><text x="705" y="218">A16</text><text x="850" y="218">F32</text>
-    <text x="660" y="234">B7</text><text x="705" y="234">A17</text><text x="850" y="234">F33</text>
+    <text x="660" y="122">B0</text><text x="705" y="122">CE2</text><text x="850" y="122">F5</text>
+    <text x="660" y="138">B1</text><text x="705" y="138">/OE</text><text x="850" y="138">F7</text>
+    <text x="660" y="154">B2</text><text x="705" y="154">/CE1</text><text x="850" y="154">F4</text>
+    <text x="660" y="170">B3</text><text x="705" y="170">/WE</text><text x="850" y="170">F6</text>
+    <text x="660" y="186">B4</text><text x="705" y="186">A16</text><text x="850" y="186">F32</text>
+    <text x="660" y="202">B5</text><text x="705" y="202">A17</text><text x="850" y="202">F33</text>
+    <text x="660" y="218">B6</text><text x="705" y="218">A18</text><text x="850" y="218">F34</text>
+    <text x="660" y="234">B7</text><text x="705" y="234">A19</text><text x="850" y="234">F35</text>
   </g>
-  <text x="660" y="254" font-size="10" fill="#555555">Confirmed by the board owner: the sketch constants</text>
-  <text x="660" y="268" font-size="10" fill="#555555">are correct (the article table differs for B0-B4).</text>
+  <text x="660" y="254" font-size="10" fill="#555555">v3.0 (branch wo62256): no 62256. Not yet checked</text>
+  <text x="660" y="268" font-size="10" fill="#555555">on the board. v2.8: B4 /CE1, B6/B7 A16/A17.</text>
 
   <!-- notes -->
   <g font-size="11" fill="#333333">
     <text x="20" y="600" font-weight="bold" fill="#111111">Notes</text>
     <text x="20" y="620">1. Data lines are D0-D7 = ch7 GPA0-GPA7 (D2 = GPA2). The article's table shows D2 and D3 both on GPA3; confirmed as a typo.</text>
     <text x="20" y="638">2. The pin-out table has no row for F28; the wiring table gives F28 = A12 (ch6 GPB4).</text>
-    <text x="20" y="656">3. The MCP chips drive A0-A17 only; A18/A19 (F34/F35) are tied to GND, never left open. The pin-out article says the pattern processor (PE1) outputs up to A15 and leaves A16-A19 unconnected.</text>
+    <text x="20" y="656">3. The MCP chips drive A0-A19 (A16-A19 = ch7 GPB4-GPB7, v3.0): cards up to 1 MB. The pin-out article says PE1 outputs up to A15 only.</text>
     <text x="20" y="674">4. In the card sizes of the pin-out article, 128 KB leaves A17-A19 NC, 256 KB leaves A18-A19 NC, 512 KB leaves A19 NC.</text>
     <text x="20" y="692">5. The card is estimated to be a Fujisoku BS32D1-A (32 KB); the article says this is not an official statement.</text>
     <text x="20" y="710">6. Single 5 V supply, no level shifting. Card power: F3/F36 = Vcc (5 V), F1/F38 = GND, each pair joined inside the card.</text>

@@ -10,7 +10,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 | コマンド | 1 行 1 コマンド。改行は LF か CRLF。1 行 199 文字まで（超えると `ERR LINE`） |
 | コマンド名 | 大文字・小文字を区別しない |
 | 数値 | 10 進、または `0x` 付きの 16 進 |
-| 対象 | `f` = FUJISOKU カード、`s` = SPI SRAM（`USE_SPI_SRAM` が 1 で、起動時に見つかったときだけ。見つからなければ `ERR NOSPI`、0 なら `ERR DISABLED`）、`p` = 62256（`USE_SRAM62256` が 1 のときだけ。0 なら `ERR DISABLED`） |
+| 対象 | `f` = FUJISOKU カード、`s` = SPI SRAM（`USE_SPI_SRAM` が 1 で、起動時に見つかったときだけ。見つからなければ `ERR NOSPI`、0 なら `ERR DISABLED`）。v3.0 から `p`（62256）は無く、`ERR ARG` になる |
 | 本体からの行 | 改行は CRLF |
 | 中断 | 処理中に `!`（1 バイト、改行不要）を送る。待機中に届いた `!` は捨てる |
 
@@ -46,7 +46,7 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 応答の例 |
 |---|---|
-| `hello` | `HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500`（既定の構成）。`carddet` / `battdet` はカードの検出・電池電圧を使うか（`USE_CARD_DET` / `USE_BATT_DET`）、`battlow` は電池が「少ない」とする電圧 [mV]（v2.6 から）、`battnone` は「電池なし」とする電圧 [mV]（v2.7 から。無ければ判定しない）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
+| `hello` | `HELLO FSU 3.0 size=32768 cardmax=1048576 chunk=64 lcd=20x4 sdcard=0 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500`（既定の構成）。`carddet` / `battdet` はカードの検出・電池電圧を使うか（`USE_CARD_DET` / `USE_BATT_DET`）、`battlow` は電池が「少ない」とする電圧 [mV]（v2.6 から）、`battnone` は「電池なし」とする電圧 [mV]（v2.7 から。無ければ判定しない）。`spisram` は SPI SRAM の状態で `ok`（使える）/ `none`（見つからない）/ `off`（`USE_SPI_SRAM` が 0）（v2.5 から。無ければ `ok` とみなす）。`size` は本体だけの処理（§2.3）が扱う大きさ、`cardmax` は `rd` / `wr` / `fill` でカードに使える大きさ（v2.4 から。無ければ 32768 とみなす）。`lcd` は LCD が見つかれば `20x4`、無ければ `none`。`sram62256` / `sdcard` は `USE_SRAM62256` / `USE_SD` の値 |
 | `status` | `STATUS sd=- busy=0 spi=40 lcd=1 card=1 batt=2950`（`card` はカードの有無（`1` / `0`、検出しない設定なら `-`）、`batt` は電池電圧 [mV]（測っていなければ `-`）。`sd` は SD カードが使えるか（`1` / `0`）。`USE_SD` が 0（既定）なら `sd=-`。`spi` は SPI SRAM（/CS = D6）のモードレジスタを 16 進 2 桁で。起動時にシーケンシャルにするので通常は `40`、応答がなければ `FF`、`USE_SPI_SRAM` が 0 なら `-`。`lcd` は LCD の有無） |
 | `help`（または `?` / `h`） | コマンドの一覧（終了行なし） |
 | `lcd` | `LCD <16進 160 桁>`: 画面の 4 行 × 20 文字。文字コード `08`〜`0F` は自作文字（進捗バーなど）。LCD が無くても本体は画面の内容を持っているので、同じように返る |
@@ -56,17 +56,16 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 内容 | 応答 |
 |---|---|---|
-| `rd <f\|s\|p> <アドレス> <長さ>` | 読み出し | `D 0100 DEADBEEF...` を 64 バイトずつ、最後に `OK rd <長さ>` |
-| `wr <f\|s\|p> <アドレス> <16進>` | 書き込み（64 バイトまで） | `OK wr <アドレス(10進)> <バイト数>` |
-| `fill <f\|s\|p> <アドレス> <長さ> <値>` | 同じ値で埋める | `OK fill <長さ>` |
+| `rd <f\|s> <アドレス> <長さ>` | 読み出し | `D 0100 DEADBEEF...` を 64 バイトずつ、最後に `OK rd <長さ>` |
+| `wr <f\|s> <アドレス> <16進>` | 書き込み（64 バイトまで） | `OK wr <アドレス(10進)> <バイト数>` |
+| `fill <f\|s> <アドレス> <長さ> <値>` | 同じ値で埋める | `OK fill <長さ>` |
 
 - 範囲は対象ごとに違います。はみ出すと `ERR RANGE`（`アドレス + 長さ` が 32 ビットで桁あふれする値も `ERR RANGE`）。
 
   | 対象 | 範囲 | 理由 |
   |---|---|---|
-  | `f` カード | 0x00000〜0x3FFFF（256KB） | アドレス線 A0〜A17 がつながっている。32KB のカードでは 0x8000 以降は先頭と同じ場所になる |
+  | `f` カード | 0x00000〜0xFFFFF（1MB） | アドレス線 A0〜A19 を出す（v3.0。v2.4〜v2.8 は A0〜A17 の 256KB）。32KB のカードでは 0x8000 以降は先頭と同じ場所になる |
   | `s` SPI SRAM | 0x0000〜0xFFFF（64KB） | 23LC512 の容量 |
-  | `p` 62256 | 0x0000〜0x7FFF（32KB） | 62256 の容量 |
 
 - `wr` は 16 進をすべて確かめてから書き込みます（不正な文字があれば何も書かずに `ERR ARG`）。
 - `rd` と `fill` は途中で `!` を受け付けます（`ERR CANCEL cancelled`）。
@@ -78,14 +77,13 @@ Web アプリ（`webapp/FSRAM-Utility.html`）は、この仕様のコマンド�
 
 | コマンド | 内容 | 終了行の例 |
 |---|---|---|
-| `copy <x> <y>` | x → y のコピー（`copy f s` = カード → SPI SRAM、`copy s f` = SPI SRAM → カード、`copy f p` など） | `OK copy 32768 bytes` |
+| `copy <x> <y>` | x → y のコピー（`copy f s` = カード → SPI SRAM、`copy s f` = SPI SRAM → カード） | `OK copy 32768 bytes` |
 | `cmp [<x> <y>]` | 比較。引数なしは SPI SRAM とカード（`cmp s f`） | `M 0100 3C 00` …、`OK cmp all 32768 bytes match` / `NG cmp mismatches=3 first=0x0100` |
-| `erase <f\|s\|p>` | すべて `FF` にする | `OK fill 32768 bytes = FF` |
+| `erase <f\|s>` | すべて `FF` にする | `OK fill 32768 bytes = FF` |
 | `test`（`test s`） | SPI SRAM（/CS = D6）の自己診断。SPI SRAM を探し直して（見つかっていなくても実行する）モードレジスタを読み、両端の 16 バイトに 2 種類の値を書いて読み戻す（元の値は戻す） | `T mode=40`、`T readback=A0A1…AF bad=0`、`OK test SPI SRAM OK` / `NG test no response (check /CS D6) bad=64`（モードが `FF`）/ `NG test read/write failed bad=3` |
-| `test p` | 62256 でバスの配線試験（62256 の中身は消える） | `T 62256 data_bad=0x00 addr_bad=0x0`、`OK test D0-D7 OK A0-A14 OK` / `NG test data bad=0x04 addr bad=0x0020`（ビット = 疑わしい線） |
-| `sd save <f\|s\|p> [名前]` | カード（または SPI SRAM、62256）→ SD | `OK sd 32768 bytes -> game1.bin` |
-| `sd load <f\|s\|p> [名前] [v]` | SD → カード（など）。`v` を付けると書き込み後に照合 | `OK sd 32768 bytes <- game1.bin` |
-| `sd verify <f\|s\|p> [名前]` | SD とカード（など）を照合 | `OK sd all 32768 bytes match` / `NG sd mismatches=1 first=0x0100` |
+| `sd save <f\|s> [名前]` | カード（または SPI SRAM）→ SD | `OK sd 32768 bytes -> game1.bin` |
+| `sd load <f\|s> [名前] [v]` | SD → カード（など）。`v` を付けると書き込み後に照合 | `OK sd 32768 bytes <- game1.bin` |
+| `sd verify <f\|s> [名前]` | SD とカード（など）を照合 | `OK sd all 32768 bytes match` / `NG sd mismatches=1 first=0x0100` |
 | `sd ls` | ルートの `*.bin` を一覧 | `F game1.bin 32768` …、`OK sd 2 files` |
 | `sdcheck`（`sd check`） | SD カードを認識し直す | `OK sdcheck SD card ready` / `ERR NOSD No SD card` |
 
@@ -109,9 +107,9 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 
 | 操作 | 送るコマンド |
 |---|---|
-| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sram62256=` `sdcard=` `cardmax=` `carddet=` `battdet=` `battlow=` `battnone=` で構成を知り、`sdcard=0` なら SD のタブを隠し、`cardmax` より大きい読み込みのボタンは押せなくする）→ `status`（`card=` `batt=` でカードと電池を表示）→ `lcd on`。以後は `E CARD` / `E BATT` で表示を更新 |
+| 接続 | 改行 → `hello`（応答があるまで最大 4 回。`lcd=` `sdcard=` `cardmax=` `carddet=` `battdet=` `battlow=` `battnone=` で構成を知り、`sdcard=0` なら SD のタブを隠し、`cardmax` より大きい読み込みのボタンは押せなくする）→ `status`（`card=` `batt=` でカードと電池を表示）→ `lcd on`。以後は `E CARD` / `E BATT` で表示を更新 |
 | PC に保存 | 1 周ごとに `ui begin <大きさ> Card_to_PC` → `rd f <a> 2048` と `ui prog` を（大きさ ÷ 2048）回（32KB なら 16 回）。これを 2 周 → 2 周の結果を比べる → `ui end ok Saved_to_PC` |
-| カードに書き込み | （32KB より大きいファイルは、先頭 32KB だけかすべてかを PC 側で選ぶ）→（書き込む前の保存: 書き込む大きさの読み込みを 1 周）→ `ui begin <書き込むバイト数> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `ui begin <大きさ> Verify` → `rd` で読み戻して照合 → `ui end ok ...`。段階ごとに `ui begin` し直すので、LCD の合計はその段階のバイト数（書き込みと照合を足した数は出さない） |
+| カードに書き込み | （書き込む大きさは PC 側で 32KB〜1MB から選び、32KB より大きいときは先頭 32KB だけかすべてかも選ぶ）→（書き込む前の保存: 書き込む大きさの読み込みを 1 周）→ `ui begin <書き込むバイト数> PC_to_Card` → 変わった 64 バイトだけ `wr f <a> <16進>`（16 回ごとに `ui prog`）→ `ui begin <大きさ> Verify` → `rd` で読み戻して照合 → `ui end ok ...`。段階ごとに `ui begin` し直すので、LCD の合計はその段階のバイト数（書き込みと照合を足した数は出さない） |
 | 比較（カード） | `ui begin <ファイルの大きさ> Compare` → `rd` をファイルの大きさまで → PC 側で比較 → `ui end ok\|ng ...` |
 | SD・SPI SRAM の操作 | 2.3 のコマンドをそのまま送り、`S` / `P` 行で進捗を出す |
 | 中断 | `!` を送る。PC 主導の処理では区切りで止めて `ui end cancel Canceled` |
@@ -131,7 +129,7 @@ PC が `rd` / `wr` で処理をするとき、本体の LCD に進捗を出す�
 | `SDERR` | SD カードは応答するが読み書きに失敗した | カードを確かめる |
 | `NOFILE` | 指定したファイルが無い | `sd ls` で確かめる |
 | `BADSIZE` | ファイルが 32,768 バイトでない | |
-| `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` / `USE_SPI_SRAM` / `USE_SRAM62256` が 0 のときのコマンド・対象） | `config.h` を確かめる |
+| `DISABLED` | その機能を使わない設定でビルドされている（`USE_SD` / `USE_SPI_SRAM` が 0 のときのコマンド・対象） | `config.h` を確かめる |
 | `NOSPI` | SPI SRAM が見つからない（`USE_SPI_SRAM` は 1） | 配線（/CS = D6・SCK・MISO・MOSI・電源）を確かめて `test` を実行する |
 | `NOCARD` | メモリカードが入っていない（`No card in the slot`）、または処理の途中で抜かれた（`Card removed at 0x....`）。カードを使うコマンドだけ | カードを挿してやり直す |
 
@@ -155,7 +153,7 @@ v1 との違い: 応答の書式が §1.1 に変わりました。`R` / `C` は�
 
 ```
 > hello
-< HELLO FSU 2.8 size=32768 cardmax=262144 chunk=64 lcd=20x4 sram62256=0 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500
+< HELLO FSU 3.0 size=32768 cardmax=1048576 chunk=64 lcd=20x4 sdcard=1 spisram=ok carddet=1 battdet=1 battlow=1700 battnone=500
 > sd save f game1
 < S Checking SD card
 < S Opening file

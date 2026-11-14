@@ -5,13 +5,13 @@
 // 詳細は docs/protocol.md を参照。
 //
 //   hello / status / sdcheck / help
-//   rd <f|s|p> <addr> <len>          -> D <addr(hex)> <hex...> ... , OK rd <len>
-//   wr <f|s|p> <addr> <hex...>       -> OK wr <addr> <n>
-//   fill <f|s|p> <addr> <len> <byte> -> OK fill <len>
-//     範囲: f = 0x00000-0x3FFFF (256 KB)、s = 0x0000-0xFFFF (64 KB)、p = 0x0000-0x7FFF (32 KB)
-//   copy <x> <y> / cmp [<x> <y>] / test [s|p] / erase <x>
-//     s は USE_SPI_SRAM のとき (見つからなければ ERR NOSPI)、p は USE_SRAM62256 のときだけ。使わない設定なら ERR DISABLED
-//   sd save|load|verify <f|s|p> [name|-] [v] / sd ls / sd check
+//   rd <f|s> <addr> <len>            -> D <addr(hex)> <hex...> ... , OK rd <len>
+//   wr <f|s> <addr> <hex...>         -> OK wr <addr> <n>
+//   fill <f|s> <addr> <len> <byte>   -> OK fill <len>
+//     範囲: f = 0x00000-0xFFFFF (1 MB)、s = 0x0000-0xFFFF (64 KB)
+//   copy <x> <y> / cmp [<x> <y>] / test [s] / erase <x>
+//     s は USE_SPI_SRAM のとき (見つからなければ ERR NOSPI)。使わない設定なら ERR DISABLED
+//   sd save|load|verify <f|s> [name|-] [v] / sd ls / sd check
 //   lcd / lcd on / lcd off
 //   ui begin <total> <title> / ui prog <done> [phase] / ui end <ok|ng|err|cancel> [text]
 //   '!' (改行なし) : 処理の中断
@@ -42,13 +42,12 @@ static bool parse_num(const char *s, uint32_t *out) {
   return true;
 }
 
-// f / s / p を対象の番号にする (使えるかどうかは dev_ready() で確かめる)
+// f / s を対象の番号にする (使えるかどうかは dev_ready() で確かめる)
 static bool parse_dev(const char *s, uint8_t *dev) {
   if (s == NULL || s[1] != '\0') return false;
   char c = (char)(s[0] | 0x20);
   if (c == 'f') *dev = DEV_FUJISOKU;
   else if (c == 's') *dev = DEV_SPI_SRAM;
-  else if (c == 'p') *dev = DEV_SRAM62256;
   else return false;
   return true;
 }
@@ -62,10 +61,6 @@ static bool dev_ready(uint8_t dev) {
       return false;
     }
     op_needs_card = true;  // 処理中に抜かれたら止める
-  }
-  if (dev == DEV_SRAM62256 && !USE_SRAM62256) {
-    reply_err("DISABLED", "62256 is not used (USE_SRAM62256 0)");
-    return false;
   }
   if (dev == DEV_SPI_SRAM) {
     if (!USE_SPI_SRAM) {
@@ -140,8 +135,7 @@ void print_help() {
   Serial.println("  E erase SPI SRAM   e erase card       ! cancel");
   Serial.println("  hello status sdcheck rd wr fill copy cmp test erase sd ui lcd (see docs/protocol.md)");
   Serial.print("  targets: f = card");
-  Serial.print(USE_SPI_SRAM ? ", s = SPI SRAM" : "");
-  Serial.println(USE_SRAM62256 ? ", p = 62256" : "");
+  Serial.println(USE_SPI_SRAM ? ", s = SPI SRAM" : "");
 }
 
 // ---------------------------------------------------------------------
@@ -388,7 +382,7 @@ static void proto_sd(int argc, char **argv) {
     return;
   }
   if (argc < 3 || !parse_dev(argv[2], &dev)) {
-    reply_err("ARG", "sd <save|load|verify> <f|s|p> [name|-] [v]");
+    reply_err("ARG", "sd <save|load|verify> <f|s> [name|-] [v]");
     return;
   }
   if (!dev_ready(dev)) return;
@@ -440,8 +434,6 @@ void proto_exec(char *line) {
     Serial.print(CHUNK_BYTES);
     Serial.print(" lcd=");
     Serial.print(ui_lcd_present() ? "20x4" : "none");
-    Serial.print(" sram62256=");
-    Serial.print(USE_SRAM62256);
     Serial.print(" sdcard=");
     Serial.print(USE_SD);
     Serial.print(" spisram=");
@@ -466,7 +458,7 @@ void proto_exec(char *line) {
     print_help();
   } else if (strcmp(cmd, "rd") == 0) {
     if (argc < 4 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1) || !parse_num(argv[3], &v2)) {
-      reply_err("ARG", "rd <f|s|p> <addr> <len>");
+      reply_err("ARG", "rd <f|s> <addr> <len>");
     } else if (!dev_ready(dev)) {
       // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
@@ -476,7 +468,7 @@ void proto_exec(char *line) {
     }
   } else if (strcmp(cmd, "wr") == 0) {
     if (argc < 4 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1)) {
-      reply_err("ARG", "wr <f|s|p> <addr> <hex>");
+      reply_err("ARG", "wr <f|s> <addr> <hex>");
     } else if (!dev_ready(dev)) {
       // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
@@ -486,7 +478,7 @@ void proto_exec(char *line) {
     }
   } else if (strcmp(cmd, "fill") == 0) {
     if (argc < 5 || !parse_dev(argv[1], &dev) || !parse_num(argv[2], &v1) || !parse_num(argv[3], &v2) || !parse_num(argv[4], &v3) || v3 > 255) {
-      reply_err("ARG", "fill <f|s|p> <addr> <len> <byte>");
+      reply_err("ARG", "fill <f|s> <addr> <len> <byte>");
     } else if (!dev_ready(dev)) {
       // エラー行は dev_ready() が返した
     } else if (op_session == 1) {
@@ -496,7 +488,7 @@ void proto_exec(char *line) {
     }
   } else if (strcmp(cmd, "copy") == 0) {
     if (argc < 3 || !parse_dev(argv[1], &dev) || !parse_dev(argv[2], &dev2) || dev == dev2) {
-      reply_err("ARG", "copy <f|s|p> <f|s|p>");
+      reply_err("ARG", "copy <f|s> <f|s>");
     } else if (dev_ready(dev) && dev_ready(dev2) && proto_idle_or_busy()) {
       op_copy(dev, dev2);
     }
@@ -505,22 +497,16 @@ void proto_exec(char *line) {
     dev = DEV_SPI_SRAM;
     dev2 = DEV_FUJISOKU;
     if (argc >= 2 && (argc < 3 || !parse_dev(argv[1], &dev) || !parse_dev(argv[2], &dev2) || dev == dev2)) {
-      reply_err("ARG", "cmp [<f|s|p> <f|s|p>]");
+      reply_err("ARG", "cmp [<f|s> <f|s>]");
     } else if (dev_ready(dev) && dev_ready(dev2) && proto_idle_or_busy()) {
       op_compare(dev, dev2);
     }
   } else if (strcmp(cmd, "test") == 0) {
-    // test / test s = SPI SRAM の自己診断、test p = 62256 でバスの配線試験 (p は USE_SRAM62256 のときだけ)
+    // test / test s = SPI SRAM の自己診断
     dev = DEV_SPI_SRAM;
     //   SPI SRAM が見つかっていなくても test s は実行する (配線の確認と、つなぎ直したあとの再検出のため)
     if (argc >= 2 && (!parse_dev(argv[1], &dev) || dev == DEV_FUJISOKU)) {
-      reply_err("ARG", "test [s|p]");
-    } else if (dev == DEV_SRAM62256) {
-#if USE_SRAM62256
-      if (proto_idle_or_busy()) op_test_62256();
-#else
-      dev_ready(dev);  // ERR DISABLED
-#endif
+      reply_err("ARG", "test [s]");
     } else {
 #if USE_SPI_SRAM
       if (proto_idle_or_busy()) op_test_spi();
@@ -530,7 +516,7 @@ void proto_exec(char *line) {
     }
   } else if (strcmp(cmd, "erase") == 0) {
     if (argc < 2 || !parse_dev(argv[1], &dev)) {
-      reply_err("ARG", "erase <f|s|p>");
+      reply_err("ARG", "erase <f|s>");
     } else if (dev_ready(dev) && proto_idle_or_busy()) {
       op_erase(dev);
     }

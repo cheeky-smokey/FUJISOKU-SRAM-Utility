@@ -1,8 +1,8 @@
 # 回路図・シールド基板（KiCad）
 
-FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板です。[docs/hardware.md](../../docs/hardware.md) の結線表と `FUJISOKU_SRAM_COPY/config.h` のピン定義（v2.8）から作りました。
+FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板です。[docs/hardware.md](../../docs/hardware.md) の結線表と `FUJISOKU_SRAM_COPY/config.h` のピン定義（v3.0、ブランチ `wo62256`）から作りました。シールド基板は rev 2.0 で、main（v2.8）の rev 1.x とは U2 GPB の配線が違います。**v3.0 の割り当ては、まだ実機では確かめていません。**
 
-- [回路図](#回路図)（スロット・62256 も含む全体）
+- [回路図](#回路図)（スロットも含む全体）
 - [シールド基板](#シールド基板arduino-uno-r4-用)（ガーバー付き。カードのスロットユニットを J1 に直接挿す）
 - [スロットユニット](#スロットユニット)（U-BOX から外したスロット + 変換基板 + L 型ボックスヘッダ）
 
@@ -23,14 +23,13 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 |---|---|---|
 | A1 | Arduino UNO R4 | KiCad の UNO R3 の形（ピン配置は同じ） |
 | U1 | MCP23S17 ch6 | アドレス A0〜A15。A2:A0 = 110 |
-| U2 | MCP23S17 ch7 | データ D0〜D7、制御線、A16/A17。A2:A0 = 111 |
-| J1 | FUJISOKU カードのスロット（F1〜F38） | ピン番号 n = カードのピン Fn。F34（A18）・F35（A19）は GND |
+| U2 | MCP23S17 ch7 | データ D0〜D7、制御線（GPB0〜GPB3）、A16〜A19（GPB4〜GPB7）。A2:A0 = 111 |
+| J1 | FUJISOKU カードのスロット（F1〜F38） | ピン番号 n = カードのピン Fn。F32〜F35 = A16〜A19（U2 GPB4〜GPB7） |
 | R1 | 1 MΩ | BATT-DET（A2）のプルダウン |
 | U3 | 23LC512（オプション） | SPI SRAM、/CS = D6 |
-| U4 | 62256（オプション） | 動作確認用の SRAM、/CS = CE2（GPB0） |
 | J2 | SD カードモジュール（オプション） | 5 V 用。/CS = D7。ピンの並びはモジュールによって違う |
 | J3 | 20×4 LCD + PCF8574（オプション） | I2C、アドレス 0x27 |
-| C1〜C4 | 0.1 µF | 各 IC の近くに置くパスコン（推奨。仕様書には無い部品） |
+| C1〜C3 / C4 | 0.1 µF / 10 µF | 各 IC の近くのパスコンと電源の電解コンデンサ（推奨。仕様書には無い部品） |
 
 - 部品どうしは、ピンに付けた名前（ネットラベル）でつないでいます。同じ名前のラベルがつながっています。
 - 電源は Arduino の 5V ピンから取る 5 V だけです。部品はすべて 5 V 系で、レベル変換はありません。
@@ -42,7 +41,7 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 | ![シールド基板の表](shield/FSU_Shield_top.png) | ![シールド基板の裏](shield/FSU_Shield_bottom.png) |
 
 - 大きさは Arduino UNO と同じ（68.6 × 53.3 mm）。2 層、厚さ 1.6 mm。UNO R4 Minima / WiFi に重ねて使います。
-- 部品はすべてスルーホールで、IC は DIP（ソケット）です。62256 は載せていません。
+- 部品はすべてスルーホールで、IC は DIP（ソケット）です。
 - カードは、[スロットユニット](#スロットユニット)を **J1（キー付きの MIL メスソケット）に直接挿して**つなぎます。ユニットのボックスヘッダの切り欠きにソケットのキーが入るので、逆向きには挿さりません。キーは奥（U1 側、シルクの KEY）です。
   J1 のピンとカードのピンの対応は、スロットユニットのヘッダと同じです。
 
@@ -50,8 +49,8 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
   |---|---|---|---|---|---|---|---|---|---|---|---|
   | カード | F2 | F1 | F4 | F3 | F6 | F5 | … | F38 | F37 | 空き | 空き |
 
-  （2k−1 番 = F2k、2k 番 = F2k−1）。F34（A18、33 番）と F35（A19、36 番）は基板上で GND につないでいます（開放は不可）。
-- 配線は自動配線（Freerouting）で、表と裏に GND のベタを敷いています。ビアは 10 個です。
+  （2k−1 番 = F2k、2k 番 = F2k−1）。F32〜F35（A16〜A19）は U2 の GPB4〜GPB7 につないでいます。
+- 配線は自動配線（Freerouting）で、表と裏に GND のベタを敷いています。ビアは 6 個です。
 - 確認済み: DRC（設計ルールの確認）でエラーと未配線は 0、基板の銅のつながりを `check_netlist.py --shield` で仕様書の結線表と照合。
 
 ### ファイル（`shield/`）
@@ -92,9 +91,10 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 - **J1 はキー（シルクの KEY と四角い出っ張り）を奥（U1 側）に向けて**付けます。1 番ピン（▽ の印、四角いパッド）は右端です。
 - スロットユニットは、変換基板が手前（電源ヘッダ側）、カードのラベル面が奥を向く向きで挿さります。ボックスヘッダの口はシールドから約 2 mm 上に来るので、J1 の周りには背の高い部品を置いていません。
 - **DC ジャック（左下）と ICSP ヘッダ（右の中ほど）の上には、部品の足が出ないように**配置してあります。USB-C の上（左上）には U3 があります（UNO R4 の USB-C は背が低いので当たりません）。
+- 部品面の左下（取り付け穴の上、C4 の左）のシルクに「Powered by」「Cheeky-Smokey」の 2 行で入れています。
 - MCP23S17 のアドレス（A2:A0）は基板の配線で決めてあります（U1 = 110、U2 = 111）。設定は要りません。
 - J2（SD）は、モジュールによってピンの並びが違うので、シルクの名前（GND、5V、MISO、MOSI、SCK、CS）を見てジャンパ線でつなぎます。5 V で使えるモジュールを使います。
-- 62256（`USE_SRAM62256`）は載せていません。U2 の GPB2（62256 の /OE）は未接続です。
+- U2 の GPB は B0 = CE2、B1 = /OE、B2 = /CE1、B3 = /WE、B4〜B7 = A16〜A19 です（v2.8 では /CE1 が B4、F34・F35 が GND）。
 
 ### スロットユニット
 
@@ -126,13 +126,14 @@ kicad-cli sch export netlist --format kicadsexpr -o /tmp/fsu.net FUJISOKU_SRAM_U
 python3 check_netlist.py /tmp/fsu.net          # 結線を確かめる (OK と出れば仕様書どおり)
 ```
 
-`check_netlist.py` は、カードのピン・MCP23S17・Arduino・SPI の各部品・62256 のつながりと、+5V・GND、GND に固定するカードの F34（A18）・F35（A19）、未接続のピン（MCP の INT、ch7 GPB5 など）を、仕様書の表と照らし合わせます。
+`check_netlist.py` は、カードのピン・MCP23S17・Arduino・SPI の各部品のつながり（カードの F32〜F35 → U2 GPB4〜GPB7 を含む）と、+5V・GND、未接続のピン（MCP の INT など）を、仕様書の表と照らし合わせます。
 
 シールド基板は次のとおりです。`gen_pcb.py` には KiCad の標準フットプリント（`kicad-footprints`）、Java と [Freerouting](https://github.com/freerouting/freerouting) 1.9 が要ります（`FREEROUTING_JAR` で jar の場所を指定。画面の無い環境では `xvfb-run` を使う）。
 
 ```sh
 python3 gen_schematic.py --shield              # shield/FSU_Shield.kicad_sch
 python3 gen_pcb.py                             # 基板、DRC、仕様書との照合、ガーバー、画像
+python3 gen_pcb.py --retext                    # 配線はそのままで、シルクの文字だけ書き直して出力し直す
 ```
 
 自動配線は実行のたびに少し違う結果になります（全部つながるまで自動でやり直します）。

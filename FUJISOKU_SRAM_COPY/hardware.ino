@@ -1,4 +1,4 @@
-// ハードウェアアクセス: MCP23S17、FUJISOKU カード、62256 (オプション)、SPI SRAM
+// ハードウェアアクセス: MCP23S17、FUJISOKU カード、SPI SRAM
 //
 // SPI につながる部品 (どれも D13 SCK / D12 MISO / D11 MOSI を共有)
 //   MCP23S17 x 2 : /CS = D4 (共通)。ハードウェアアドレス 6 と 7 で区別する
@@ -7,8 +7,8 @@
 // どのアクセスも SPI.beginTransaction() で SPI_BUS_HZ にしてから行う
 // (SdFat は SPI を高速にしたままにするので、設定なしの SPI.transfer() は SD のクロックで動いてしまう)。
 //
-// カードと 62256 は MCP23S17 を通した並列バスにつながる
-//   ch6 GPA / GPB = A0-A7 / A8-A15、ch7 GPA = D0-D7、ch7 GPB = 制御線 (config.h の CTRL_*)
+// カードは MCP23S17 を通した並列バスにつながる
+//   ch6 GPA / GPB = A0-A7 / A8-A15、ch7 GPA = D0-D7、ch7 GPB = 制御線と A16-A19 (config.h の CTRL_*)
 // 1 バイトの手順
 //   読み出し: アドレス → 選択 → /OE = L → データを読む → /OE = H → 解放
 //   書き込み: データ → アドレス → 選択 → /WE = L → /WE = H (ここで書き込まれる) → 解放
@@ -16,11 +16,12 @@
 
 static const SPISettings fsu_spi_settings(SPI_BUS_HZ, MSBFIRST, SPI_MODE0);
 
-// v1 で実機確認した制御値から変わっていないことを確かめる
-static_assert(CTRL_IDLE == 0x3F, "ch7 GPB idle value");
-static_assert(CTRL_CARD_SELECT == 0x2F, "card select value");
-static_assert(CTRL_CARD_RELEASE == 0x3E, "card release value");
-static_assert(CTRL_62256_SELECT == 0x3E, "62256 select value");
+// ch7 GPB の制御値 (v3.0 の割り当て。docs/hardware.md §7)
+static_assert(CTRL_IDLE == 0x0F, "ch7 GPB idle value");
+static_assert(CTRL_CARD_SELECT == 0x0B, "card select value");
+static_assert(CTRL_CARD_RELEASE == 0x0E, "card release value");
+static_assert((CTRL_IDLE & CTRL_ADDR_HI) == 0, "A16-A19 bits must not overlap the control lines");
+static_assert((((CARD_MAX_SIZE - 1) >> 16) << 4) == CTRL_ADDR_HI, "A16-A19 (1 MB) map to B4-B7");
 static_assert(MCP_IOCON_VALUE == 0x8C, "MCP23S17 IOCON value");
 
 // ---------------------------------------------------------------------
@@ -113,19 +114,19 @@ void mcp_init() {
 }
 
 // ---------------------------------------------------------------------
-// 並列バス (カード / 62256) の 1 バイト読み書き
+// 並列バス (カード) の 1 バイト読み書き
 // ---------------------------------------------------------------------
 
-// アドレスを出してチップを選ぶ。sel: 選択の制御値。戻り値: 選択中の制御値 (A16 / A17 を含む)
+// アドレスを出してカードを選ぶ。sel: 選択の制御値。戻り値: 選択中の制御値 (A16-A19 を含む)
 static uint8_t bus_select(uint32_t address, uint8_t sel) {
   mcp_write(MCP_CH_ADDR, MCP_GPIO_A, (uint8_t)address);         // A0-A7
   mcp_write(MCP_CH_ADDR, MCP_GPIO_B, (uint8_t)(address >> 8));  // A8-A15
-  uint8_t ctrl = sel | (uint8_t)((address >> 10) & (CTRL_A16 | CTRL_A17));  // A16 → B6、A17 → B7 (A15 は ch6 GPB7)
+  uint8_t ctrl = sel | (uint8_t)((address >> CTRL_ADDR_HI_SHIFT) & CTRL_ADDR_HI);  // A16-A19 → ch7 B4-B7
   ctrl_write(ctrl);
   return ctrl;
 }
 
-// sel: 選択の制御値、oe_bit: そのチップの /OE のビット、release: 読んだあとの制御値
+// sel: 選択の制御値、oe_bit: /OE のビット、release: 読んだあとの制御値
 static uint8_t bus_read_byte(uint32_t address, uint8_t sel, uint8_t oe_bit, uint8_t release) {
   bus_set_dir(BUS_READ);
   uint8_t ctrl = bus_select(address, sel);
@@ -145,7 +146,7 @@ static void bus_write_byte(uint32_t address, uint8_t dat, uint8_t sel, uint8_t r
   ctrl_write(release);
 }
 
-// FUJISOKU カード (A0-A17 で最大 256 KB。本体だけの処理は 0x0000-0x7FFF、PC からは CARD_MAX_SIZE まで)
+// FUJISOKU カード (A0-A19 で最大 1 MB。本体だけの処理は 0x0000-0x7FFF、PC からは CARD_MAX_SIZE まで)
 // 上位のアドレス線がつながっていないカード (32 KB など) では、0x8000 以降は先頭と同じ場所になる
 uint8_t read_fujisoku(uint32_t address) {
   return bus_read_byte(address, CTRL_CARD_SELECT, CTRL_CARD_nOE, CTRL_CARD_RELEASE);
@@ -154,17 +155,6 @@ uint8_t read_fujisoku(uint32_t address) {
 void write_fujisoku(uint32_t address, uint8_t dat) {
   bus_write_byte(address, dat, CTRL_CARD_SELECT, CTRL_CARD_RELEASE);
 }
-
-#if USE_SRAM62256
-// 62256 (動作確認用の並列 SRAM 32 KB、オプション)
-uint8_t read_sram62256(uint32_t address) {
-  return bus_read_byte(address, CTRL_62256_SELECT, CTRL_62256_nOE, CTRL_62256_RELEASE);
-}
-
-void write_sram62256(uint32_t address, uint8_t dat) {
-  bus_write_byte(address, dat, CTRL_62256_SELECT, CTRL_62256_RELEASE);
-}
-#endif
 
 // ---------------------------------------------------------------------
 // SPI SRAM 23LC512 (/CS = D6、オプション。USE_SPI_SRAM = 0 ならコンパイルしない)

@@ -5,9 +5,9 @@
 //
 // ファイル構成 (Arduino IDE ではタブとして開く)
 //   FUJISOKU_SRAM_COPY.ino  このファイル。ライブラリ、グローバル変数、setup / loop
-//   config.h                オプション部品 (USE_SD / USE_LCD / USE_SPI_SRAM / USE_SRAM62256)、設定値、ピン、レジスタ、制御ビット
+//   config.h                オプション部品 (USE_SD / USE_LCD / USE_SPI_SRAM / USE_CARD_DET / USE_BATT_DET)、設定値、ピン、レジスタ、制御ビット
 //   card.ino                カードの抜き差し (/CARD DET = D2) と電池電圧 (BATT-DET = A2)
-//   hardware.ino            MCP23S17 / FUJISOKU カード / 62256 / SPI SRAM の 1 バイト読み書き
+//   hardware.ino            MCP23S17 / FUJISOKU カード / SPI SRAM の 1 バイト読み書き
 //   storage.ino             SD カードの状態管理 (抜き差し対応、USE_SD のときだけ)
 //   operations.ino          コピー・比較・SD 保存/書き込み/照合などの処理
 //   protocol.ino            PC との通信 (1 行コマンド)。Web アプリはこれを使う
@@ -76,7 +76,7 @@ void setup() {
   ui_begin();
 
   ui_splash_status("Bus init...");
-  mcp_init();  // バスは待機状態 (カードも 62256 も非選択) になる
+  mcp_init();  // バスは待機状態 (カードは非選択) になる
 #if USE_SPI_SRAM
   spi_sram_init();  // SPI SRAM があるかを確かめ、モードを揃える (無くても止まらない)
 #endif
@@ -93,8 +93,6 @@ void setup() {
   Serial.print(ui_lcd_present() ? "20x4" : "none");
   Serial.print(", SD ");
   Serial.print(USE_SD ? "on" : "off");
-  Serial.print(", 62256 ");
-  Serial.print(USE_SRAM62256 ? "on" : "off");
   Serial.print(", SPI SRAM ");
   Serial.print(spi_sram_status());
   Serial.print(", card ");

@@ -229,7 +229,6 @@ input[type="text"]:focus { border-color: var(--indigo); outline: none; }
 .action strong { display: block; font-size: 15px; }
 .action span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
 .action.danger strong { color: var(--bad); }
-.subhead { font-size: 15px; margin: 26px 0 2px; font-weight: 700; }
 
 /* メモリマップ (パンチカード) と 16 進表示 */
 .viewer { padding: 20px 22px; }
@@ -317,7 +316,6 @@ dialog .row { justify-content: flex-end; }
         <dt>SD カード</dt><dd><span class="pill" id="sdState">—</span></dd>
         <dt>LCD</dt><dd id="lcdState">—</dd>
         <dt>SPI SRAM</dt><dd id="spiState">—</dd>
-        <dt>62256</dt><dd id="ramState">—</dd>
         <dt>スケッチ</dt><dd id="fwVer">—</dd>
       </dl>
       <div id="sdHelp">
@@ -362,6 +360,8 @@ dialog .row { justify-content: flex-end; }
           <label><input type="radio" name="readSize" value="65536">64KB</label>
           <label><input type="radio" name="readSize" value="131072">128KB</label>
           <label><input type="radio" name="readSize" value="262144">256KB</label>
+          <label><input type="radio" name="readSize" value="524288">512KB</label>
+          <label><input type="radio" name="readSize" value="1048576">1MB</label>
         </div>
         <small class="field-note" id="readSizeNote">容量の大きいカードのときだけ変えます。32KB のカードを大きく読むと、同じ内容がくり返し読めます。</small>
       </div>
@@ -375,13 +375,26 @@ dialog .row { justify-content: flex-end; }
     <!-- カードに書き込み -->
     <section class="card panel" role="tabpanel" id="p-write" aria-labelledby="t-write" hidden>
       <h2>ファイルをカードに書き込む</h2>
-      <p class="lead">保存しておいた .bin ファイル (32KB〜256KB) をカードに書き込みます。カードの今の内容は上書きされます。32KB より大きいファイルは、書き込む前に「先頭 32KB だけ」か「すべて」かを選びます。</p>
+      <p class="lead">保存しておいた .bin ファイル (32KB〜1MB) をカードに書き込みます。カードの今の内容は上書きされます。書き込む大きさ (32KB〜1MB) は下のボタンで選びます。32KB より大きく書くときは、書き込む前に「先頭 32KB だけ」か「すべて」かを選びます。</p>
       <label class="drop" id="dropWrite">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
         <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span><br><span class="hint" hidden>クリックかドロップで別のファイルに替えられます。× で外します</span></span>
         <input type="file" accept=".bin,application/octet-stream" hidden id="fileWrite">
         <button type="button" class="drop-clear" hidden aria-label="選んだファイルを外す" title="選んだファイルを外す">×</button>
       </label>
+      <div class="field">
+        <span class="field-label" id="writeSizeLabel">書き込む大きさ</span>
+        <div class="seg" role="radiogroup" aria-labelledby="writeSizeLabel" id="segWriteSize">
+          <label><input type="radio" name="writeSize" value="32768" checked>32KB</label>
+          <label><input type="radio" name="writeSize" value="65536">64KB</label>
+          <label><input type="radio" name="writeSize" value="131072">128KB</label>
+          <label><input type="radio" name="writeSize" value="262144">256KB</label>
+          <label><input type="radio" name="writeSize" value="524288">512KB</label>
+          <label><input type="radio" name="writeSize" value="1048576">1MB</label>
+          <label id="writeAllLabel" hidden><input type="radio" name="writeSize" value="0" id="writeAll"><span>全体</span></label>
+        </div>
+        <small class="field-note" id="writeSizeNote">ファイルの先頭からこの大きさだけ書き込みます。ファイルを選ぶと、ファイルの大きさが選ばれます。ファイルより大きいボタンは押せません。</small>
+      </div>
       <div class="opts">
         <label class="check"><input type="checkbox" id="optBackup" checked><span>書き込む前に、今のカードの内容を PC に保存する<small>backup_日時.bin としてダウンロードされます。変わった部分だけを書き込むので速くなります。</small></span></label>
         <label class="check"><input type="checkbox" id="optVerify" checked><span>書き込んだあと読み戻して照合する</span></label>
@@ -454,16 +467,6 @@ dialog .row { justify-content: flex-end; }
         <button class="action danger" data-cmd="erase f" data-title="カードを消去" data-confirm="カードの内容をすべて FF にします。編み柄も消えます。" data-needs="device"><strong>カードを消去</strong><span>カードをすべて FF にします</span></button>
         <button class="action spi-test" data-cmd="test" data-title="SPI SRAM の自己診断" data-needs="device"><strong>SPI SRAM の自己診断</strong><span>モードレジスタと読み書きを確かめます (/CS = D6)</span></button>
       </div>
-      <div id="tools62256" hidden>
-        <h3 class="subhead">62256（動作確認用の SRAM）</h3>
-        <p class="lead">カードと同じバスにつないだ 62256 で、カードを使わずに配線や読み書きを確かめます。</p>
-        <div class="actions">
-          <button class="action" data-cmd="test p" data-title="62256 でバスを試験" data-needs="device"><strong>62256 でバスを試験</strong><span>データ線 D0〜D7 とアドレス線 A0〜A14 の固定・ショートを調べます (62256 の中身は消えます)</span></button>
-          <button class="action" data-cmd="copy f p" data-title="カード → 62256" data-needs="device"><strong>カード → 62256</strong><span>カードの内容を 62256 に写します</span></button>
-          <button class="action" data-cmd="cmp f p" data-title="カードと 62256 を比較" data-needs="device"><strong>カードと 62256 を比較</strong><span>2 つが同じかを確かめます</span></button>
-          <button class="action" data-cmd="erase p" data-title="62256 を消去" data-needs="device"><strong>62256 を消去</strong><span>すべて FF にします</span></button>
-        </div>
-      </div>
       <div class="result" id="resTools"></div>
     </section>
 
@@ -533,7 +536,7 @@ dialog .row { justify-content: flex-end; }
 // 定数と小物
 // =====================================================================
 const SIZE = 0x8000;      // ふつうのカードの大きさ (32KB)。本体だけの処理 (SD・SPI SRAM) もこの大きさ
-const MAX_SIZE = 0x40000; // PC から読み書きできる最大 (A0-A17 = 256KB。v2.4 以降のスケッチ)
+const MAX_SIZE = 0x100000; // PC から読み書きできる最大 (A0-A19 = 1MB。v3.0 以降のスケッチ。v2.4〜v2.8 は 256KB)
 const CHUNK = 64;         // wr 1 行のバイト数
 const RD_BLOCK = 2048;    // rd 1 回で読む量
 const $ = (s) => document.querySelector(s);
@@ -567,7 +570,7 @@ function diffList(a, b) {
   for (let i = 0; i < n; i++) if (a[i] !== b[i]) out.push(i);
   return out;
 }
-const kb = (n) => (n % 1024 === 0 ? `${n / 1024}KB` : `${fmtN(n)} バイト`);
+const kb = (n) => (n >= 0x100000 && n % 0x100000 === 0 ? `${n / 0x100000}MB` : n % 1024 === 0 ? `${n / 1024}KB` : `${fmtN(n)} バイト`);
 // 大きく読んだ内容が、先頭 32KB (や 64KB) のくり返しなら、その大きさを返す (上位のアドレス線が無いカード)
 function repeatPeriod(u8) {
   if (u8.every((b) => b === 0xff)) return 0;  // すべて空きなら判断しない
@@ -592,7 +595,7 @@ const ERR_TEXT = {
   SDLOST: ['処理の途中で SD カードが抜かれました', 'SD カードを挿し直してから、もう一度実行してください。保存の途中だった場合も、前のファイルはそのまま残っています。'],
   NOFILE: ['SD カードにファイルがありません', 'ファイル名を確かめるか、「一覧を更新」で SD カードの中身を見てください。'],
   BADSIZE: ['ファイルの大きさが違います', '32,768 バイトの .bin ファイルを使ってください。'],
-  TOOBIG: ['この本体のスケッチでは、その大きさを扱えません', 'スケッチを v2.4 以降にすると、256KB まで読み書きできます。'],
+  TOOBIG: ['この本体のスケッチでは、その大きさを扱えません', 'スケッチを v3.0 以降にすると、1MB まで読み書きできます (v2.4〜v2.8 は 256KB まで)。'],
   SDERR: ['SD カードの読み書きに失敗しました', 'SD カードが壊れていないか、FAT32 / exFAT でフォーマットされているかを確かめてください。'],
   CANCEL: ['中断しました', ''],
   BUSY: ['本体が別の処理をしています', '終わるのを待ってから、もう一度実行してください。'],
@@ -601,13 +604,12 @@ const ERR_TEXT = {
   NOSPI: ['SPI SRAM が見つかりません', '配線 (/CS = D6・SCK・MISO・MOSI・電源) を確かめて、「SPI SRAM の自己診断」を実行してください。'],
   TIMEOUT: ['本体から応答がありません', 'USB ケーブルを確かめて、接続し直してください。'],
   CLOSED: ['本体との接続が切れました', 'USB ケーブルを確かめて、「本体に接続」からつなぎ直してください。'],
-  NOHELLO: ['本体がこのアプリに応答しません', 'FUJISOKU SRAM Utility v2 のスケッチが書き込まれているか、別のアプリがシリアルポートを使っていないかを確かめてください。'],
+  NOHELLO: ['本体がこのアプリに応答しません', 'FUJISOKU SRAM Utility (v2 以降) のスケッチが書き込まれているか、別のアプリがシリアルポートを使っていないかを確かめてください。'],
   READ2: ['2 回の読み込み結果が一致しません', 'カードの差し込みや接触を確かめて、もう一度読み込んでください。'],
   FORMAT: ['本体からの応答を読み取れませんでした', 'もう一度実行してください。'],
 };
 function explain(e) {
   if (e.code === 'DISABLED' && /SPI SRAM/.test(e.message)) return ['この本体は SPI SRAM を使わない設定です', 'スケッチの config.h で USE_SPI_SRAM を 1 にすると使えます。'];
-  if (e.code === 'DISABLED' && /62256/.test(e.message)) return ['この本体は 62256 を使わない設定です', 'スケッチの config.h で USE_SRAM62256 を 1 にすると使えます。'];
   if (ERR_TEXT[e.code]) return ERR_TEXT[e.code];
   if (e.code) return ['本体がエラーを返しました', `${e.code}: ${e.message}`];
   return ['エラーが起きました', String(e.message || e)];
@@ -773,7 +775,7 @@ class Device {
 // 画面の状態
 // =====================================================================
 const dev = new Device();
-const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', ram62256: false, sdcard: true, spisram: 'ok', carddet: false, battdet: false, card: null, batt: null, battLow: 1000, battNone: 0, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
+const state = { busy: false, connected: false, cancel: false, sd: null, lcd: 'none', sdcard: true, spisram: 'ok', carddet: false, battdet: false, card: null, batt: null, battLow: 1000, battNone: 0, cardMax: MAX_SIZE, writeFile: null, fileA: null, fileB: null };
 let view = null; // { title, sub, a, b, aName, bName, diffs, sel }
 
 function refreshButtons() {
@@ -788,6 +790,28 @@ function refreshButtons() {
   $('#btnConnect').classList.toggle('ghost', state.connected);
   for (const r of $$('input[name="readSize"]')) r.disabled = state.busy || +r.value > state.cardMax;
   if (document.querySelector('input[name="readSize"]:checked').disabled) document.querySelector('input[name="readSize"][value="32768"]').checked = true;
+  // 書き込む大きさ: ファイルより大きいもの、本体のスケッチが扱えないものは押せない
+  const wlen = state.writeFile ? state.writeFile.data.length : MAX_SIZE;
+  for (const r of $$('input[name="writeSize"]')) {
+    const v = r === $('#writeAll') ? wlen : +r.value;
+    r.disabled = state.busy || v > wlen || v > state.cardMax;
+  }
+  if (document.querySelector('input[name="writeSize"]:checked').disabled) document.querySelector('input[name="writeSize"][value="32768"]').checked = true;
+}
+// 書き込む大きさ (バイト)。「全体」はファイルの大きさ
+function writeSize() {
+  const r = document.querySelector('input[name="writeSize"]:checked');
+  return r === $('#writeAll') && state.writeFile ? state.writeFile.data.length : +r.value;
+}
+// ファイルを選んだら、書き込む大きさをファイルの大きさにする (32KB・64KB… 以外の大きさなら「全体」)
+function setWriteSizeFor(f) {
+  const len = f ? f.data.length : 0;
+  const std = $$('input[name="writeSize"]').find((r) => r !== $('#writeAll') && +r.value === len);
+  const odd = !!f && !std;
+  $('#writeAllLabel').hidden = !odd;
+  $('#writeAllLabel span').textContent = odd ? `全体 (${fmtN(len)} バイト)` : '全体';
+  const pick = !f ? null : len > state.cardMax ? null : (std || $('#writeAll'));
+  (pick || document.querySelector('input[name="writeSize"][value="32768"]')).checked = true;
 }
 function setConnected(on, ver) {
   state.connected = on;
@@ -797,7 +821,7 @@ function setConnected(on, ver) {
   $('#fwVer').textContent = on ? ver : '—';
   if (!on) {
     lcdBytes = null; setSd(null); drawLcd();
-    $('#lcdState').textContent = '—'; $('#ramState').textContent = '—'; $('#tools62256').hidden = true;
+    $('#lcdState').textContent = '—';
     state.spisram = 'ok'; showSpiUi(); $('#spiState').textContent = '—';
     setCard(null);
     state.sdcard = true; showSdUi(true); setSd(null);
@@ -826,7 +850,7 @@ function showSpiUi() {
   $('#t-tools').lastChild.textContent = v === 'off' ? '消去・診断' : 'SPI SRAM・診断';
   $('#p-tools h2').textContent = v === 'off' ? 'カードの消去と診断' : 'SPI SRAM と診断';
   $('#toolsLead').textContent = v === 'off'
-    ? 'この本体は SPI SRAM を使わない設定です。カードの消去と、62256 を使う設定なら 62256 での配線の確認ができます。'
+    ? 'この本体は SPI SRAM を使わない設定です。ここではカードの消去ができます。'
     : '本体の SPI SRAM を一時置き場として使う操作と、配線の確認です。';
 }
 // カードの有無: true / false / null (分からない、検出しない設定)
@@ -975,19 +999,19 @@ async function connect() {
     if (!hello) throw new DevError('NOHELLO');
     const ver = (/HELLO FSU (\S+)/.exec(hello) || [])[1] || '?';
     state.lcd = (/lcd=(\S+)/.exec(hello) || [])[1] || 'none';
-    state.ram62256 = /sram62256=1/.test(hello);
     state.sdcard = !/sdcard=0/.test(hello);  // 古いスケッチには sdcard= が無い (SD あり)
     state.cardMax = +((/cardmax=(\d+)/.exec(hello) || [])[1] || SIZE);  // v2.3 までは 32KB だけ
     state.spisram = (/spisram=(\w+)/.exec(hello) || [])[1] || 'ok';     // v2.4 までは SPI SRAM は必須 (ok)
     setConnected(true, 'v' + ver);
     $('#lcdState').textContent = state.lcd === 'none' ? 'なし (表示はここだけ)' : 'あり (20×4)';
-    $('#ramState').textContent = state.ram62256 ? '使う' : '使わない';
-    $('#tools62256').hidden = !state.ram62256;
     showSpiUi();
     showSdUi(state.sdcard);
     $('#readSizeNote').textContent = state.cardMax > SIZE
-      ? '容量の大きいカードのときだけ変えます。32KB のカードを大きく読むと、同じ内容がくり返し読めます。'
-      : 'この本体のスケッチは 32KB まで読めます (v2.4 以降で 256KB まで)。';
+      ? '容量の大きいカードのときだけ変えます。32KB のカードを大きく読むと、同じ内容がくり返し読めます。' +
+        (state.cardMax < MAX_SIZE ? `この本体のスケッチは ${kb(state.cardMax)} まで読めます (v3.0 以降で 1MB まで)。` : '')
+      : 'この本体のスケッチは 32KB まで読めます (v3.0 以降で 1MB まで)。';
+    $('#writeSizeNote').textContent = 'ファイルの先頭からこの大きさだけ書き込みます。ファイルを選ぶと、ファイルの大きさが選ばれます。ファイルより大きいボタンは押せません。' +
+      (state.cardMax < MAX_SIZE ? `この本体のスケッチは ${kb(state.cardMax)} まで書けます (v3.0 以降で 1MB まで)。` : '');
     const st = await dev.request('status');
     const m = /sd=(\d)/.exec(st.last);
     if (m && state.sdcard) setSd(m[1] === '1');
@@ -1121,12 +1145,12 @@ $('#btnSave').addEventListener('click', async () => {
 });
 
 // ---- ファイル選択 (ドロップ / クリック) ----
-// 使えるファイル: 32KB (32,768 バイト) から 256KB (262,144 バイト) まで
+// 使えるファイル: 32KB (32,768 バイト) から 1MB (1,048,576 バイト) まで
 async function readFileBin(file) {
   const u8 = new Uint8Array(await file.arrayBuffer());
   return { name: file.name, data: u8, ok: u8.length >= SIZE && u8.length <= MAX_SIZE };
 }
-const SIZE_RULE = '32,768〜262,144 バイト (32KB〜256KB) のファイルを選んでください';
+const SIZE_RULE = '32,768〜1,048,576 バイト (32KB〜1MB) のファイルを選んでください';
 function showFileInDrop(drop, f) {
   drop.classList.toggle('bad', !f.ok);
   drop.querySelector('.name').textContent = f.name;
@@ -1164,6 +1188,7 @@ function setupDrop(dropId, inputId, onFile) {
 }
 setupDrop('#dropWrite', '#fileWrite', (f) => {
   state.writeFile = f && f.ok ? f : null;
+  setWriteSizeFor(state.writeFile);
   clearResult('#resWrite');
   if (f && f.ok) setView({ title: '書き込むファイル', sub: f.name, a: f.data, aName: f.name });
 });
@@ -1208,20 +1233,20 @@ function choiceDlg(title, body, opts = {}) {
 // ---- カードに書き込み ----
 $('#btnWrite').addEventListener('click', async () => {
   const f = state.writeFile; if (!f) return;
-  let len = f.data.length;
+  let len = writeSize();
+  const what = len < f.data.length ? `${f.name} の先頭 ${fmtN(len)} バイト (${kb(len)})` : `${f.name} (${kb(len)})`;
   if (len > SIZE) {
-    // 32KB より大きいファイル: 先頭 32KB だけか、すべてかを選ぶ
-    const canAll = len <= state.cardMax;
+    // 32KB より大きく書く: 「先頭 32KB だけ」か「すべて」(選んだ大きさ) かを選ぶ。
+    // カードの容量が足りないと先頭が上書きされることを知らせる
     const choice = await choiceDlg('32KB より大きいファイルです',
-      `${f.name} は ${fmtN(len)} バイト (${kb(len)}) です。ふつうのカードは 32KB で、それより上のアドレス線がつながっていません。` +
+      `${what} を書き込もうとしています。ふつうのカードは 32KB で、それより上のアドレス線がつながっていません。` +
       `そのようなカードに 32KB を超えて書くと、0x8000 以降のデータが先頭から上書きされます。カードの容量が ${kb(len)} 以上あるときだけ「すべて」を選んでください。` +
-      (canAll ? '' : '(この本体のスケッチは 32KB までしか書けません。v2.4 以降で 256KB まで書けます。)') +
       'どちらでも、カードの今の内容は上書きされます。',
-      { alt: '先頭 32KB だけ書き込む', yes: `すべて書き込む (${kb(len)})`, yesDisabled: !canAll });
+      { alt: '先頭 32KB だけ書き込む', yes: `すべて書き込む (${kb(len)})` });
     if (!choice) return;
     if (choice === 'alt') len = SIZE;
   } else {
-    const ok = await confirmDlg('カードの内容を上書きします', `${f.name} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
+    const ok = await confirmDlg('カードの内容を上書きします', `${what} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
     if (!ok) return;
   }
   const data = f.data.subarray(0, len);
@@ -1338,8 +1363,7 @@ const PHASE_JA = {
   'Reading SPI SRAM': 'SPI SRAM を読み込み中', 'Writing card': 'カードに書き込み中', 'Writing SPI SRAM': 'SPI SRAM に書き込み中',
   'Verifying': '照合中', 'Comparing': '比較中', 'Closing file': 'ファイルを閉じています', 'Saving file': 'ファイルを保存しています',
   'Erasing': '消去中', 'Mode register': 'モードレジスタを確認中', 'Read/write test': '読み書きを試験中',
-  'Reading 62256': '62256 を読み込み中', 'Writing 62256': '62256 に書き込み中', 'Copying': 'コピー中',
-  'Data lines D0-D7': 'データ線 D0〜D7 を試験中', 'Address lines A0-A14': 'アドレス線 A0〜A14 を試験中',
+  'Copying': 'コピー中',
 };
 function sdName() {
   let n = $('#sdName').value.trim().replace(/\.bin$/i, '');
@@ -1402,19 +1426,7 @@ for (const b of $$('.action[data-cmd]')) {
     const r = await deviceOp(b.dataset.cmd, b.dataset.title, '#resTools');
     if (!r) return;
     const msg = r.last.replace(/^(OK|NG) \S+\s*/, '');
-    if (b.dataset.cmd === 'test p') {
-      const m = /data_bad=0x([0-9A-F]+) addr_bad=0x([0-9A-F]+)/i.exec(r.lines.find((l) => l.startsWith('T 62256')) || '');
-      const lines = [];
-      if (m) {
-        const db = parseInt(m[1], 16), ab = parseInt(m[2], 16);
-        for (let i = 0; i < 8; i++) if (db & (1 << i)) lines.push('D' + i);
-        for (let i = 0; i < 15; i++) if (ab & (1 << i)) lines.push('A' + i);
-      }
-      if (okLine(r)) result('#resTools', 'ok', '62256 でのバス試験: 異常はありません', 'データ線 D0〜D7、アドレス線 A0〜A14 とも正しく読み書きできました。');
-      else result('#resTools', 'ng', '62256 でのバス試験: 異常があります', `疑わしい線: ${lines.join('、') || '不明'}。MCP23S17 とバスの配線 (断線・ショート・はんだ) を確かめてください。`);
-    } else if (b.dataset.cmd === 'cmp f p') {
-      result('#resTools', okLine(r) ? 'ok' : 'ng', okLine(r) ? 'カードと 62256 はすべて一致しました' : 'カードと 62256 に違いがあります', msg);
-    } else if (b.dataset.cmd === 'test') {
+    if (b.dataset.cmd === 'test') {
       // 自己診断は SPI SRAM を探し直すので、結果に合わせて表示を変える
       state.spisram = r.lines.includes('T mode=40') ? 'ok' : 'none';
       showSpiUi();
@@ -1442,7 +1454,7 @@ $('#cmdForm').addEventListener('submit', async (e) => {
 // =====================================================================
 // メモリマップ (パンチカード) と 16 進表示
 // =====================================================================
-// 穴は 32 列 x 16 行まで。1 つの穴の大きさは中身の大きさで変わる (32KB = 64 バイト、64KB = 128 バイト、… 256KB = 512 バイト)
+// 穴は 32 列 x 16 行まで。1 つの穴の大きさは中身の大きさで変わる (32KB = 64 バイト、64KB = 128 バイト、… 1MB = 2048 バイト)
 const COLS = 32, MAX_ROWS = 16, ROW_H = 22;
 const cellOf = (addr) => Math.floor(addr / view.cell);
 function setView(v) {

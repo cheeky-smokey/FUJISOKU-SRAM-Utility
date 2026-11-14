@@ -3,9 +3,9 @@
 // スケッチ (FUJISOKU_SRAM_COPY/*.ino) をそのままホストでビルドして動かすための土台。
 //   - 仮想時計 (delay は時間を進めるだけ。SPI 1 バイトごとにも進む)
 //   - MCP23S17 ×8 (IOCON の BANK/HAEN、BANK0/1 のレジスタ配置、A2 ピンの癖まで再現)
-//   - FUJISOKU カード (既定 32KB、--card-kb で 64/128/256) / 並列 62256 / SPI SRAM 23LC512 を、物理的な配線から再現
+//   - FUJISOKU カード (既定 32KB、--card-kb で 64/128/256/512/1024) / SPI SRAM 23LC512 を、物理的な配線から再現
 //       カードの容量より上のアドレス線はつながっていない扱い (32KB のカードでは 0x8000 が 0x0000 と同じ場所)
-//       ch7 GPIOB: B0 = CS2 (= 62256 の nCS)、B1 = nOE、B2 = 62256 の nOE、B3 = nWE、B4 = nCS1、B5 = 未使用
+//       ch7 GPIOB (v3.0): B0 = CS2、B1 = nOE、B2 = nCS1、B3 = nWE、B4-B7 = A16-A19
 //       SPI SRAM の /CS は Arduino の D6
 //   - SD カード (ホストのディレクトリ。抜き差し・世代管理・SPI の停止まで再現)
 //   - 20x4 キャラクタ LCD (HD44780 + PCF8574) のモデル。文字列の取り出しと画像化ができる
@@ -121,13 +121,12 @@ static uint8_t mcp_pins_basic(int ch, int port, uint8_t ext, uint8_t ext_mask) {
 
 // ch7 の制御ビットとデータバス、ch6 のアドレス
 struct Sig {
-  uint32_t addr;  // A0-A17 (ch6 GPA / GPB と ch7 GPB6 / GPB7)
+  uint32_t addr;  // A0-A19 (ch6 GPA / GPB と ch7 GPB4-GPB7)
   uint8_t data;  // MCP が出している (または浮いている) データ
-  bool card_sel, card_oe, card_we, ram_sel, ram_oe, ram_we;
+  bool card_sel, card_oe, card_we;
 };
 
-static uint8_t card_mem[0x40000];
-static uint8_t ram62[0x8000];
+static uint8_t card_mem[0x100000];
 
 static Sig sig_eval() {
   Sig s;
@@ -138,15 +137,12 @@ static Sig sig_eval() {
   s.data = mcp_pins_basic(7, 0, 0, 0);
   s.data = (uint8_t)((s.data & ~data_stuck_mask) | (data_stuck_val & data_stuck_mask));
   uint8_t b = mcp_pins_basic(7, 1, 0, 0);
-  s.addr |= (uint32_t)((b >> 6) & 3) << 16;  // B6 = A16、B7 = A17
+  s.addr |= (uint32_t)((b >> 4) & 0x0F) << 16;  // B4-B7 = A16-A19
   auto bit = [&](int n) { return (b >> n) & 1; };
-  // B0 = CS2(カード) / nCS(62256) 共用、B1 = nOE(カード)、B2 = nOE(62256)、B3 = nWE 共用、B4 = nCS1(カード)、B5 = 未使用
-  s.card_sel = (bit(4) == 0) && (bit(0) == 1);
+  // B0 = CS2、B1 = nOE、B2 = nCS1、B3 = nWE
+  s.card_sel = (bit(2) == 0) && (bit(0) == 1);
   s.card_oe = bit(1) == 0;
   s.card_we = bit(3) == 0;
-  s.ram_sel = bit(0) == 0;
-  s.ram_oe = bit(2) == 0;
-  s.ram_we = bit(3) == 0;
   return s;
 }
 
@@ -168,16 +164,7 @@ static uint8_t data_bus_read() {
       glitch_addr = -1;
     }
   }
-  if (s.ram_sel && s.ram_oe && !s.ram_we) {
-    if (drv) {
-      diag.contention++;
-      memv &= ram62[s.addr & 0x7FFF];
-    } else {
-      drv = true;
-      memv = ram62[s.addr & 0x7FFF];
-    }
-  }
-  if ((s.card_sel && s.card_oe && s.card_we) || (s.ram_sel && s.ram_oe && s.ram_we)) diag.oe_we_overlap++;
+  if (s.card_sel && s.card_oe && s.card_we) diag.oe_we_overlap++;
   uint8_t bus;
   if (outmask) {
     bus = (uint8_t)((outv & outmask) | ((drv ? memv : pull) & ~outmask));
@@ -275,12 +262,8 @@ static void mcp_reg_write(int ch, int port, int reg, uint8_t v) {
       if (getenv("FSU_SIM_DEBUG")) fprintf(stderr, "[sim] addr change during write: ch%d port%d reg%d v=%02X addr %04X -> %04X t=%lu\n", ch, port, reg, v, before.addr, after.addr, millis());
     }
     if (wb && !wa && card_present) card_mem[before.addr & (card_size - 1)] = before.data;
-    bool rb = before.ram_sel && before.ram_we;
-    bool ra = after.ram_sel && after.ram_we;
-    if (rb && ra && before.addr != after.addr) diag.addr_change_in_write++;
-    if (rb && !ra) ram62[before.addr & 0x7FFF] = before.data;
     // /WE = L のあいだにデータ線が変わると、途中の値が一瞬書き込まれる
-    if (((wb && wa) || (rb && ra)) && before.data != after.data) diag.data_change_in_write++;
+    if (wb && wa && before.data != after.data) diag.data_change_in_write++;
   }
 }
 
@@ -940,11 +923,6 @@ static void ctl_exec(const std::string &line) {
     else if (a[1] == "dump") reply(save_file(a[2], sram23.mem, 0x8000) ? "ok" : "err dump");
     else if (a[1] == "fill") { memset(sram23.mem, (int)strtol(a[2].c_str(), nullptr, 16), sizeof(sram23.mem)); reply("ok"); }
     else reply("err spi");
-  } else if (c == "ram62" && a.size() >= 3) {
-    if (a[1] == "dump") reply(save_file(a[2], ram62, sizeof(ram62)) ? "ok" : "err dump");
-    else if (a[1] == "load") reply(load_file(a[2], ram62, sizeof(ram62)) ? "ok" : "err load");
-    else if (a[1] == "fill") { memset(ram62, (int)strtol(a[2].c_str(), nullptr, 16), sizeof(ram62)); reply("ok"); }
-    else reply("err ram62");
   } else if (c == "stuck" && a.size() >= 2) {
     // stuck addr|data <ビット> <0|1> / stuck clear : バス線の H / L 固定
     if (a[1] == "clear") {
@@ -1060,8 +1038,8 @@ int main(int argc, char **argv) {
     else if (a == "--batt-mv" && i + 1 < argc) batt_mv_sim = atoi(argv[++i]);
     else if (a == "--card-kb" && i + 1 < argc) {
       long kb = atol(argv[++i]);
-      if (kb != 32 && kb != 64 && kb != 128 && kb != 256) {
-        fprintf(stderr, "--card-kb must be 32, 64, 128 or 256\n");
+      if (kb != 32 && kb != 64 && kb != 128 && kb != 256 && kb != 512 && kb != 1024) {
+        fprintf(stderr, "--card-kb must be 32, 64, 128, 256, 512 or 1024\n");
         return 2;
       }
       card_size = (uint32_t)kb * 1024;
@@ -1074,7 +1052,6 @@ int main(int argc, char **argv) {
   for (int i = 0; i < 64; i++) pin_level[i] = 1;
   for (int i = 0; i < 8; i++) mcp[i].reset();
   memset(card_mem, 0xA5, sizeof(card_mem));
-  memset(ram62, 0x5A, sizeof(ram62));
   memset(sram23.mem, 0x3C, sizeof(sram23.mem));
   fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
   fcntl(3, F_SETFL, fcntl(3, F_GETFL) | O_NONBLOCK);
