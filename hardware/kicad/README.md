@@ -40,7 +40,7 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 |---|---|
 | ![シールド基板の表](shield/FSU_Shield_top.png) | ![シールド基板の裏](shield/FSU_Shield_bottom.png) |
 
-- 大きさは Arduino UNO と同じ（68.6 × 53.3 mm）。2 層、厚さ 1.6 mm。UNO R4 Minima / WiFi に重ねて使います。
+- 大きさは Arduino UNO と同じ（68.58 × 53.34 mm、右側の角が斜め）。2 層、厚さ 1.6 mm。取り付け穴は φ3.2 mm × 4（UNO と同じ位置）。UNO R4 Minima / WiFi に重ねて使います。
 - 部品はすべてスルーホールで、IC は DIP（ソケット）です。
 - カードは、[スロットユニット](#スロットユニット)を **J1（キー付きの MIL メスソケット）に直接挿して**つなぎます。ユニットのボックスヘッダの切り欠きにソケットのキーが入るので、逆向きには挿さりません。キーは奥（U1 側、シルクの KEY）です。
   J1 のピンとカードのピンの対応は、スロットユニットのヘッダと同じです。
@@ -82,7 +82,19 @@ FUJISOKU SRAM Utility の回路図と、Arduino UNO R4 用のシールド基板�
 ### 注文のしかた
 
 1. `shield/gerber/FSU_Shield_gerber.zip` を、そのまま JLCPCB、PCBWay、Elecrow などにアップロードします。
-2. 設定は標準のままで作れます: 2 層、1.6 mm、線幅 0.3 mm 以上（電源 0.6 mm）、間隔 0.25 mm 以上、ビア 0.8 mm（穴 0.4 mm）。
+2. 設定は標準のままで作れます: 2 層、1.6 mm、線幅 0.3 mm 以上（電源 0.6 mm）、間隔 0.25 mm 以上、ビア 0.8 mm（穴 0.4 mm）。層数と大きさはガーバーから自動で読み取られます。JLCPCB の場合の例:
+
+   | 項目 | 設定 |
+   |---|---|
+   | Base Material / Layers | FR-4 / 2 |
+   | PCB Qty | 5（最少） |
+   | Delivery Format | Single PCB |
+   | PCB Thickness | 1.6 mm |
+   | PCB Color / Silkscreen | Green / White（ほかの色は高くなったり日数が延びたりすることがある） |
+   | Surface Finish | HASL（有鉛または鉛フリー。スルーホールだけなので ENIG は要らない） |
+   | Outer Copper Weight | 1 oz |
+   | Mark on PCB（注文番号） | Remove Order Number（1〜6 層は手数料なし） |
+   | そのほか | 既定のまま |
 3. 注文の前に、`FSU_Shield_1to1.pdf` を A4 に **100 %（拡大縮小なし）** で印刷し、Arduino を重ねてピンの位置を確かめると確実です。
 
 ### 組み立て・使うときの注意
