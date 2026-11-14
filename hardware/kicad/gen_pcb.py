@@ -227,7 +227,7 @@ LAYOUT = {
     'A1': (0, 0, 0),
     'J1': (55.88, 26.67, 270),     # カード用 40 ピンのメスソケット。1 番 (F2) が右端、キーは奥 (U1 側)
     'U1': (50.80, 44.45, 270),     # MCP23S17 ch6 (アドレス)。1 番ピンが右上
-    'U2': (25.40, 7.62, 90),       # MCP23S17 ch7 (データ・制御)
+    'U2': (58.42, 15.24, 270),     # MCP23S17 ch7 (データ・制御)。1 番ピンが右上 (VDD / VSS が J1 側の列)
     'U3': (5.08, 36.83, 90),       # 23LC512
     'J2': (58.42, 46.99, 0),       # SD カードモジュール (1 番 GND が上)
     'J3': (65.41, 20.32, 0),       # LCD (1 番 GND が上)
@@ -284,7 +284,8 @@ def build_board(comps, pinnet):
         fp = board.FindFootprintByReference(ref)
         fp.SetPosition(P(x, y)); fp.SetOrientationDegrees(rot)
     for ref, (x, y, rot) in LAYOUT.items(): place(ref, x, y, rot)
-    # パスコン: U1 は J1 側、U2 は Arduino の電源ヘッダ側 (VDD / VSS のある列の外)
+    # パスコン (足の間隔 5 mm): U1・U2 とも J1 側 (VDD / VSS のある列の外)。
+    # U2 と Arduino の電源ヘッダの間は 2.3 mm しかなく、5 mm 間隔のパスコンが入らないので U2 は 270 度にした
     place('C1', *cap_for(board, 'U1', 'C1', inner_y=33.3, outer_y=47.7, inner_row_y=36.83))
     # (U1 / U2 / J1 の向きは 8 通りを自動配線で比べ、全部つながってビアが最も少ないものにした)
     place('C2', *cap_for(board, 'U2', 'C2', inner_y=18.6, outer_y=4.95, inner_row_y=15.24))
@@ -343,7 +344,7 @@ def finish_text(board):
     silk('github.com/cheeky-smokey/FUJISOKU-SRAM-Utility', 34.3, 31.6, 0.8, B)
     silk('J1: slot unit plugs in directly (keyed, key = U1 side)', 40.6, 21.6, 0.8, B)
     silk('pin 1=F2 2=F1 3=F4 4=F3 ... 37=F38 38=F37', 40.6, 20.0, 0.8, B)
-    silk('39/40 NC.  5 V only, no level shifting', 40.6, 18.4, 0.8, B)
+    silk('39/40 NC.  5 V only, no level shifting', 34.3, 29.6, 0.8, B)   # C2 のパッドを避けて J1 と U1 の間に
 
 def edge_cuts(board):
     import pcbnew

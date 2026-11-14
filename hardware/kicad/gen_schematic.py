@@ -33,10 +33,10 @@ FP = {
     'J2': 'Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical',
     'J3': 'Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical',
     'R1': 'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal',
-    'C1': 'Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm',
-    'C2': 'Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm',
-    'C3': 'Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm',
-    'C4': 'Capacitor_THT:CP_Radial_D5.0mm_P2.00mm',
+    'C1': 'Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm',   # 足の間隔 5 mm
+    'C2': 'Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm',   # 足の間隔 5 mm
+    'C3': 'Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm',   # 足の間隔 5 mm
+    'C4': 'Capacitor_THT:CP_Radial_D5.0mm_P2.50mm',      # 直径 5 mm、足の間隔 2.5 mm
 } if SHIELD else {}
 
 # ---------------------------------------------------------------------------------------------

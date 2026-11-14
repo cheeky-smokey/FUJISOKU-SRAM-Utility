@@ -6025,7 +6025,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm"
+    (property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
       (at 165 250 0)
       (effects
         (font
@@ -6150,7 +6150,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm"
+    (property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
       (at 177.7 250 0)
       (effects
         (font
@@ -6275,7 +6275,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Capacitor_THT:C_Disc_D3.0mm_W1.6mm_P2.50mm"
+    (property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
       (at 190.4 250 0)
       (effects
         (font
@@ -6400,7 +6400,7 @@
         (font
           (size 1.27 1.27))
         (justify left)))
-    (property "Footprint" "Capacitor_THT:CP_Radial_D5.0mm_P2.00mm"
+    (property "Footprint" "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm"
       (at 203.1 250 0)
       (effects
         (font
