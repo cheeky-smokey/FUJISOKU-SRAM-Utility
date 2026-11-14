@@ -336,9 +336,10 @@ def finish_text(board):
     silk('CARD', 61.9, 28.9, 0.8, just='left')
     silk('1=F2', 61.9, 26.67, 0.8, just='left')
     silk('2=F1', 61.9, 24.13, 0.8, just='left')
+    silk('Powered by Cheeky-Smokey', 1.6, 6.0, 1.0, just='left')   # 左下 (取り付け穴と C4 の間)
     # 裏面: 名前と説明 (パッドの列の間のすき間に書く)
     B = pcbnew.B_SilkS
-    silk('FUJISOKU SRAM Utility shield rev 1.0', 34.3, 33.6, 1.0, B, bold=True)
+    silk('FUJISOKU SRAM Utility shield rev 2.0', 34.3, 33.6, 1.0, B, bold=True)
     silk('github.com/cheeky-smokey/FUJISOKU-SRAM-Utility', 34.3, 31.6, 0.8, B)
     silk('J1: slot unit plugs in directly (keyed, key = U1 side)', 40.6, 21.6, 0.8, B)
     silk('pin 1=F2 2=F1 3=F4 4=F3 ... 37=F38 38=F37', 40.6, 20.0, 0.8, B)
@@ -539,9 +540,32 @@ def render_png(board, width=1600):
     shutil.rmtree(tmp)
     return out
 
+def retext():
+    """配線はそのままで、シルクの文字だけ書き直して出力し直す (python3 gen_pcb.py --retext)"""
+    import pcbnew
+    board = pcbnew.LoadBoard(PCB)
+    old = [d for d in board.GetDrawings() if d.GetClass() == 'PCB_TEXT' and d.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS)]
+    finish_text(board)   # 先に書く (Remove の後だと FindFootprintByReference が型の無いオブジェクトを返すことがある)
+    for d in old: board.Remove(d)
+    pcbnew.SaveBoard(PCB, board)
+    board = pcbnew.LoadBoard(PCB)
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    pcbnew.SaveBoard(PCB, board)
+    return board
+
 def main():
     import pcbnew
     os.makedirs(SH, exist_ok=True)
+    if '--retext' in sys.argv:
+        board = retext()
+        viol, unc, _t = run_drc(board)
+        print('DRC violations: %d, unconnected: %d' % (viol, unc))
+        ok, out = check_board_nets(board)
+        print('board nets vs docs/hardware.md:', out.splitlines()[-1])
+        if not ok or viol or unc: raise SystemExit(out)
+        print('gerber:', os.path.relpath(export_outputs(), HERE))
+        for f in render_png(board): print('image:', os.path.relpath(f, HERE))
+        return
     make_arduino_footprint()
     make_socket_footprint()
     comps, pinnet = read_netlist()
