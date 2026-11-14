@@ -375,7 +375,7 @@ dialog .row { justify-content: flex-end; }
     <!-- カードに書き込み -->
     <section class="card panel" role="tabpanel" id="p-write" aria-labelledby="t-write" hidden>
       <h2>ファイルをカードに書き込む</h2>
-      <p class="lead">保存しておいた .bin ファイル (32KB〜1MB) をカードに書き込みます。カードの今の内容は上書きされます。書き込む大きさ (32KB〜1MB) は下のボタンで選びます。</p>
+      <p class="lead">保存しておいた .bin ファイル (32KB〜1MB) をカードに書き込みます。カードの今の内容は上書きされます。書き込む大きさ (32KB〜1MB) は下のボタンで選びます。32KB より大きく書くときは、書き込む前に「先頭 32KB だけ」か「すべて」かを選びます。</p>
       <label class="drop" id="dropWrite">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
         <span><span class="name">.bin ファイルを選ぶ</span><br><span class="meta">ここにドロップするか、クリックして選択</span><br><span class="hint" hidden>クリックかドロップで別のファイルに替えられます。× で外します</span></span>
@@ -1233,15 +1233,18 @@ function choiceDlg(title, body, opts = {}) {
 // ---- カードに書き込み ----
 $('#btnWrite').addEventListener('click', async () => {
   const f = state.writeFile; if (!f) return;
-  const len = writeSize();
+  let len = writeSize();
   const what = len < f.data.length ? `${f.name} の先頭 ${fmtN(len)} バイト (${kb(len)})` : `${f.name} (${kb(len)})`;
   if (len > SIZE) {
-    // 32KB より大きく書く: カードの容量が足りないと先頭が上書きされることを知らせる
-    const ok = await confirmDlg(`32KB より大きく書き込みます (${kb(len)})`,
-      `${what} をカードに書き込みます。ふつうのカードは 32KB で、それより上のアドレス線がつながっていません。` +
-      `そのようなカードに 32KB を超えて書くと、0x8000 以降のデータが先頭から上書きされます。カードの容量が ${kb(len)} 以上あるときだけ書き込んでください。` +
-      'カードの今の内容は上書きされます。', `書き込む (${kb(len)})`);
-    if (!ok) return;
+    // 32KB より大きく書く: 「先頭 32KB だけ」か「すべて」(選んだ大きさ) かを選ぶ。
+    // カードの容量が足りないと先頭が上書きされることを知らせる
+    const choice = await choiceDlg('32KB より大きいファイルです',
+      `${what} を書き込もうとしています。ふつうのカードは 32KB で、それより上のアドレス線がつながっていません。` +
+      `そのようなカードに 32KB を超えて書くと、0x8000 以降のデータが先頭から上書きされます。カードの容量が ${kb(len)} 以上あるときだけ「すべて」を選んでください。` +
+      'どちらでも、カードの今の内容は上書きされます。',
+      { alt: '先頭 32KB だけ書き込む', yes: `すべて書き込む (${kb(len)})` });
+    if (!choice) return;
+    if (choice === 'alt') len = SIZE;
   } else {
     const ok = await confirmDlg('カードの内容を上書きします', `${what} をカードに書き込みます。カードの今の内容は消えます。`, '書き込む');
     if (!ok) return;
