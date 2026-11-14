@@ -244,35 +244,45 @@ test('PC に保存: 読み込む大きさのボタン (既定 32KB)。64KB で�
   await app.close();
 });
 
-test('カードに書き込み: 32KB より大きいファイルは「先頭 32KB だけ」か「すべて」かを選ぶ', async () => {
+const pickWrite = (page, label) => page.click(`#segWriteSize label:has-text("${label}")`);
+const writeChecked = (page) => page.evaluate(() => document.querySelector('input[name="writeSize"]:checked').parentElement.textContent.trim());
+
+test('カードに書き込み: 書き込む大きさのボタン。既定はファイルの大きさ、32KB を選ぶと先頭 32KB だけ', async () => {
   const orig = bigPattern(0x10000, 2);
   const img = bigPattern(0x10000, 9);
   const app = await connected({ card: orig, fwArgs: ['--card-kb', '64'] });
   const { page, fw } = app;
   await page.click('#t-write');
+  assert.equal(await page.locator('input[name="writeSize"]').count(), 7, '32KB〜1MB と「全体」');
   await fileInput(page, '#fileWrite', 'big.bin', img);
   await page.waitForFunction(() => /65,536 バイト \(64KB\)/.test(document.querySelector('#dropWrite').textContent));
+  assert.equal(await writeChecked(page), '64KB', '既定はファイルの大きさ');
+  for (const v of [131072, 262144, 524288, 1048576]) assert.equal(await page.isDisabled(`input[name="writeSize"][value="${v}"]`), true, `${v} はファイルより大きい`);
+  assert.equal(await page.isHidden('#writeAllLabel'), true);
   await page.uncheck('#optBackup');
+  await page.screenshot({ path: path.join(SHOTS, 'write-size.png'), clip: await page.locator('#p-write').boundingBox() });
   // やめる
   await page.click('#btnWrite');
   await page.waitForSelector('#dlg[open]');
-  assert.match(await page.textContent('#dlgTitle'), /32KB より大きいファイルです/);
-  assert.equal(await page.isVisible('#dlgAlt'), true);
-  assert.equal(await page.textContent('#dlgYes'), 'すべて書き込む (64KB)');
+  assert.match(await page.textContent('#dlgTitle'), /32KB より大きく書き込みます \(64KB\)/);
+  assert.equal(await page.textContent('#dlgYes'), '書き込む (64KB)');
   await page.screenshot({ path: path.join(SHOTS, 'confirm-big.png') });
   await page.click('#dlgNo');
   await page.waitForTimeout(300);
   assert.ok((await fw.cardDump()).equals(orig), 'やめたのに書き込まれた');
   // 先頭 32KB だけ
+  await pickWrite(page, '32KB');
   await page.click('#btnWrite');
-  await page.click('#dlgAlt');
+  assert.match(await page.textContent('#dlgBody'), /big\.bin の先頭 32,768 バイト \(32KB\)/);
+  await page.click('#dlgYes');
   let r = await waitResult(page, '#resWrite');
   assert.equal(r.kind, 'ok', r.text);
   assert.match(r.text, /先頭 32,768 バイト \(32KB\) を書き込みました/);
   let card = await fw.cardDump();
   assert.ok(card.subarray(0, 0x8000).equals(img.subarray(0, 0x8000)), '先頭 32KB が書かれていない');
   assert.ok(card.subarray(0x8000).equals(orig.subarray(0x8000)), '32KB より後ろが書き換わった');
-  // すべて
+  // すべて (64KB)
+  await pickWrite(page, '64KB');
   await page.click('#btnWrite');
   await page.click('#dlgYes');
   r = await waitResult(page, '#resWrite');
@@ -290,7 +300,79 @@ test('カードに書き込み: 32KB より大きいファイルは「先頭 32K
   await app.close();
 });
 
-test('カードに書き込み: 32KB のカードに 64KB を「すべて」書くと、照合で違いを知らせる', async () => {
+test('カードに書き込み: 32KB・64KB… 以外の大きさのファイルは「全体」で書ける', async () => {
+  const img = bigPattern(40000, 4);
+  const app = await connected({ card: pattern(2), fwArgs: ['--card-kb', '64'] });
+  const { page, fw } = app;
+  await page.click('#t-write');
+  await fileInput(page, '#fileWrite', 'odd.bin', img);
+  await page.waitForFunction(() => !document.querySelector('#writeAllLabel').hidden);
+  assert.equal(await writeChecked(page), '全体 (40,000 バイト)');
+  assert.equal(await page.isDisabled('input[name="writeSize"][value="65536"]'), true);
+  await page.uncheck('#optBackup');
+  await page.click('#btnWrite');
+  assert.match(await page.textContent('#dlgTitle'), /32KB より大きく書き込みます \(40,000 バイト\)/);
+  await page.click('#dlgYes');
+  const r = await waitResult(page, '#resWrite');
+  assert.equal(r.kind, 'ok', r.text);
+  assert.match(r.text, /40,000 バイトすべて一致/);
+  assert.ok((await fw.cardDump()).subarray(0, 40000).equals(img));
+  // 32KB のファイルに替えると「全体」は消える
+  await fileInput(page, '#fileWrite', 'small.bin', pattern(5));
+  await page.waitForFunction(() => document.querySelector('#writeAllLabel').hidden);
+  assert.equal(await writeChecked(page), '32KB');
+  noErrors(page);
+  await app.close();
+});
+
+test('256KB・512KB・1MB: 1MB のカードを読み、書き込み、照合する', { timeout: 600000 }, async () => {
+  const MB = 0x100000;
+  const card = bigPattern(MB, 3);
+  const app = await connected({ card, fwArgs: ['--card-kb', '1024'] });
+  const { page, fw } = app;
+  assert.equal(await page.locator('input[name="readSize"]:disabled').count(), 0, 'v3.0 は 1MB まで読める');
+  await page.uncheck('#optTwice');
+  // 読み込み: 256KB / 512KB / 1MB
+  for (const [label, size] of [['256KB', 0x40000], ['512KB', 0x80000], ['1MB', MB]]) {
+    await pickSize(page, label);
+    const dl = page.waitForEvent('download', { timeout: 300000 });
+    await page.click('#btnSave');
+    const d = await dl;
+    assert.match(d.suggestedFilename(), new RegExp(`_${label}\\.bin$`));
+    const got = fs.readFileSync(await d.path());
+    assert.equal(got.length, size, label);
+    assert.ok(got.equals(card.subarray(0, size)), `${label} の内容がカードと違う`);
+    const r = await waitResult(page, '#resSave', 300000);
+    assert.equal(r.kind, 'ok', r.text);
+    assert.doesNotMatch(r.text, /くり返し/);
+  }
+  assert.match(await page.textContent('#mapScale'), /1 つの穴 = 2,048 バイト、1 行 = 64KB/);
+  // 書き込み: 1MB のファイルから 256KB / 512KB / 1MB
+  const img = bigPattern(MB, 77);
+  await page.click('#t-write');
+  await fileInput(page, '#fileWrite', 'img1m.bin', img);
+  await page.waitForFunction(() => /1,048,576 バイト \(1MB\)/.test(document.querySelector('#dropWrite').textContent));
+  assert.equal(await writeChecked(page), '1MB');
+  await page.uncheck('#optBackup');
+  let expect = Buffer.from(card);
+  for (const [label, size] of [['256KB', 0x40000], ['512KB', 0x80000], ['1MB', MB]]) {
+    await pickWrite(page, label);
+    await page.click('#btnWrite');
+    assert.equal(await page.textContent('#dlgYes'), `書き込む (${label})`);
+    await page.click('#dlgYes');
+    const r = await waitResult(page, '#resWrite', 300000);
+    assert.equal(r.kind, 'ok', r.text);
+    assert.match(r.text, new RegExp(`${size.toLocaleString('en-US')} バイトすべて一致`));
+    img.copy(expect, 0, 0, size);
+    assert.ok((await fw.cardDump()).equals(expect), `${label} の書き込み後のカードが違う`);
+  }
+  // LCD: 1MB の進捗は KB で出る
+  assert.ok((await lcdText(page)).some((row) => /Written & verified|1024\/1024K/.test(row)), (await lcdText(page)).join('|'));
+  noErrors(page);
+  await app.close();
+});
+
+test('カードに書き込み: 32KB のカードに 64KB を書くと、照合で違いを知らせる', async () => {
   const app = await connected({ card: pattern(1) });
   const { page } = app;
   await page.click('#t-write');

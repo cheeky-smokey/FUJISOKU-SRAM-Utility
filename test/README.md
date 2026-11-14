@@ -7,7 +7,7 @@
 必要なもの: Linux / macOS の `g++`（C++17）、`python3`（Pillow）、Node.js 18 以降、Playwright（Web アプリのテストのみ。`npm i -g playwright && npx playwright install chromium`）、`git`（本物のライブラリの取得用）。
 
 ```sh
-test/run_all.sh                  # すべて (4 構成のビルド → 型チェック → 64 件のテスト)
+test/run_all.sh                  # すべて (4 構成のビルド → 型チェック → 66 件のテスト。1MB の読み書きのテストは 5 分ほどかかる)
 test/build.sh fsu_sim -DUSE_SD=1                          # シミュレータだけビルド (SD・LCD あり。テストの大半はこれ)
 test/build.sh fsu_sim_nolcd -DUSE_SD=1 -DUSE_LCD=0        # LCD のコードなし
 test/build.sh fsu_sim_nosd                                # config.h の既定 (SD のコードなし)
